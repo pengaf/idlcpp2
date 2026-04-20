@@ -1,0 +1,67 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "17",
+                "CMAKE_CXX_STANDARD_REQUIRED": "ON"
+            }
+        },
+        {
+            "name": "ninja-debug",
+            "inherits": "base",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-ninja",
+            "description": "Shared Windows Ninja preset. Machine-specific paths belong in CMakeUserPresets.json.",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "wsl-ninja-debug",
+            "inherits": "base",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-wsl-ninja",
+            "description": "WSL Ninja debug preset. Override binaryDir in CMakeUserPresets.json to place the build tree on the Linux filesystem.",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "vs2026",
+            "inherits": "base",
+            "generator": "Visual Studio 18 2026",
+            "description": "Shared Visual Studio preset. Machine-specific paths belong in CMakeUserPresets.json.",
+            "architecture": {
+                "value": "x64"
+            },
+            "binaryDir": "${sourceDir}/build-vs"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "build-ninja-debug",
+            "configurePreset": "ninja-debug"
+        },
+        {
+            "name": "build-wsl-ninja-debug",
+            "configurePreset": "wsl-ninja-debug"
+        },
+        {
+            "name": "build-vs-debug",
+            "configurePreset": "vs2026",
+            "configuration": "Debug"
+        }
+    ]
+}

@@ -1,0 +1,42 @@
+#import "type.i"
+
+namespace pafcore
+{
+	abstract class(void_type)#PAFCORE_EXPORT VoidType : Type
+	{
+		static void* AddressToPtr(size_t address);
+		static void* NullPtr { get };
+#{
+	public:
+		VoidType();
+	public:
+		virtual Metadata* findMember(const char* name);
+	public:
+		static VoidType s_instance;
+		static VoidType* GetSingleton()
+		{
+			return &s_instance;
+		}
+#}
+	};
+#{
+	inline void* VoidType::AddressToPtr(size_t address)
+	{
+		return (void*)address;
+	}
+
+inline void* VoidType::NullPtr()
+	{
+		return 0;
+	}
+#}
+}
+
+#{
+template<>
+struct RuntimeTypeOf<void>
+{
+	typedef ::pafcore::VoidType RuntimeType;
+	enum { type_category = ::pafcore::void_object };
+};
+#}

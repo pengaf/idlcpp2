@@ -1,0 +1,114 @@
+#include "reference.h"
+#include "reference.mh"
+#include "reference.ic"
+#include "reference.mc"
+#include "utility.h"
+
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
+
+#ifdef _DEBUG
+#include "debug.h"
+#endif
+
+BEGIN_PAFCORE
+
+#ifdef _DEBUG
+
+class ReferenceLeakReporter
+{
+public:
+	~ReferenceLeakReporter()
+	{
+		m_liveObjects.lock();
+		for (auto& item : m_liveObjects.m_objects)
+		{
+			Reference* reference = item.first;
+			size_t serialNumber = item.second;
+			if (!reference->isTypeOf<Metadata>())
+			{
+				char buf[1024];
+				reference->addRef();
+				long_t refCount = reference->release();
+				pafcore::ClassType* classType = reference->getType();
+				sprintf_s(buf, "pafcore Warning: Live Reference at 0x%p Type: %s, RefCount:%d, SerialNumber:%zu\n",
+					reference, classType->_name_().c_str(), refCount, serialNumber);
+				OutputDebugStringA(buf);
+			}
+		}
+		m_liveObjects.unlock();
+	}
+public:
+	void onReferenceConstruct(Reference* reference)
+	{
+		m_liveObjects.addPtr(reference);
+	}
+	void onReferenceDestruct(Reference* reference)
+	{
+		m_liveObjects.removePtr(reference);
+	}
+	void travel(ReferenceDebugTraveler* traveler)
+	{
+		m_liveObjects.lock();
+		for (auto& item : m_liveObjects.m_objects)
+		{
+			Reference* reference = item.first;
+			traveler->onDebugTravel(reference);
+		}
+		m_liveObjects.unlock();
+	}
+public:
+	LiveObjects<Reference> m_liveObjects;
+public:
+	static ReferenceLeakReporter* GetInstance()
+	{
+		static ReferenceLeakReporter s_instance;
+		return &s_instance;
+	}
+};
+
+Reference::Reference()
+{
+	ReferenceLeakReporter::GetInstance()->onReferenceConstruct(this);
+}
+
+Reference::Reference(const Reference&)
+{
+	ReferenceLeakReporter::GetInstance()->onReferenceConstruct(this);
+}
+
+Reference::~Reference()
+{
+	ReferenceLeakReporter::GetInstance()->onReferenceDestruct(this);
+}
+
+#endif//_DEBUG
+
+bool Reference::isTypeOf(ClassType* classType)
+{
+	ClassType* thisType = getType();
+	return thisType->isType(classType);
+}
+
+void* Reference::castTo(ClassType* classType)
+{
+	size_t offset;
+	ClassType* thisType = getType();
+	if (thisType->getClassOffset(offset, classType))
+	{
+		size_t address = getAddress();
+		return (void*)(address + offset);
+	}
+	return 0;
+}
+
+void Reference::DebugTravel(ReferenceDebugTraveler* traveler)
+{
+#ifdef _DEBUG
+	ReferenceLeakReporter::GetInstance()->travel(traveler);
+#endif//_DEBUG
+}
+
+
+END_PAFCORE

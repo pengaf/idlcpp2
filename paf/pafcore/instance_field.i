@@ -1,0 +1,36 @@
+#import "class_type.i"
+
+namespace pafcore
+{
+
+#{
+	struct Attributes;
+#}
+
+	abstract class(instance_field)#PAFCORE_EXPORT InstanceField : Metadata
+	{
+		Type* type { get };
+		ClassType* objectType { get };
+		size_t offset { get };
+		bool isArray { get };
+		bool isPointer { get };
+		bool isConstant { get };
+#{
+	public:
+		InstanceField(const char* name, Attributes* attributes, ClassType* objectType, Type* type, size_t offset, size_t arraySize, bool constant, TypeCompound tc);
+	public:
+		size_t getArraySize() const
+		{
+			return m_arraySize;
+		}
+	public:
+		Type* m_type;
+		ClassType* m_objectType;
+		size_t m_offset;
+		size_t m_arraySize;
+		bool m_constant;
+		byte_t m_typeCompound;
+#}
+	};
+
+}
