@@ -1,3 +1,6 @@
+add_subdirectory(test_smart_types)
+add_subdirectory(test_smart_cpp)
+add_subdirectory(test_smart_lua)
 add_subdirectory(test1)
 add_subdirectory(test_lua)
 add_subdirectory(test_memory)

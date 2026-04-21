@@ -1,4 +1,4 @@
-#import "reference.i"
+#import "object.i"
 
 namespace pafcore
 {
@@ -102,8 +102,8 @@ namespace pafcore
 		primitive_object,
 		enum_object,
 		value_object,
-		reference_object,
-##		atomic_reference_object = reference_object,
+		rc_object,
+		atomic_rc_object,
 		enumerator,
 		instance_field,
 		static_field,
@@ -121,7 +121,7 @@ namespace pafcore
 		name_space,
 	};
 
-	abstract class #PAFCORE_EXPORT Metadata : Reference
+	abstract class #PAFCORE_EXPORT Metadata : Object
 	{
 		string_t _name_ { get };
 		Category _category_ { get };
@@ -136,21 +136,16 @@ namespace pafcore
 		{
 			by_value,
 			by_ref,
-			by_ptr,
-			by_out_ptr,
-			by_out_ref,
-			by_new,
-			by_new_array,
-			by_new_ptr,
-			by_new_ref,
-			by_new_array_ptr,
-			by_new_array_ref,
 		};
 		enum TypeCompound
 		{
 			tc_none,
-			tc_pointer,
-			tc_array,
+			tc_observer_ptr,
+			tc_unique_ptr,
+			tc_shared_ptr,
+			tc_observer_array,
+			tc_unique_array,
+			tc_shared_array,
 		};
 		enum PropertyCategory
 		{
@@ -165,9 +160,6 @@ namespace pafcore
 		//Metadata& operator=(const Metadata&) = default;
 	public:
 		bool operator < (const Metadata& arg) const;
-	public:
-		virtual long_t addRef();
-		virtual long_t release();
 	public:
 		const char* m_name;
 		Attributes* m_attributes;

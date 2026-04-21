@@ -57,7 +57,8 @@ void RaiseError_InvalidParameterType(ParameterNode* node)
 {
 	TypeNameNode* typeName = node->m_typeName;
 	TokenNode* out = node->m_out;
-	TokenNode* passing = node->m_passing;
+	TokenNode* typeCompound = node->m_typeCompound;
+	TokenNode* byRef = node->m_byRef;
 
 	char buf[error_info_buffer_size];
 	std::string str;
@@ -77,13 +78,27 @@ void RaiseError_InvalidParameterType(ParameterNode* node)
 		}
 	}
 	const char* strPassing = "";
-	if (passing)
+	if (typeCompound)
 	{
-		switch (passing->m_nodeType)
+		switch (typeCompound->m_nodeType)
 		{
 		case '*':
 			strPassing = "*";
 			break;
+		case '!':
+			strPassing = "!";
+			break;
+		case '^':
+			strPassing = "^";
+			break;
+		default:
+			assert(false);
+		}
+	}
+	else if (byRef)
+	{
+		switch (byRef->m_nodeType)
+		{
 		case '&':
 			strPassing = "&";
 			break;
@@ -97,23 +112,32 @@ void RaiseError_InvalidParameterType(ParameterNode* node)
 		tokenNode->m_columnNo, semantic_error_invalid_parameter, buf);
 }
 
-void RaiseError_InvalidResultType(TypeNameNode* result, TokenNode* passing, bool resultArray)
+void RaiseError_InvalidResultType(TypeNameNode* result, TokenNode* typeCompound, TokenNode* byRef, bool resultArray)
 {
 	char buf[error_info_buffer_size];
 	std::string str;
 	result->getString(str);
 
 	const char* strPassing = "";
-	if (passing)
+	if (typeCompound)
 	{
-		switch (passing->m_nodeType)
+		switch (typeCompound->m_nodeType)
 		{
-		case '+':
-			strPassing = resultArray ? "+[]" : "+";
-			break;
 		case '*':
 			strPassing = "*";
 			break;
+		case '!':
+			strPassing = "!";
+			break;
+		case '^':
+			strPassing = "^";
+			break;
+		}
+	}
+	else if (byRef)
+	{
+		switch (byRef->m_nodeType)
+		{
 		case '&':
 			strPassing = "&";
 			break;
@@ -128,17 +152,17 @@ void RaiseError_InvalidResultType(TypeNameNode* result, TokenNode* passing, bool
 
 void RaiseError_InvalidResultType(MethodNode* node)
 {
-	RaiseError_InvalidResultType(node->m_resultTypeName, node->m_passing, node->m_resultArray);
+	RaiseError_InvalidResultType(node->m_resultTypeName, node->m_typeCompound, node->m_byRef, node->m_resultArray);
 }
 
 void RaiseError_InvalidResultType(OperatorNode* node)
 {
-	RaiseError_InvalidResultType(node->m_resultTypeName, node->m_passing, node->m_resultArray);
+	RaiseError_InvalidResultType(node->m_resultTypeName, node->m_typeCompound, node->m_byRef, node->m_resultArray);
 }
 
 void RaiseError_InvalidResultType(DelegateNode* node)
 {
-	RaiseError_InvalidResultType(node->m_resultTypeName, node->m_passing, node->m_resultArray);
+	RaiseError_InvalidResultType(node->m_resultTypeName, node->m_typeCompound, node->m_byRef, node->m_resultArray);
 }
 
 
@@ -156,23 +180,31 @@ void RaiseError_InvalidFieldType(FieldNode* node)
 
 void RaiseError_InvalidPropertyType(PropertyNode* node)
 {
-	TokenNode* passing = node->m_passing;
+	TokenNode* typeCompound = node->m_typeCompound;
+	TokenNode* byRef = node->m_byRef;
 	char buf[error_info_buffer_size];
 	std::string str;
 	node->m_typeName->getString(str);
 
 	const char* strPassing = "";
-	if (passing)
+	if (typeCompound)
 	{
-		switch (passing->m_nodeType)
+		switch (typeCompound->m_nodeType)
 		{
 		case '*':
 			strPassing = "*";
 			break;
-		case '&':
-			strPassing = "&";
+		case '!':
+			strPassing = "!";
+			break;
+		case '^':
+			strPassing = "^";
 			break;
 		}
+	}
+	else if (byRef)
+	{
+		strPassing = "&";
 	}
 	TokenNode* tokenNode = node->m_typeName->m_scopeNameList ? node->m_typeName->m_scopeNameList->m_scopeName->m_name : node->m_typeName->m_keyword;
 	sprintf_s(buf, "\'%s %s\' : can not be a property type", str.c_str(), strPassing);
@@ -249,12 +281,12 @@ void RaiseError_TemplateInterfaceNotSupported(IdentifyNode* node)
 		node->m_columnNo, semantic_error_template_interface_not_supported, buf);
 }
 
-void RaiseError_MissingReferenceBaseType(IdentifyNode* node)
+void RaiseError_MissingRcObjectBaseType(IdentifyNode* node)
 {
 	char buf[error_info_buffer_size];
-	sprintf_s(buf, "\'%s\' : reference type must inherited from ::pafcore::Reference", node->m_str.c_str());
+	sprintf_s(buf, "\'%s\' : rc object type must inherit from ::pafcore::Object", node->m_str.c_str());
 	ErrorList_AddItem_CurrentFile(node->m_lineNo,
-		node->m_columnNo, semantic_error_missing_reference_base_type, buf);
+		node->m_columnNo, semantic_error_missing_rc_object_base_type, buf);
 }
 
 void RaiseError_InterfaceMethodIsNotVirtual(IdentifyNode* node)

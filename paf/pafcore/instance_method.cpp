@@ -19,13 +19,13 @@ size_t InstanceMethod::overloadCount() const
 	return m_overloadCount;
 }
 
-Result* InstanceMethod::getResult(size_t overloadIndex)
+ObserverPtr<Result> InstanceMethod::getResult(size_t overloadIndex)
 {
 	if(overloadIndex < m_overloadCount)
 	{
 		return m_overloads[overloadIndex].m_result;
 	}
-	return 0;
+	return nullptr;
 }
 
 size_t InstanceMethod::getArgumentCount(size_t overloadIndex)
@@ -37,7 +37,7 @@ size_t InstanceMethod::getArgumentCount(size_t overloadIndex)
 	return 0;
 }
 
-Argument* InstanceMethod::getArgument(size_t overloadIndex, size_t index)
+ObserverPtr<Argument> InstanceMethod::getArgument(size_t overloadIndex, size_t index)
 {
 	if(overloadIndex < m_overloadCount)
 	{
@@ -46,7 +46,7 @@ Argument* InstanceMethod::getArgument(size_t overloadIndex, size_t index)
 			return &m_overloads[overloadIndex].m_args[index];
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 bool InstanceMethod::isConstant(size_t overloadIndex)

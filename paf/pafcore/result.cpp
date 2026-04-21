@@ -5,12 +5,13 @@
 
 BEGIN_PAFCORE
 
-Result::Result(Type* type, bool constant, Passing passing)
+Result::Result(Type* type, bool constant, Passing passing, TypeCompound typeCompound)
 : Metadata(0)
 {
 	m_type = type;
 	m_constant = constant;
 	m_passing = passing;
+	m_typeCompound = typeCompound;
 }
 
 bool Result::isConstant() const
@@ -18,32 +19,29 @@ bool Result::isConstant() const
 	return m_constant;
 }
 
-Type* Result::type() const
+ObserverPtr<Type> Result::type() const
 {
 	return m_type;
 }
 
+byte_t Result::typeCompound() const
+{
+	return m_typeCompound;
+}
+
 bool Result::byValue() const
 {
-	return by_value == m_passing;
+	return by_value == m_passing && tc_none == m_typeCompound;
 }
+
 bool Result::byRef() const
 {
-	return by_ref == m_passing;
+	return by_ref == m_passing && tc_none == m_typeCompound;
 }
+
 bool Result::byPtr() const
 {
-	return by_ptr == m_passing;
-}
-
-bool Result::byNew() const
-{
-	return by_new == m_passing;
-}
-
-bool Result::byNewArray() const
-{
-	return by_new_array == m_passing;
+	return tc_none != m_typeCompound;
 }
 
 END_PAFCORE

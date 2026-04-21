@@ -409,9 +409,27 @@ void MetaHeaderFileGenerator::generateCode_Program(FILE* file, SourceFile* sourc
 			case value_type:
 				typeCategoryName = "value_object";
 				break;
-			case reference_type:
-				typeCategoryName = "reference_object";
+			case rc_object_type:
+			{
+				ClassNode* classNode = 0;
+				if (typeNode->isTemplateClassInstance())
+				{
+					classNode = static_cast<TemplateClassInstanceTypeNode*>(typeNode)->m_classNode;
+				}
+				else
+				{
+					classNode = static_cast<ClassTypeNode*>(typeNode)->m_classNode;
+				}
+				if (classNode->m_category && classNode->m_category->m_str == "atomic_rc_object")
+				{
+					typeCategoryName = "atomic_rc_object";
+				}
+				else
+				{
+					typeCategoryName = "rc_object";
+				}
 				break;
+			}
 			default:
 				assert(false);
 			}
@@ -720,20 +738,57 @@ void writeOverrideMethodParameter(MethodNode* methodNode, ParameterNode* paramet
 {
 	std::string typeName;
 	ClassNode* classNode = static_cast<ClassNode*>(methodNode->m_enclosing);
-	if(parameterNode->m_constant)
-	{
-		writeStringToFile("const ", file);
-	}
 	parameterNode->m_typeName->getRelativeName(typeName, methodNode->getProgramNode());
-	writeStringToFile(typeName.c_str(), file);
-
-	if (parameterNode->isByPtr())
+	if (parameterNode->isInput() && parameterNode->isByObserverPtr())
 	{
-		writeStringToFile("*", file);
+		writeStringToFile("::pafcore::ObserverPtr<", file);
+		if (parameterNode->isConstant())
+		{
+			writeStringToFile("const ", file);
+		}
+		writeStringToFile(typeName.c_str(), file);
+		writeStringToFile(">", file);
 	}
-	else if(parameterNode->isByRef())
+	else if (parameterNode->isInput() && parameterNode->isBySharedPtr())
 	{
-		writeStringToFile("&", file);
+		writeStringToFile("::pafcore::SharedPtr<", file);
+		if (parameterNode->isConstant())
+		{
+			writeStringToFile("const ", file);
+		}
+		writeStringToFile(typeName.c_str(), file);
+		writeStringToFile(">", file);
+	}
+	else
+	{
+		if(parameterNode->m_constant)
+		{
+			writeStringToFile("const ", file);
+		}
+		writeStringToFile(typeName.c_str(), file);
+		if (0 != parameterNode->m_typeCompound)
+		{
+			switch (parameterNode->m_typeCompound->m_nodeType)
+			{
+			case '*':
+				writeStringToFile("*", file);
+				break;
+			case '!':
+				writeStringToFile("::pafcore::UniquePtr<", file);
+				writeStringToFile(typeName.c_str(), file);
+				writeStringToFile(">", file);
+				break;
+			case '^':
+				writeStringToFile("::pafcore::SharedPtr<", file);
+				writeStringToFile(typeName.c_str(), file);
+				writeStringToFile(">", file);
+				break;
+			}
+		}
+		else if(parameterNode->isByRef())
+		{
+			writeStringToFile("&", file);
+		}
 	}
 
 	if (parameterNode->isOutputPtr())
@@ -766,9 +821,17 @@ void writeInterfaceMethodDecl(MethodNode* methodNode, FILE* file, int indentatio
 	{
 		resultName += "&";
 	}
-	else if (methodNode->byPtr() || methodNode->byNew())
+	else if (methodNode->byUniquePtr())
+	{
+		resultName = "::pafcore::UniquePtr<" + resultName + ">";
+	}
+	else if (methodNode->byObserverPtr() || methodNode->returnsOwning())
 	{
 		resultName += "*";
+	}
+	else if (methodNode->bySharedPtr())
+	{
+		resultName = "::pafcore::SharedPtr<" + resultName + ">";
 	}
 
 	sprintf_s(buf, "%s %s( ", resultName.c_str(), methodNode->m_name->m_str.c_str());

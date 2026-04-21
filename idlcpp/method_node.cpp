@@ -20,7 +20,8 @@ MethodNode::MethodNode(IdentifyNode* name, TokenNode* leftParenthesis, Parameter
 	m_modifier = 0;
 	m_resultConst = 0;
 	m_resultTypeName = 0;
-	m_passing = 0;
+	m_typeCompound = 0;
+	m_byRef = 0;
 	m_name = name;
 	m_leftParenthesis = leftParenthesis;
 	m_parameterList = parameterList;
@@ -28,6 +29,7 @@ MethodNode::MethodNode(IdentifyNode* name, TokenNode* leftParenthesis, Parameter
 	m_constant = constant;
 	m_semicolon = 0;
 	m_resultArray = false;
+	m_resultOwning = false;
 	m_override = false;
 	m_parameterCount = size_t(-1);
 }
@@ -56,22 +58,42 @@ bool MethodNode::isAbstract()
 
 bool MethodNode::byValue()
 {
-	return 0 == m_passing;
+	return 0 == m_typeCompound && 0 == m_byRef && !m_resultOwning;
 }
 
 bool MethodNode::byRef()
 {
-	return (0 != m_passing && '&' == m_passing->m_nodeType);
+	return 0 != m_byRef;
 }
 
 bool MethodNode::byPtr()
 {
-	return (0 != m_passing && '*' == m_passing->m_nodeType);
+	return byObserverPtr() || byUniquePtr() || bySharedPtr();
 }
 
-bool MethodNode::byNew()
+bool MethodNode::byObserverPtr()
 {
-	return (0 != m_passing && '+' == m_passing->m_nodeType);
+	return (0 != m_typeCompound && '*' == m_typeCompound->m_nodeType);
+}
+
+bool MethodNode::byUniquePtr()
+{
+	return (0 != m_typeCompound && '!' == m_typeCompound->m_nodeType);
+}
+
+bool MethodNode::bySharedPtr()
+{
+	return (0 != m_typeCompound && '^' == m_typeCompound->m_nodeType);
+}
+
+bool MethodNode::returnsOwning()
+{
+	return m_resultOwning;
+}
+
+void MethodNode::setResultOwning(bool resultOwning)
+{
+	m_resultOwning = resultOwning;
 }
 
 size_t MethodNode::getParameterCount() const
@@ -167,7 +189,7 @@ void MethodNode::checkSemantic(TemplateArguments* templateArguments)
 		}
 		if (void_type == typeNode->getTypeCategory(templateArguments))
 		{
-			if (0 != m_passing && ('+' == m_passing->m_nodeType || '&' == m_passing->m_nodeType))
+			if ((0 != m_typeCompound && '*' != m_typeCompound->m_nodeType) || 0 != m_byRef)
 			{
 				RaiseError_InvalidResultType(this);
 			}

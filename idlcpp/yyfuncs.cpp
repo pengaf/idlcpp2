@@ -21,6 +21,9 @@
 #include "enumerator_list_node.h"
 #include "type_name_node.h"
 #include "type_name_list_node.h"
+#include "typed_member_prefix_node.h"
+#include "variable_type_node.h"
+#include "variable_type_list_node.h"
 #include "field_node.h"
 #include "getter_setter_node.h"
 #include "property_node.h"
@@ -265,14 +268,109 @@ void setNativeName(SyntaxNode* syntaxNode, SyntaxNode* nativeName)
 	((MemberNode*)syntaxNode)->m_nativeName = (IdentifyNode*)nativeName;
 }
 
-SyntaxNode* newField(SyntaxNode* type, SyntaxNode* pointer, SyntaxNode* name, SyntaxNode* leftBracket, SyntaxNode* rightBracket)
+SyntaxNode* newVariableType(SyntaxNode* type, SyntaxNode* passing)
 {
-	assert(snt_type_name == type->m_nodeType && snt_identify == name->m_nodeType);
-	assert(0 == pointer || '*' == pointer->m_nodeType);
-	assert((0 == leftBracket || '[' == leftBracket->m_nodeType) && (0 == rightBracket || ']' == rightBracket->m_nodeType));
-	FieldNode* res = new FieldNode((TypeNameNode*) type, (TokenNode*)pointer, (IdentifyNode*) name, (TokenNode*)leftBracket, (TokenNode*)rightBracket);
+	assert(snt_type_name == type->m_nodeType);
+	assert(0 == passing || '*' == passing->m_nodeType || '!' == passing->m_nodeType || '^' == passing->m_nodeType);
+	VariableTypeNode* res = new VariableTypeNode((TypeNameNode*)type, 0, (TokenNode*)passing);
 	g_syntaxNodes.push_back(res);
 	return res;
+}
+
+void setVariableTypeRef(SyntaxNode* variableType, SyntaxNode* passing)
+{
+	assert(snt_variable_type == variableType->m_nodeType);
+	assert('&' == passing->m_nodeType);
+	VariableTypeNode* variableTypeNode = (VariableTypeNode*)variableType;
+	assert(0 == variableTypeNode->m_byRef);
+	variableTypeNode->m_byRef = (TokenNode*)passing;
+}
+
+void setVariableTypeConst(SyntaxNode* variableType, SyntaxNode* constant)
+{
+	assert(snt_variable_type == variableType->m_nodeType);
+	assert(snt_keyword_const == constant->m_nodeType);
+	VariableTypeNode* variableTypeNode = (VariableTypeNode*)variableType;
+	assert(0 == variableTypeNode->m_constant);
+	variableTypeNode->m_constant = (TokenNode*)constant;
+}
+
+SyntaxNode* newVariableTypeList(SyntaxNode* variableTypeList, SyntaxNode* delimiter, SyntaxNode* variableType)
+{
+	assert(0 == variableTypeList || snt_variable_type_list == variableTypeList->m_nodeType);
+	assert(0 == delimiter || ',' == delimiter->m_nodeType);
+	assert(snt_variable_type == variableType->m_nodeType);
+	VariableTypeListNode* res = new VariableTypeListNode((VariableTypeListNode*)variableTypeList, (TokenNode*)delimiter, (VariableTypeNode*)variableType);
+	g_syntaxNodes.push_back(res);
+	return res;
+}
+
+static VariableTypeNode* getSingleVariableType(SyntaxNode* variableTypeOrList)
+{
+	if (snt_variable_type == variableTypeOrList->m_nodeType)
+	{
+		return (VariableTypeNode*)variableTypeOrList;
+	}
+
+	assert(snt_variable_type_list == variableTypeOrList->m_nodeType);
+	VariableTypeNode* variableType = ((VariableTypeListNode*)variableTypeOrList)->getFirstVariableType();
+	assert(0 != variableType);
+	return variableType;
+}
+
+static TypedMemberPrefixNode* getTypedMemberPrefix(SyntaxNode* typedMemberPrefix)
+{
+	assert(snt_typed_member_prefix == typedMemberPrefix->m_nodeType);
+	return (TypedMemberPrefixNode*)typedMemberPrefix;
+}
+
+SyntaxNode* newTypedMemberPrefix(SyntaxNode* variableTypeList, SyntaxNode* name)
+{
+	assert(snt_variable_type_list == variableTypeList->m_nodeType);
+	assert(snt_identify == name->m_nodeType);
+	TypedMemberPrefixNode* res = new TypedMemberPrefixNode((VariableTypeListNode*)variableTypeList, (IdentifyNode*)name);
+	g_syntaxNodes.push_back(res);
+	return res;
+}
+
+SyntaxNode* newFieldByPrefix(SyntaxNode* typedMemberPrefix, SyntaxNode* leftBracket, SyntaxNode* rightBracket)
+{
+	TypedMemberPrefixNode* prefixNode = getTypedMemberPrefix(typedMemberPrefix);
+	return newField(prefixNode->m_variableTypeList, prefixNode->m_name, leftBracket, rightBracket);
+}
+
+SyntaxNode* newPropertyByPrefix(SyntaxNode* typedMemberPrefix, PropertyCategory category)
+{
+	TypedMemberPrefixNode* prefixNode = getTypedMemberPrefix(typedMemberPrefix);
+	PropertyNode* res = (PropertyNode*)newProperty(prefixNode->m_name, category);
+	setPropertyType(res, prefixNode->m_variableTypeList);
+	return res;
+}
+
+SyntaxNode* newMethodByPrefix(SyntaxNode* typedMemberPrefix, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis, SyntaxNode* constant)
+{
+	TypedMemberPrefixNode* prefixNode = getTypedMemberPrefix(typedMemberPrefix);
+	MethodNode* res = (MethodNode*)newMethod(prefixNode->m_name, leftParenthesis, parameterList, rightParenthesis, constant);
+	setMethodResult(res, prefixNode->m_variableTypeList);
+	return res;
+}
+
+SyntaxNode* newField(SyntaxNode* variableType, SyntaxNode* name, SyntaxNode* leftBracket, SyntaxNode* rightBracket)
+{
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
+	assert(snt_identify == name->m_nodeType);
+	assert((0 == leftBracket || '[' == leftBracket->m_nodeType) && (0 == rightBracket || ']' == rightBracket->m_nodeType));
+	FieldNode* res = new FieldNode(variableTypeNode->m_typeName, variableTypeNode->m_typeCompound, (IdentifyNode*) name, (TokenNode*)leftBracket, (TokenNode*)rightBracket);
+	res->m_constant = variableTypeNode->m_constant;
+	g_syntaxNodes.push_back(res);
+	return res;
+}
+
+void setFieldSmartArray(SyntaxNode* syntaxNode)
+{
+	assert(snt_field == syntaxNode->m_nodeType);
+	FieldNode* fieldNode = (FieldNode*)syntaxNode;
+	fieldNode->m_smartArray = true;
 }
 
 void setFieldStatic(SyntaxNode* syntaxNode, SyntaxNode* stat)
@@ -306,20 +404,6 @@ SyntaxNode* newGetterSetter(SyntaxNode* keyword)
 	GetterSetterNode* res = new GetterSetterNode((TokenNode*)keyword); 
 	g_syntaxNodes.push_back(res);
 	return res;
-}
-
-void setGetterIncRef(SyntaxNode* syntaxNode)
-{
-	assert(snt_getter_setter == syntaxNode->m_nodeType);
-	GetterSetterNode* getterSetterNode = (GetterSetterNode*)syntaxNode;
-	getterSetterNode->m_getterIncRef = true;
-}
-
-void setSetterDecRef(SyntaxNode* syntaxNode)
-{
-	assert(snt_getter_setter == syntaxNode->m_nodeType);
-	GetterSetterNode* getterSetterNode = (GetterSetterNode*)syntaxNode;
-	getterSetterNode->m_setterDecRef = true;
 }
 
 void setSetterAllowNull(SyntaxNode* syntaxNode)
@@ -358,21 +442,23 @@ SyntaxNode* newProperty(SyntaxNode* name, PropertyCategory category)
 	return res;
 }
 
-void setMapPropertyKeyType(SyntaxNode* property, SyntaxNode* type, SyntaxNode* passing)
+void setMapPropertyKeyType(SyntaxNode* property, SyntaxNode* variableType)
 {
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
 	assert(snt_property == property->m_nodeType);
-	assert(0 == type || snt_type_name == type->m_nodeType);
-	((PropertyNode*)property)->m_keyTypeName = (TypeNameNode*)type;
-	((PropertyNode*)property)->m_keyPassing = (TokenNode*)passing;
+	((PropertyNode*)property)->m_keyTypeName = variableTypeNode->m_typeName;
+	((PropertyNode*)property)->m_keyTypeCompound = variableTypeNode->m_typeCompound;
+	((PropertyNode*)property)->m_keyByRef = variableTypeNode->m_byRef;
 }
 
-void setPropertyType(SyntaxNode* property, SyntaxNode* type, SyntaxNode* passing)
+void setPropertyType(SyntaxNode* property, SyntaxNode* variableType)
 {
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
 	assert(snt_property == property->m_nodeType);
-	assert(0 == type || snt_type_name == type->m_nodeType);
-	assert(0 == passing || '*' == passing->m_nodeType || '&' == passing->m_nodeType);
-	((PropertyNode*)property)->m_typeName = (TypeNameNode*)type;
-	((PropertyNode*)property)->m_passing = (TokenNode*)passing;
+	((PropertyNode*)property)->m_constant = variableTypeNode->m_constant;
+	((PropertyNode*)property)->m_typeName = variableTypeNode->m_typeName;
+	((PropertyNode*)property)->m_typeCompound = variableTypeNode->m_typeCompound;
+	((PropertyNode*)property)->m_byRef = variableTypeNode->m_byRef;
 }
 
 void setPropertyGetter(SyntaxNode* property, SyntaxNode* getter)
@@ -403,12 +489,13 @@ void setPropertyModifier(SyntaxNode* syntaxNode, SyntaxNode* modifier)
 	propertyNode->m_modifier = (TokenNode*)modifier;
 }
 
-SyntaxNode* newParameter(SyntaxNode* type, SyntaxNode* passing, SyntaxNode* out, SyntaxNode* name)
+SyntaxNode* newParameter(SyntaxNode* variableType, SyntaxNode* out, SyntaxNode* name)
 {
-	assert(snt_type_name == type->m_nodeType && snt_identify == name->m_nodeType);
-	assert(0 == passing || '&' == passing->m_nodeType || '*' == passing->m_nodeType || '-' == passing->m_nodeType || '+' == passing->m_nodeType);
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
+	assert(snt_identify == name->m_nodeType);
 	assert(0 == out || '&' == out->m_nodeType || '*' == out->m_nodeType);
-	ParameterNode* res = new ParameterNode((TypeNameNode*) type, (TokenNode*)out, (TokenNode*)passing, (IdentifyNode*) name);
+	ParameterNode* res = new ParameterNode(variableTypeNode->m_typeName, (TokenNode*)out, variableTypeNode->m_typeCompound, variableTypeNode->m_byRef, (IdentifyNode*)name);
+	res->m_constant = variableTypeNode->m_constant;
 	g_syntaxNodes.push_back(res);
 	return res;
 }
@@ -453,18 +540,26 @@ SyntaxNode* newMethod(SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode*
 	return res;
 }
 
-void setMethodResult(SyntaxNode* method, SyntaxNode* result, SyntaxNode* passing)
+void setMethodResult(SyntaxNode* method, SyntaxNode* variableType)
 {
-	assert(snt_method == method->m_nodeType && snt_type_name == result->m_nodeType);
-	assert(0 == passing || '&' == passing->m_nodeType || '*' == passing->m_nodeType || '+' == passing->m_nodeType);
-	((MethodNode*)method)->m_resultTypeName = (TypeNameNode*)result;
-	((MethodNode*)method)->m_passing = (TokenNode*)passing;
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
+	assert(snt_method == method->m_nodeType);
+	((MethodNode*)method)->m_resultConst = variableTypeNode->m_constant;
+	((MethodNode*)method)->m_resultTypeName = variableTypeNode->m_typeName;
+	((MethodNode*)method)->m_typeCompound = variableTypeNode->m_typeCompound;
+	((MethodNode*)method)->m_byRef = variableTypeNode->m_byRef;
 }
 
 void setMethodResultArray(SyntaxNode* method)
 {
 	assert(snt_method == method->m_nodeType);
 	((MethodNode*)method)->m_resultArray = true;
+}
+
+void setMethodResultOwning(SyntaxNode* method)
+{
+	assert(snt_method == method->m_nodeType);
+	((MethodNode*)method)->setResultOwning();
 }
 
 void setMethodResultConst(SyntaxNode* method, SyntaxNode* constant)
@@ -505,12 +600,14 @@ SyntaxNode* newOperator(SyntaxNode* keyword, SyntaxNode* sign, SyntaxNode* leftP
 	return res;
 }
 
-void setOperatorResult(SyntaxNode* opt, SyntaxNode* result, SyntaxNode* passing)
+void setOperatorResult(SyntaxNode* opt, SyntaxNode* variableType)
 {
-	assert(snt_operator == opt->m_nodeType && snt_type_name == result->m_nodeType);
-	assert(0 == passing || '&' == passing->m_nodeType || '*' == passing->m_nodeType || '+' == passing->m_nodeType);
-	((OperatorNode*)opt)->m_resultTypeName = (TypeNameNode*)result;
-	((OperatorNode*)opt)->m_passing = (TokenNode*)passing;
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
+	assert(snt_operator == opt->m_nodeType);
+	((OperatorNode*)opt)->m_resultConst = variableTypeNode->m_constant;
+	((OperatorNode*)opt)->m_resultTypeName = variableTypeNode->m_typeName;
+	((OperatorNode*)opt)->m_typeCompound = variableTypeNode->m_typeCompound;
+	((OperatorNode*)opt)->m_byRef = variableTypeNode->m_byRef;
 }
 
 void setOperatorResultArray(SyntaxNode* opt)
@@ -627,18 +724,26 @@ SyntaxNode* newDelegate(SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNod
 	return res;
 }
 
-void setDelegateResult(SyntaxNode* delegate, SyntaxNode* result, SyntaxNode* passing)
+void setDelegateResult(SyntaxNode* delegate, SyntaxNode* variableType)
 {
-	assert(snt_delegate == delegate->m_nodeType && snt_type_name == result->m_nodeType);
-	assert(0 == passing || '&' == passing->m_nodeType || '*' == passing->m_nodeType || '+' == passing->m_nodeType);
-	((DelegateNode*)delegate)->m_resultTypeName = (TypeNameNode*)result;
-	((DelegateNode*)delegate)->m_passing = (TokenNode*)passing;
+	VariableTypeNode* variableTypeNode = getSingleVariableType(variableType);
+	assert(snt_delegate == delegate->m_nodeType);
+	((DelegateNode*)delegate)->m_resultConst = variableTypeNode->m_constant;
+	((DelegateNode*)delegate)->m_resultTypeName = variableTypeNode->m_typeName;
+	((DelegateNode*)delegate)->m_typeCompound = variableTypeNode->m_typeCompound;
+	((DelegateNode*)delegate)->m_byRef = variableTypeNode->m_byRef;
 }
 
 void setDelegateResultArray(SyntaxNode* delegate)
 {
 	assert(snt_delegate == delegate->m_nodeType);
 	((DelegateNode*)delegate)->m_resultArray = true;
+}
+
+void setDelegateResultOwning(SyntaxNode* delegate)
+{
+	assert(snt_delegate == delegate->m_nodeType);
+	((DelegateNode*)delegate)->setResultOwning();
 }
 
 void setDelegateResultConst(SyntaxNode* delegate, SyntaxNode* constant)

@@ -302,14 +302,14 @@ namespace pafcore
 
 			static ::pafcore::Result s_staticResults[] =
 			{
-				::pafcore::Result(this, false, ::pafcore::Result::by_new),
-				::pafcore::Result(this, false, ::pafcore::Result::by_new),
-				::pafcore::Result(this, false, ::pafcore::Result::by_new_array),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_unique_ptr),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_unique_ptr),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_unique_array),
 			};
 			static ::pafcore::Argument s_staticArguments[] =
 			{
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("count", GetUnsignedIntRuntimeType(), ::pafcore::Argument::by_value, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("count", GetUnsignedIntRuntimeType(), ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
 			};
 			static ::pafcore::Overload s_staticOverloads[] =
 			{
@@ -326,71 +326,71 @@ namespace pafcore
 			m_staticMethodCount = paf_array_size_of(s_staticMethods);
 			static ::pafcore::Result s_instanceResults[] =
 			{
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
-				::pafcore::Result(this, false, ::pafcore::Result::by_value),
-				::pafcore::Result(this, false, ::pafcore::Result::by_ref),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(GetBoolRuntimeType(), false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_ref, ::pafcore::Metadata::tc_none),
 			};
 			static ::pafcore::Argument s_instanceArguments[] =
 			{
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
-				::pafcore::Argument("arg", this, ::pafcore::Argument::by_value, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
+				::pafcore::Argument("arg", this, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_none, 0, false),
 			};
 			static ::pafcore::Overload s_instanceOverloads[] =
 			{
@@ -528,7 +528,7 @@ namespace pafcore
 					return e_invalid_arg_type_1;
 				}
 			}
-			result->assignPrimitiveForNew(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &a0);
+			result->assignPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &a0);
 			return s_ok;
 		}
 		static ErrorCode Primitive_NewArray(Variant* result, Variant** args, int_t numArgs)
@@ -540,15 +540,15 @@ namespace pafcore
 				{
 					return e_invalid_arg_type_1;
 				}
-				T* p = paf_new_array<T>(count);
-				result->assignArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), p, count, false, Variant::by_new_array);
+				T* p = ::pafcore::CreateArray<T>(count);
+				result->assignOwningArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), p, count, false);
 				return s_ok;
 			}
 			return e_invalid_arg_num;
 		}
 		virtual void destroyArray(void* address)
 		{
-			paf_delete_array((T*)address);
+			::pafcore::DestroyArray((T*)address);
 		}
 		virtual bool castTo(void* dst, Type* dstType, const void* src)
 		{
@@ -908,12 +908,12 @@ namespace pafcore
 
 			static ::pafcore::Result s_staticResults[] =
 			{
-				::pafcore::Result(this, false, ::pafcore::Result::by_new),
-				::pafcore::Result(this, false, ::pafcore::Result::by_new),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_unique_ptr),
+				::pafcore::Result(this, false, ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_unique_ptr),
 			};
 			static ::pafcore::Argument s_staticArguments[] =
 			{
-				::pafcore::Argument("str", CharType::GetSingleton(), ::pafcore::Argument::by_ptr, true),
+				::pafcore::Argument("str", CharType::GetSingleton(), ::pafcore::Metadata::by_value, ::pafcore::Metadata::tc_observer_ptr, 0, true),
 			};
 			static ::pafcore::Overload s_staticOverloads[] =
 			{

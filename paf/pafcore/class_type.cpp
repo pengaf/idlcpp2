@@ -9,6 +9,7 @@
 #include "static_field.h"
 #include "static_property.h"
 #include "static_method.h"
+#include "memory.h"
 #include <algorithm>
 
 BEGIN_PAFCORE
@@ -257,7 +258,7 @@ StaticMethod* ClassType::findStaticMethod(const char* name, bool includeBaseClas
 	return 0;
 }
 
-Metadata* ClassType::_findMember_(const char* name, bool includeBaseClasses)
+ObserverPtr<Metadata> ClassType::_findMember_(ObserverPtr<const char> name, bool includeBaseClasses)
 {
 	Metadata* member = FindMetadataByName(m_members, m_memberCount, name);
 	if (nullptr != member)
@@ -334,6 +335,121 @@ void* ClassType::createSubclassProxy(SubclassInvoker* subclassInvoker)
 void ClassType::destroySubclassProxy(void* subclassProxy)
 {}
 
+bool ClassType::getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound)
+{
+	switch (typeCompound)
+	{
+	case tc_observer_ptr:
+		if (isRcObject())
+		{
+			const void* ptr = *reinterpret_cast<const void* const*>(address);
+			value.assignRcPtr(const_cast<ClassType*>(this), ptr, constant, Variant::by_ptr);
+			return true;
+		}
+		else if (isValue())
+		{
+			const void* ptr = *reinterpret_cast<const void* const*>(address);
+			value.assignValuePtr(this, ptr, constant, Variant::by_ptr);
+			return true;
+		}
+		break;
+	case tc_unique_ptr:
+		if (isValue())
+		{
+			const void* ptr = *reinterpret_cast<const void* const*>(address);
+			value.assignValuePtr(this, ptr, constant, Variant::by_ptr);
+			return true;
+		}
+		break;
+	case tc_shared_ptr:
+		if (isRcObject())
+		{
+			const void* ptr = *reinterpret_cast<const void* const*>(address);
+			value.assignRcPtr(const_cast<ClassType*>(this), ptr, constant, Variant::by_ptr);
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+bool ClassType::setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound)
+{
+	switch (typeCompound)
+	{
+	case tc_observer_ptr:
+		if (isRcObject())
+		{
+			void* ptr = 0;
+			if (!value.castToRcPtr(this, &ptr))
+			{
+				return false;
+			}
+			*reinterpret_cast<void**>(address) = ptr;
+			return true;
+		}
+		if (isValue())
+		{
+			void* ptr = 0;
+			if (!value.castToValuePtr(this, &ptr))
+			{
+				return false;
+			}
+			*reinterpret_cast<void**>(address) = ptr;
+			return true;
+		}
+		break;
+	case tc_unique_ptr:
+		if (isValue())
+		{
+			void* ptr = 0;
+			if (!value.castToValuePtr(this, &ptr))
+			{
+				return false;
+			}
+			value.unhold();
+			void** slot = reinterpret_cast<void**>(address);
+			if (0 != *slot)
+			{
+				destroyInstance(*slot);
+			}
+			*slot = ptr;
+			return true;
+		}
+		break;
+	case tc_shared_ptr:
+		if (isRcObject())
+		{
+			void* ptr = 0;
+			if (!value.castToRcPtr(this, &ptr))
+			{
+				return false;
+			}
+			void** slot = reinterpret_cast<void**>(address);
+			if (ptr == *slot)
+			{
+				return true;
+			}
+			if (0 != ptr)
+			{
+				IncSharedInterfaceStrong(ptr);
+			}
+			if (0 != *slot)
+			{
+				ReleaseSharedInterfaceStrong(*slot);
+			}
+			*slot = ptr;
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
 size_t ClassType::_getMemberCount_(bool includeBaseClasses)
 {
 	size_t count = m_memberCount;
@@ -347,7 +463,7 @@ size_t ClassType::_getMemberCount_(bool includeBaseClasses)
 	return count;
 }
 	
-Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses)
+ObserverPtr<Metadata> ClassType::_getMember_(size_t index, bool includeBaseClasses)
 {
 	if(includeBaseClasses)
 	{
@@ -367,7 +483,7 @@ Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses)
 				}
 				index -= baseMemberCount;
 			}
-			return 0;
+			return nullptr;
 		}
 	}
 	else
@@ -376,7 +492,7 @@ Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses)
 		{
 			return m_members[index];
 		}
-		return 0;
+		return nullptr;
 	}
 }
 
@@ -385,13 +501,13 @@ size_t ClassType::_getBaseClassCount_()
 	return m_baseClassCount;
 }
 
-Metadata* ClassType::_getBaseClass_(size_t index)
+ObserverPtr<Metadata> ClassType::_getBaseClass_(size_t index)
 {
 	if(index < m_baseClassCount)
 	{
 		return m_baseClasses[index].m_type;
 	}
-	return 0;
+	return nullptr;
 }
 
 bool ClassType::getClassOffset_(size_t& offset, ClassType* otherType)
@@ -418,7 +534,7 @@ bool ClassType::getClassOffset(size_t& offset, ClassType* otherType)
 	return getClassOffset_(offset, otherType);
 }
 
-ClassTypeIterator* ClassType::_getFirstDerivedClass_()
+ObserverPtr<ClassTypeIterator> ClassType::_getFirstDerivedClass_()
 {
 	return m_firstDerivedClass;
 }
@@ -436,7 +552,7 @@ size_t ClassType::_getInstancePropertyCount_(bool includeBaseClasses)
 	return count;
 }
 
-InstanceProperty* ClassType::_getInstanceProperty_(size_t index, bool includeBaseClasses)
+ObserverPtr<InstanceProperty> ClassType::_getInstanceProperty_(size_t index, bool includeBaseClasses)
 {
 	if (includeBaseClasses)
 	{
@@ -449,7 +565,7 @@ InstanceProperty* ClassType::_getInstanceProperty_(size_t index, bool includeBas
 		{
 			return &m_instanceProperties[index];
 		}
-		return 0;
+		return nullptr;
 	}
 }
 
@@ -502,7 +618,7 @@ size_t ClassType::_getInstanceFieldCount_(bool includeBaseClasses)
 	return count;
 }
 
-InstanceField* ClassType::_getInstanceField_(size_t index, bool includeBaseClasses)
+ObserverPtr<InstanceField> ClassType::_getInstanceField_(size_t index, bool includeBaseClasses)
 {
 	if (includeBaseClasses)
 	{
@@ -515,7 +631,7 @@ InstanceField* ClassType::_getInstanceField_(size_t index, bool includeBaseClass
 		{
 			return &m_instanceFields[index];
 		}
-		return 0;
+		return nullptr;
 	}
 }
 
@@ -598,3 +714,4 @@ bool ClassType::hasDynamicInstanceField(bool includeBaseClasses) const
 }
 
 END_PAFCORE
+

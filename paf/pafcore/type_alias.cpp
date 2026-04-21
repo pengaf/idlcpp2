@@ -23,7 +23,7 @@ TypeAlias::~TypeAlias()
 }
 
 
-Type* TypeAlias::type() const
+ObserverPtr<Type> TypeAlias::type() const
 {
 	return m_type;
 }

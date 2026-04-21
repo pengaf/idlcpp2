@@ -1,4 +1,4 @@
-#import "reference.i"
+#import "object.i"
 #import "notify_handler_list.i"
 #import "iterator.i"
 
@@ -17,7 +17,7 @@ namespace pafcore
 		candidate_list //���Ժ�ѡ�б���� (��������ֵ���)
 	};
 
-	override class #PAFCORE_EXPORT NotifyHandler : Reference
+	override class #PAFCORE_EXPORT NotifyHandler : Object
 	{
 		//override virtual void onDestroyNotifyHandlerList(NotifyHandlerList* sender);
 		//override virtual void onAttachNotifySource(NotifyHandlerList* sender);
@@ -26,9 +26,9 @@ namespace pafcore
 
 	override class #PAFCORE_EXPORT PropertyChangedNotifyHandler : NotifyHandler
 	{
-		override virtual void onPropertyChanged(Reference* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
-		override virtual void onPropertyAvailabilityChanged(Reference* sender, string_t propertyName);
-		override virtual void onDynamicPropertyChanged(Reference* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
-		override virtual void onUpdateDynamicProperty(Reference* sender);
+		override virtual void onPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
+		override virtual void onPropertyAvailabilityChanged(Object* sender, string_t propertyName);
+		override virtual void onDynamicPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
+		override virtual void onUpdateDynamicProperty(Object* sender);
 	};
 }

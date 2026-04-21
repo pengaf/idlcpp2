@@ -169,12 +169,16 @@ bool Overload::matchArguments(char* matches, Variant** variants)
 	for (size_t i = 0; i < m_argCount; ++i)
 	{
 		ArgumentMatch match;
-		switch (m_args[i].m_passing)
+		if (m_args[i].isOutput())
 		{
-		case Argument::by_value:
+			match = exact_match;
+		}
+		else if (m_args[i].byValue())
+		{
 			match = MatchArgumentByPassingValue(m_args[i].m_type, variants[i]->m_type);
-			break;
-		case Argument::by_ref:
+		}
+		else if (m_args[i].byRef())
+		{
 			if (m_args[i].m_constant)
 			{
 				match = MatchArgumentByPassingValue(m_args[i].m_type, variants[i]->m_type);
@@ -191,8 +195,9 @@ bool Overload::matchArguments(char* matches, Variant** variants)
 			{
 				match = MatchArgumentByPassingPtr(m_args[i].m_type, variants[i]->m_type);
 			}
-			break;
-		case Argument::by_ptr:
+		}
+		else if (m_args[i].byPtr())
+		{
 			if (!m_args[i].m_constant && variants[i]->m_constant)
 			{
 				return false;
@@ -202,10 +207,10 @@ bool Overload::matchArguments(char* matches, Variant** variants)
 			{
 				match = const_transformation;
 			}
-			break;
-		default:
+		}
+		else
+		{
 			match = exact_match;
-			break;
 		}
 		if (no_match == match)
 		{

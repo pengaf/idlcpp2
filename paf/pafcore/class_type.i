@@ -19,6 +19,7 @@ namespace pafcore
 	class Enumerator;
 	class TypeAlias;
 	class SubclassInvoker;
+	class Variant;
 #}
 	abstract struct #PAFCORE_EXPORT ClassTypeIterator
 	{
@@ -73,6 +74,8 @@ namespace pafcore
 		ClassType(const char* name, Category category, const char* declarationFile);
 	public:
 		virtual Metadata* findMember(const char* name) override;
+		virtual bool getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound) override;
+		virtual bool setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound) override;
 		virtual void* createSubclassProxy(SubclassInvoker* subclassInvoker);
 		virtual void destroySubclassProxy(void* subclassProxy);
 		Metadata* findMember(const char* name, bool includeBaseClasses);

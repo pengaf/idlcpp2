@@ -10,6 +10,7 @@
 #include "../../paf/pafcore/std_unordered_map.h"
 #include "../../paf/pafcore/std_unordered_set.h"
 #include "../../paf/pafcore/std_vector.h"
+#include "../../paf/pafcore/object.h"
 #include "../../paf/pafcore/string.h"
 #include "../../paf/pafcore/utility.h"
 
@@ -49,6 +50,46 @@ namespace
 		int m_value;
 	};
 
+	struct SmartValue
+	{
+		SmartValue()
+			: m_value(0)
+		{
+			++s_liveCount;
+		}
+
+		~SmartValue()
+		{
+			--s_liveCount;
+		}
+
+		int m_value;
+
+		static int s_liveCount;
+	};
+
+	int SmartValue::s_liveCount = 0;
+
+	struct SmartObject : pafcore::Object
+	{
+		SmartObject()
+			: m_value(0)
+		{
+			++s_liveCount;
+		}
+
+		~SmartObject()
+		{
+			--s_liveCount;
+		}
+
+		int m_value;
+
+		static int s_liveCount;
+	};
+
+	int SmartObject::s_liveCount = 0;
+
 	void TestRawAllocate()
 	{
 		void* block = pafcore::Allocate(128);
@@ -83,10 +124,10 @@ namespace
 
 	void TestUtilityArrayHelpers()
 	{
-		int* numbers = paf_new_array<int>(4);
+		int* numbers = pafcore::CreateArray<int>(4);
 		assert(0 != numbers);
-		assert(paf_new_array_size_of<int>(numbers) == 4);
-		paf_delete_array(numbers);
+		assert(pafcore::ArraySizeOf(numbers) == 4);
+		pafcore::DestroyArray(numbers);
 	}
 
 	void TestString()
@@ -183,6 +224,56 @@ namespace
 		assert(values[1] == 2);
 		assert(values[2] == 3);
 	}
+
+	void TestSmartPointers()
+	{
+		{
+			pafcore::UniquePtr<SmartValue> value(pafcore::Create<SmartValue>());
+			assert(value);
+			value->m_value = 42;
+			assert(value->m_value == 42);
+			assert(SmartValue::s_liveCount == 1);
+		}
+		assert(SmartValue::s_liveCount == 0);
+
+		{
+			pafcore::UniqueArray<SmartValue> values(pafcore::CreateArray<SmartValue>(3), 3);
+			assert(values);
+			assert(values.size() == 3);
+			assert(SmartValue::s_liveCount == 3);
+		}
+		assert(SmartValue::s_liveCount == 0);
+
+		{
+			pafcore::SharedArray<SmartValue> values = pafcore::MakeSharedArray<SmartValue>(2);
+			assert(values);
+			assert(values.size() == 2);
+			assert(SmartValue::s_liveCount == 2);
+			{
+				pafcore::SharedArray<SmartValue> values2 = values;
+				assert(values2.size() == 2);
+				assert(SmartValue::s_liveCount == 2);
+			}
+			assert(SmartValue::s_liveCount == 2);
+		}
+		assert(SmartValue::s_liveCount == 0);
+
+		{
+			pafcore::SharedPtr<SmartObject> object(pafcore::CreateObject<SmartObject>());
+			assert(object);
+			object->m_value = 7;
+			pafcore::WeakPtr<SmartObject> weak(object.get());
+			assert(!weak.expired());
+			{
+				pafcore::SharedPtr<SmartObject> object2 = weak.lock();
+				assert(object2);
+				assert(object2->m_value == 7);
+				assert(SmartObject::s_liveCount == 1);
+			}
+			assert(!weak.expired());
+		}
+		assert(SmartObject::s_liveCount == 0);
+	}
 }
 
 int main()
@@ -194,5 +285,6 @@ int main()
 	TestString();
 	TestStdAllocator();
 	TestFlatSet();
+	TestSmartPointers();
 	return 0;
 }

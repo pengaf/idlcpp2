@@ -14,16 +14,16 @@ size_t PrimitiveType::_getMemberCount_()
 	return m_memberCount;
 }
 
-Metadata* PrimitiveType::_getMember_(size_t index)
+ObserverPtr<Metadata> PrimitiveType::_getMember_(size_t index)
 {
 	if (index < m_memberCount)
 	{
 		return m_members[index];
 	}
-	return 0;
+	return nullptr;
 }
 
-Metadata* PrimitiveType::_findMember_(const char* name)
+ObserverPtr<Metadata> PrimitiveType::_findMember_(ObserverPtr<const char> name)
 {
 	Metadata dummy(name);
 	Metadata** it = std::lower_bound(m_members, m_members + m_memberCount, &dummy, CompareMetaDataPtrByName());
@@ -31,7 +31,7 @@ Metadata* PrimitiveType::_findMember_(const char* name)
 	{
 		return *it;
 	}
-	return 0;
+	return nullptr;
 }
 
 Metadata* PrimitiveType::findMember(const char* name)

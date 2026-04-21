@@ -29,7 +29,7 @@ void RaiseError_InvalidTemplateArgument(TypeNameNode* node);
 void RaiseError_TemplateParameterRedefinition(IdentifyNode* node);
 void RaiseError_TemplateClassInstanceInvalidTypeName(const char* typeName, IdentifyNode* node);
 void RaiseError_TemplateInterfaceNotSupported(IdentifyNode* node);
-void RaiseError_MissingReferenceBaseType(IdentifyNode* node);
+void RaiseError_MissingRcObjectBaseType(IdentifyNode* node);
 void RaiseError_InterfaceMethodIsNotVirtual(IdentifyNode* node);
 void RaiseError_TooFewFormalParameters(OperatorNode* node);
 void RaiseError_TooManyFormalParameters(OperatorNode* node);

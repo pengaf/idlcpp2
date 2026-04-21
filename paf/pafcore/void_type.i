@@ -20,14 +20,14 @@ namespace pafcore
 #}
 	};
 #{
-	inline void* VoidType::AddressToPtr(size_t address)
+	inline ObserverPtr<void> VoidType::AddressToPtr(size_t address)
 	{
-		return (void*)address;
+		return ObserverPtr<void>((void*)address);
 	}
 
-inline void* VoidType::NullPtr()
+inline ObserverPtr<void> VoidType::NullPtr()
 	{
-		return 0;
+		return nullptr;
 	}
 #}
 }

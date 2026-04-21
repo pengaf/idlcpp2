@@ -73,6 +73,7 @@ public:
 	void useType(TypeNode* typeNode, TemplateArguments* templateArguments, TypeUsage usage, TypeNameNode* typeNameNode);
 	void useType(TypeNode* typeNode, TypeUsage usage, TypeNameNode* typeNameNode);
 	void outputUsedTypes(FILE* file, SourceFile* sourceFile);
+	void outputMemoryHeader(FILE* file);
 	void outputUsedTypesForMetaHeader(FILE* file, SourceFile* sourceFile);
 	void outputUsedTypesForMetaSource(FILE* file, SourceFile* sourceFile);
 	bool generateCode(const char* fileName);

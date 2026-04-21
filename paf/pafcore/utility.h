@@ -3,7 +3,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cwchar>
-#include <new>
 
 #if defined(_MSC_VER)
 #pragma warning(disable:4251)
@@ -55,13 +54,6 @@ inline void OutputDebugStringA(const char* str)
 #define BEGIN_PAFCORE namespace pafcore {
 #define END_PAFCORE }
 
-#include "memory.h"
-
-PAFCORE_EXPORT void* PAFCORE_CDECL operator new(size_t size, const char* fileName, int line, int);
-PAFCORE_EXPORT void* PAFCORE_CDECL operator new[](size_t size, const char* fileName, int line, int);
-PAFCORE_EXPORT void PAFCORE_CDECL operator delete(void* block, const char* fileName, int line, int);
-PAFCORE_EXPORT void PAFCORE_CDECL operator delete[](void* block, const char* fileName, int line, int);
-
 #define PAF_CONCAT_(a, b) a ## b
 #define PAF_CONCAT(a, b)  PAF_CONCAT_(a, b)
 
@@ -69,9 +61,6 @@ PAFCORE_EXPORT void PAFCORE_CDECL operator delete[](void* block, const char* fil
 #define PAF_WIDE(s) PAF_WIDE_(s)
 
 #ifdef _DEBUG
-#define paf_new new(__FILE__, __LINE__, 0)
-
-
 PAFCORE_EXPORT void PafAssert(wchar_t const* _Message, wchar_t const* _File, unsigned _Line, wchar_t const* format, ...);
 
 #if defined(_MSC_VER)
@@ -88,7 +77,6 @@ PAFCORE_EXPORT void PafAssert(wchar_t const* _Message, wchar_t const* _File, uns
 
 #else
 
-#define paf_new new
 #define PAF_ASSERT_MSG(expression, format, ...) ((void)0)
 
 #endif
@@ -102,258 +90,6 @@ PAFCORE_EXPORT void PafAssert(wchar_t const* _Message, wchar_t const* _File, uns
 #define paf_field_offset_of(s, m) (reinterpret_cast<size_t>(&(reinterpret_cast<s*>(1)->m)) - 1)
 #define paf_base_offset_of(d, b) (reinterpret_cast<ptrdiff_t>(static_cast<b*>(reinterpret_cast<d*>(1))) - 1)
 #define paf_verify
-#define AUTO_NEW_ARRAY_SIZE
-
-
-#ifdef AUTO_NEW_ARRAY_SIZE
-
-template<typename T>
-inline size_t paf_new_array_size_of(void* p)
-{
-	return pafcore::ArraySizeOf(static_cast<T*>(p));
-}
-
-template<typename T>
-inline T* paf_new_array(size_t count)
-{
-	return pafcore::CreateArray<T>(count);
-}
-
-template<typename T>
-inline void paf_delete_array(T* p)
-{
-	pafcore::DestroyArray(p);
-}
-#else
-
-inline size_t paf_new_array_size_of(void* p)
-{
-	return 0 != p ? 1 : 0;
-}
-
-template<typename T>
-inline T* paf_new_array(size_t count)
-{
-	return pafcore::CreateArray<T>(count);
-}
-
-template<typename T>
-inline void paf_delete_array(T* p)
-{
-	pafcore::DestroyArray(p);
-}
-
-#endif
-
-BEGIN_PAFCORE
-
-
-PAFCORE_EXPORT void DummyDestroyInstance(void* address);
-PAFCORE_EXPORT void DummyDestroyArray(void* address);
-PAFCORE_EXPORT void DummyAssign(void* dst, const void* src);
-
-class PAFCORE_EXPORT VirtualDestructor
-{
-public:
-	virtual ~VirtualDestructor()
-	{}
-};
-
-END_PAFCORE
-
-template<typename T>
-inline void paf_delete(T* p)
-{
-	pafcore::Destroy(p);
-}
-
-template<typename T>
-inline void DeleteSetNull(T*& p)
-{
-	paf_delete(p);
-	p = 0;
-}
-
-template<typename T>
-inline void DeleteArraySetNull(T*& p)
-{
-	paf_delete_array(p);
-	p = 0;
-}
-
-template<typename T>
-inline void SafeAddRef(T* p)
-{
-	if (0 != p)
-	{
-		p->addRef();
-	}
-}
-
-template<typename T>
-inline void SafeAddRefArray(T* const * p, size_t count)
-{
-	for (size_t i = 0; i < count; ++i)
-	{
-		if (0 != p[i])
-		{
-			p[i]->addRef();
-		}
-	}
-}
-
-template<typename T>
-inline void SafeRelease(T* p)
-{
-	if (0 != p)
-	{
-		p->release();
-	}
-}
-
-template<typename T>
-inline void SafeReleaseSetNull(T*& p)
-{
-	if (0 != p)
-	{
-		p->release();
-		p = 0;
-	}
-}
-
-template<typename T>
-inline void SafeReleaseArray(T* const* p, size_t count)
-{
-	for (size_t i = 0; i < count; ++i)
-	{
-		if (0 != p[i])
-		{
-			p[i]->release();
-		}
-	}
-}
-
-template<typename T>
-inline void SafeReleaseArraySetNull(T** p, size_t count)
-{
-	for (size_t i = 0; i < count; ++i)
-	{
-		if (0 != p[i])
-		{
-			p[i]->release();
-			p[i] = 0;
-		}
-	}
-}
-
-template<typename T>
-inline void CoSafeAddRef(T* p)
-{
-	if (0 != p)
-	{
-		p->AddRef();
-	}
-}
-
-template<typename T>
-inline void CoSafeRelease(T* p)
-{
-	if (0 != p)
-	{
-		p->Release();
-	}
-}
-
-template<typename T>
-inline void CoSafeReleaseSetNull(T*& p)
-{
-	if (0 != p)
-	{
-		p->Release();
-		p = 0;
-	}
-}
-
-template<typename T>
-inline void CoSafeReleaseArray(T* const* p, size_t count)
-{
-	for (size_t i = 0; i < count; ++i)
-	{
-		if (0 != p[i])
-		{
-			p[i]->Release();
-		}
-	}
-}
-
-template<typename T>
-inline void CoSafeReleaseArraySetNull(T** p, size_t count)
-{
-	for (size_t i = 0; i < count; ++i)
-	{
-		if (0 != p[i])
-		{
-			p[i]->Release();
-			p[i] = 0;
-		}
-	}
-}
-
-template<typename T>
-class AutoDelete
-{
-public:
-	AutoDelete(T* p) : m_p(p)
-	{}
-	~AutoDelete()
-	{
-		paf_delete(m_p);
-	}
-public:
-	T* m_p;
-};
-
-template<typename T>
-class AutoDeleteArray
-{
-public:
-	AutoDeleteArray(T* p) : m_p(p)
-	{}
-	~AutoDeleteArray()
-	{
-		paf_delete_array(m_p);
-	}
-public:
-	T* m_p;
-};
-
-template<typename T>
-struct AutoRelease
-{
-	AutoRelease(T* p)
-	{
-		m_p = p;
-	}
-	~AutoRelease()
-	{
-		SafeRelease(m_p);
-	}
-	T* m_p;
-};
-
-template<typename T>
-struct CoAutoRelease
-{
-	CoAutoRelease(T* p)
-	{
-		m_p = p;
-	}
-	~CoAutoRelease()
-	{
-		CoSafeRelease(m_p);
-	}
-	T* m_p;
-};
 
 #include "typedef.h"
 

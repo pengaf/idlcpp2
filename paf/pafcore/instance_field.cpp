@@ -16,24 +16,28 @@ InstanceField::InstanceField(const char* name, Attributes* attributes, ClassType
 	m_typeCompound = tc;
 }
 
-Type* InstanceField::type() const
+ObserverPtr<Type> InstanceField::type() const
 {
 	return m_type;
 }
 
-ClassType* InstanceField::objectType() const
+ObserverPtr<ClassType> InstanceField::objectType() const
 {
 	return m_objectType;
 }
 
 bool InstanceField::isArray() const
 {
-	return tc_array == m_typeCompound;
+	return tc_observer_array == m_typeCompound
+		|| tc_unique_array == m_typeCompound
+		|| tc_shared_array == m_typeCompound;
 }
 
 bool InstanceField::isPointer() const
 {
-	return tc_pointer == m_typeCompound;
+	return tc_observer_ptr == m_typeCompound
+		|| tc_unique_ptr == m_typeCompound
+		|| tc_shared_ptr == m_typeCompound;
 }
 
 bool InstanceField::isConstant() const

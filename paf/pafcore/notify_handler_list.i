@@ -1,4 +1,3 @@
-#import "reference.i"
 #import "notify_handler.i"
 #import "dynamic_object.i"
 
@@ -87,8 +86,6 @@ namespace pafcore
 		bool find(NotifyHandler* p);
 		NotifyHandler* remove(NotifyHandler* p);
 	public:
-		PAF_DECL_REFCOUNT_INTERFACE_DUMMY_IMPL
-	public:
 		NotifyHandler* m_first;
 		NotifyHandler* m_second;
 #}
@@ -125,17 +122,17 @@ namespace pafcore
 	};
 
 #{
-	inline void PropertyChangedNotifySource::addNotifyHandler(PropertyChangedNotifyHandler* handler) const
+	inline void PropertyChangedNotifySource::addNotifyHandler(ObserverPtr<PropertyChangedNotifyHandler> handler) const
 	{
 		m_notifyHandlerList.addNotifyHandler(handler);
 	}
 	
-	inline void PropertyChangedNotifySource::removeNotifyHandler(PropertyChangedNotifyHandler* handler) const	
+	inline void PropertyChangedNotifySource::removeNotifyHandler(ObserverPtr<PropertyChangedNotifyHandler> handler) const	
 	{
 		m_notifyHandlerList.removeNotifyHandler(handler);
 	}
 	
-	inline bool PropertyChangedNotifySource::findNotifyHandler(PropertyChangedNotifyHandler* handler) const
+	inline bool PropertyChangedNotifySource::findNotifyHandler(ObserverPtr<PropertyChangedNotifyHandler> handler) const
 	{
 		return m_notifyHandlerList.findNotifyHandler(handler);
 	}

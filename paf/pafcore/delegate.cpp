@@ -10,9 +10,25 @@
 
 BEGIN_PAFCORE
 
+namespace
+{
+	void ReleaseCallBackStrong(CallBack* callBack)
+	{
+		if (0 == callBack)
+		{
+			return;
+		}
+
+		if (0 == DecStrong(callBack))
+		{
+			callBack->getType()->destroyInstance(callBack);
+		}
+	}
+}
+
 FunctionCallBack* FunctionCallBack::New(void* function, void* userData)
 {
-	FunctionCallBack* callBack = paf_new FunctionCallBack;
+	FunctionCallBack* callBack = CreateObject<FunctionCallBack>();
 	callBack->m_function = function;
 	callBack->m_userData = userData;
 	return callBack;
@@ -30,9 +46,9 @@ bool FunctionCallBack::equal(CallBack* arg)
 	return callBack->m_function == m_function && callBack->m_userData == m_userData;
 }
 
-InstanceMethodCallBack* InstanceMethodCallBack::New(InstanceMethod* instanceMethod, Reference* object)
+InstanceMethodCallBack* InstanceMethodCallBack::New(InstanceMethod* instanceMethod, Object* object)
 {
-	InstanceMethodCallBack* callBack = paf_new InstanceMethodCallBack;
+	InstanceMethodCallBack* callBack = CreateObject<InstanceMethodCallBack>();
 	callBack->m_instanceMethod = instanceMethod;
 	callBack->m_object = object;
 	return callBack;
@@ -41,7 +57,7 @@ InstanceMethodCallBack* InstanceMethodCallBack::New(InstanceMethod* instanceMeth
 void InstanceMethodCallBack::invoke(Variant* result, Variant** args, int_t numArgs)
 {
 	Variant that;
-	that.assignReferencePtr(m_object, false, Variant::by_ptr);
+	that.assignRcPtr(m_object, false, Variant::by_ptr);
 	args[0] = &that;
 	(*m_instanceMethod->m_invoker)(result, args, numArgs);
 }
@@ -55,7 +71,7 @@ bool InstanceMethodCallBack::equal(CallBack* arg)
 
 StaticMethodCallBack* StaticMethodCallBack::New(StaticMethod* staticMethod)
 {
-	StaticMethodCallBack* callBack = paf_new StaticMethodCallBack;
+	StaticMethodCallBack* callBack = CreateObject<StaticMethodCallBack>();
 	callBack->m_staticMethod = staticMethod;
 	return callBack;
 }
@@ -84,21 +100,22 @@ Delegate::~Delegate()
 	while (callBack)
 	{
 		CallBack* next = callBack->m_next;
-		callBack->release();
+		ReleaseCallBackStrong(callBack);
 		callBack = next;
 	}
 }
 
-void Delegate::addCallBack(CallBack* callBack)
+void Delegate::addCallBack(ObserverPtr<CallBack> callBack)
 {
 	if (callBack)
 	{
 		callBack->m_next = m_callBackList;
+		IncStrong(callBack.get());
 		m_callBackList = callBack;
 	}
 }
 
-void Delegate::removeCallBack(CallBack* callBack)
+void Delegate::removeCallBack(ObserverPtr<CallBack> callBack)
 {
 	CallBack* current = m_callBackList;
 	CallBack** prev = &m_callBackList;
@@ -107,7 +124,7 @@ void Delegate::removeCallBack(CallBack* callBack)
 		if (current == callBack || current->equal(callBack))
 		{
 			*prev = current->m_next;
-			current->release();
+			ReleaseCallBackStrong(current);
 			return;
 		}
 		prev = &current->m_next;
@@ -115,7 +132,7 @@ void Delegate::removeCallBack(CallBack* callBack)
 	}
 }
 
-InstanceMethodCallBack* Delegate::addInstanceMethod(Reference* object, const char* instanceMethodName)
+ObserverPtr<InstanceMethodCallBack> Delegate::addInstanceMethod(ObserverPtr<Object> object, ObserverPtr<const char> instanceMethodName)
 {
 	ClassType* classType = object->getType();
 	InstanceMethod* instanceMethod = classType->findInstanceMethod(instanceMethodName, true);
@@ -125,10 +142,10 @@ InstanceMethodCallBack* Delegate::addInstanceMethod(Reference* object, const cha
 		addCallBack(callBack);
 		return callBack;
 	}
-	return 0;
+	return nullptr;
 }
 
-void Delegate::removeInstanceMethod(Reference* object, const char* instanceMethodName)
+void Delegate::removeInstanceMethod(ObserverPtr<Object> object, ObserverPtr<const char> instanceMethodName)
 {
 	ClassType* classType = object->getType();
 	InstanceMethod* instanceMethod = classType->findInstanceMethod(instanceMethodName, true);
@@ -141,7 +158,7 @@ void Delegate::removeInstanceMethod(Reference* object, const char* instanceMetho
 	}
 }
 
-StaticMethodCallBack* Delegate::addStaticMethod(ClassType* classType, const char* staticMethodName)
+ObserverPtr<StaticMethodCallBack> Delegate::addStaticMethod(ObserverPtr<ClassType> classType, ObserverPtr<const char> staticMethodName)
 {
 	StaticMethod* staticMethod = classType->findStaticMethod(staticMethodName, true);
 	if (staticMethod)
@@ -150,10 +167,10 @@ StaticMethodCallBack* Delegate::addStaticMethod(ClassType* classType, const char
 		addCallBack(callBack);
 		return callBack;
 	}
-	return 0;
+	return nullptr;
 }
 
-void Delegate::removeStaticMethod(ClassType* classType, const char* staticMethodName)
+void Delegate::removeStaticMethod(ObserverPtr<ClassType> classType, ObserverPtr<const char> staticMethodName)
 {
 	StaticMethod* staticMethod = classType->findStaticMethod(staticMethodName, true);
 	if (staticMethod)
@@ -187,3 +204,4 @@ void Delegate::removeFunction(void* function, void* userData)
 }
 
 END_PAFCORE
+

@@ -1,4 +1,4 @@
-#import "reference.i"
+#import "object.i"
 #import "class_type.i"
 
 #{
@@ -9,18 +9,17 @@ namespace pafcore
 {
 
 #{
-	class Reference;
+	class Object;
 	class InstanceMethod;
 	class StaticMethod;
 	class Variant;
 #}
 
-	class #PAFCORE_EXPORT CallBack : Reference
+	class #PAFCORE_EXPORT CallBack : Object
 	{
 #{
 		friend struct Delegate;
 	public:
-		PAF_DECL_REFCOUNT_INTERFACE_DUMMY_IMPL;
 		virtual void invoke(Variant* result, Variant** args, int_t numArgs) = 0;
 		virtual bool equal(CallBack* arg) = 0;
 		CallBack* getNext()
@@ -52,13 +51,13 @@ namespace pafcore
 #{
 		friend struct Delegate;
 	public:
-		static InstanceMethodCallBack* New(InstanceMethod* instanceMethod, Reference* object);
+		static InstanceMethodCallBack* New(InstanceMethod* instanceMethod, Object* object);
 	public:
 		virtual void invoke(Variant* result, Variant** args, int_t numArgs);
 		virtual bool equal(CallBack* arg);
 	protected:
 		InstanceMethod* m_instanceMethod;
-		Reference* m_object;
+		Object* m_object;
 #}
 	};
 
@@ -78,8 +77,8 @@ namespace pafcore
 
 	struct #PAFCORE_EXPORT Delegate
 	{
-		InstanceMethodCallBack* addInstanceMethod(Reference* object, const char* instanceMethodName);
-		void removeInstanceMethod(Reference* object, const char* instanceMethodName);
+		InstanceMethodCallBack* addInstanceMethod(Object* object, const char* instanceMethodName);
+		void removeInstanceMethod(Object* object, const char* instanceMethodName);
 		StaticMethodCallBack* addStaticMethod(ClassType* classType, const char* staticMethodName);
 		void removeStaticMethod(ClassType* classType, const char* staticMethodName);
 		void addCallBack(CallBack* callBack);
@@ -101,5 +100,5 @@ namespace pafcore
 	};
 
 
-	delegate #PAFCORE_EXPORT void EventHandler(Reference* sender);
+	delegate #PAFCORE_EXPORT void EventHandler(Object* sender);
 }

@@ -13,7 +13,7 @@
 BEGIN_PAFCORE
 
 
-String Reflection::GetTypeFullName(Type* type)
+String Reflection::GetTypeFullName(ObserverPtr<Type> type)
 {
 	const char* localName = type->_name_();
 	size_t totalLength = strlen(localName) + 1;
@@ -54,7 +54,7 @@ String Reflection::GetTypeFullName(Type* type)
 	return String(name.c_str());
 }
 
-String Reflection::GetTypeAliasFullName(TypeAlias* typeAlias)
+String Reflection::GetTypeAliasFullName(ObserverPtr<TypeAlias> typeAlias)
 {
 	const char* localName = typeAlias->_name_();
 	size_t totalLength = strlen(localName) + 1;
@@ -95,7 +95,7 @@ String Reflection::GetTypeAliasFullName(TypeAlias* typeAlias)
 	return String(name.c_str());
 }
 
-Type* Reflection::GetTypeFromFullName(const char* fullName)
+ObserverPtr<Type> Reflection::GetTypeFromFullName(ObserverPtr<const char> fullName)
 {
 	pafcore::string name;
 	const char* nameBegin = fullName;
@@ -136,7 +136,7 @@ Type* Reflection::GetTypeFromFullName(const char* fullName)
 			return static_cast<Type*>(metadata);
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 String Reflection::PrimitiveToString(const Variant& value)
@@ -341,7 +341,7 @@ bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* st
 
 //String Reflection::ObjectToString(const Variant& value)
 //{
-//	PAF_ASSERT(value.m_type->isValue() || value.m_type->isReference());
+//	PAF_ASSERT(value.m_type->isValue() || value.m_type->isRcObject());
 //	ClassType* classType = static_cast<ClassType*>(value.m_type);
 //	InstanceMethod* instanceMethod = classType->findInstanceMethod("toString", true);
 //	if (instanceMethod)
@@ -374,13 +374,6 @@ bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* st
 //	return false;
 //}
 //
-//String Reflection::InstancePropertyToString(Reference* that, InstanceProperty* instanceProperty)
-//{
-//	Variant varThat;
-//	varThat.assignReferencePtr(that->getType(), that, false, Variant::by_ptr);
-//	return InstancePropertyToString(&varThat, instanceProperty);
-//}
-//
 //String Reflection::InstancePropertyToString(Variant* that, InstanceProperty* instanceProperty)
 //{
 //	Variant value;
@@ -397,7 +390,7 @@ bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* st
 //		}
 //		else
 //		{
-//			PAF_ASSERT(value.m_type->isValue() || value.m_type->isReference());
+//			PAF_ASSERT(value.m_type->isValue() || value.m_type->isRcObject());
 //			return Reflection::ObjectToString(value);
 //		}
 //	}
@@ -421,7 +414,7 @@ bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* st
 //	}
 //	else
 //	{
-//		PAF_ASSERT(instanceProperty->m_type->isValue() || instanceProperty->m_type->isReference());
+//		PAF_ASSERT(instanceProperty->m_type->isValue() || instanceProperty->m_type->isRcObject());
 //		Reflection::StringToObject(value, static_cast<ClassType*>(instanceProperty->m_type), str);
 //	}
 //	ErrorCode errorCode = (*instanceProperty->m_setter)(instanceProperty, &that, &value);
@@ -555,27 +548,6 @@ ErrorCode Reflection::NewObject(Variant& result, Type* type, Variant* argument)
 }
 
 //
-//ErrorCode Reflection::CallInstanceMethod(Variant& result, Reference* that, const char* methodName, Variant** args, int_t numArgs)
-//{
-//	ClassType* classType = that->getType();
-//	InstanceMethod* instanceMethod = classType->findInstanceMethod(methodName, true);
-//	if (0 == instanceMethod)
-//	{
-//		return e_member_not_found;
-//	}
-//
-//	ErrorCode errorCode = (*invoker)(&result, args, numArgs);
-//	for (int i = 0; i < numArgs; i++)
-//	{
-//		Variant* argument = (Variant*)&argumentsBuf[sizeof(Variant)*i];
-//		argument->~Variant();
-//	}
-//
-//	Metadata* member;
-//	member = variant->m_type->findMember(name);
-//
-//}
-
 ErrorCode Reflection::GetInstanceFieldRef(Variant& value, Variant* that, InstanceField* field)
 {
 	size_t baseOffset;
@@ -591,7 +563,10 @@ ErrorCode Reflection::GetInstanceFieldRef(Variant& value, Variant* that, Instanc
 	}
 	else if (field->isPointer())
 	{
-		value.assignPtr(field->m_type, *(void**)fieldAddress, field->m_constant, Variant::by_ref);
+		if (!field->m_type->getSmartPointer(value, reinterpret_cast<void*>(fieldAddress), field->m_constant, static_cast<Metadata::TypeCompound>(field->m_typeCompound)))
+		{
+			return e_invalid_field_type;
+		}
 	}
 	else
 	{
@@ -618,7 +593,7 @@ ErrorCode Reflection::SetInstanceField(Variant* that, InstanceField* field, Vari
 	size_t fieldAddress = (size_t)that->m_pointer + baseOffset + field->m_offset;
 	if (field->isPointer())
 	{
-		if (!value.castToObjectPtr(field->m_type, (void**)fieldAddress))
+		if (!field->m_type->setSmartPointer(reinterpret_cast<void*>(fieldAddress), value, static_cast<Metadata::TypeCompound>(field->m_typeCompound)))
 		{
 			return e_invalid_field_type;
 		}
@@ -919,7 +894,7 @@ ErrorCode Reflection::GetMapInstanceIterator(Variant* iterator, Variant* that, I
 //		ErrorCode errorCode = (*property->m_mapGetIterator)(property, that, &value);
 //		if (s_ok == errorCode)
 //		{
-//			value.castToReferencePtr(RuntimeTypeOf<Iterator>::RuntimeType::GetSingleton(), (void**)&iterator);
+//			value.castToRcPtr(RuntimeTypeOf<Iterator>::RuntimeType::GetSingleton(), (void**)&iterator);
 //		}
 //		return errorCode;
 //	}
@@ -1087,3 +1062,4 @@ ErrorCode Reflection::ListInstanceProperty_Erase(Variant* that, InstanceProperty
 
 
 END_PAFCORE
+

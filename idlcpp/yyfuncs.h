@@ -44,7 +44,7 @@ enum TypeCategory
 	primitive_type,
 	enum_type,
 	value_type,
-	reference_type,
+	rc_object_type,
 	class_template,
 	template_parameter,
 };
@@ -129,6 +129,9 @@ enum SyntaxNodeType
 	snt_scope_name_list,
 	snt_type_name,
 	snt_type_name_list,
+	snt_variable_type,
+	snt_variable_type_list,
+	snt_typed_member_prefix,
 	snt_parameter,
 	snt_parameter_list,
 	snt_template_parameter,
@@ -189,42 +192,50 @@ SyntaxNode* newTypeNameList(SyntaxNode* typeNameList, SyntaxNode* delimiter, Syn
 void setTypeNameFilter(SyntaxNode* syntaxNode, SyntaxNode* filterNode);
 void setMemberFilter(SyntaxNode* syntaxNode, SyntaxNode* filterNode);
 void setNativeName(SyntaxNode* syntaxNode, SyntaxNode* nativeName);
-SyntaxNode* newField(SyntaxNode* type, SyntaxNode* pointer, SyntaxNode* name, SyntaxNode* leftBracket, SyntaxNode* rightBracket);
+SyntaxNode* newVariableType(SyntaxNode* type, SyntaxNode* passing);
+void setVariableTypeRef(SyntaxNode* variableType, SyntaxNode* passing);
+void setVariableTypeConst(SyntaxNode* variableType, SyntaxNode* constant);
+SyntaxNode* newVariableTypeList(SyntaxNode* variableTypeList, SyntaxNode* delimiter, SyntaxNode* variableType);
+SyntaxNode* newTypedMemberPrefix(SyntaxNode* variableTypeList, SyntaxNode* name);
+SyntaxNode* newFieldByPrefix(SyntaxNode* typedMemberPrefix, SyntaxNode* leftBracket, SyntaxNode* rightBracket);
+SyntaxNode* newPropertyByPrefix(SyntaxNode* typedMemberPrefix, PropertyCategory category);
+SyntaxNode* newMethodByPrefix(SyntaxNode* typedMemberPrefix, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis, SyntaxNode* constant);
+SyntaxNode* newField(SyntaxNode* variableType, SyntaxNode* name, SyntaxNode* leftBracket, SyntaxNode* rightBracket);
+void setFieldSmartArray(SyntaxNode* syntaxNode);
 void setFieldConstant(SyntaxNode* syntaxNode, SyntaxNode* constant);
 void setFieldStatic(SyntaxNode* syntaxNode, SyntaxNode* stat);
 void setFieldSemicolon(SyntaxNode* syntaxNode, SyntaxNode* semicolon);
 
 SyntaxNode* newGetterSetter(SyntaxNode* keyword);
-void setGetterIncRef(SyntaxNode* syntaxNode);
-void setSetterDecRef(SyntaxNode* syntaxNode);
 void setSetterAllowNull(SyntaxNode* syntaxNode);
 void setGetterSetterNativeName(SyntaxNode* syntaxNode, SyntaxNode* nativeName);
 
 SyntaxNode* newProperty(SyntaxNode* name, PropertyCategory category);
-void setMapPropertyKeyType(SyntaxNode* property, SyntaxNode* type, SyntaxNode* passing);
+void setMapPropertyKeyType(SyntaxNode* property, SyntaxNode* variableType);
 
-void setPropertyType(SyntaxNode* property, SyntaxNode* type, SyntaxNode* passing);
+void setPropertyType(SyntaxNode* property, SyntaxNode* variableType);
 void setPropertyGetter(SyntaxNode* property, SyntaxNode* getter);
 void setPropertySetter(SyntaxNode* property, SyntaxNode* setter);
 void setPropertyCandidate(SyntaxNode* property);
 void setPropertyModifier(SyntaxNode* syntaxNode, SyntaxNode* modifier);
 
-SyntaxNode* newParameter(SyntaxNode* type, SyntaxNode* passing, SyntaxNode* out, SyntaxNode* name);
+SyntaxNode* newParameter(SyntaxNode* variableType, SyntaxNode* out, SyntaxNode* name);
 void setParameterArray(SyntaxNode* parameter);
 void setParameterConst(SyntaxNode* parameter, SyntaxNode* constant);
 void setParameterAllowNull(SyntaxNode* parameter);
 SyntaxNode* newParameterList(SyntaxNode* parameterList, SyntaxNode* delimiter, SyntaxNode* parameter);
 
 SyntaxNode* newMethod(SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis, SyntaxNode* constant);
-void setMethodResult(SyntaxNode* method, SyntaxNode* result, SyntaxNode* passing);
+void setMethodResult(SyntaxNode* method, SyntaxNode* variableType);
 void setMethodResultArray(SyntaxNode* method);
+void setMethodResultOwning(SyntaxNode* method);
 void setMethodResultConst(SyntaxNode* method, SyntaxNode* constant);
 void setMethodModifier(SyntaxNode* method, SyntaxNode* modifier);
 void setMethodOverride(SyntaxNode* method);
 void setMethodSemicolon(SyntaxNode* syntaxNode, SyntaxNode* semicolon);
 
 SyntaxNode* newOperator(SyntaxNode* keyword, SyntaxNode* sign, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis, SyntaxNode* constant, SyntaxNode* semicolon);
-void setOperatorResult(SyntaxNode* opt, SyntaxNode* result, SyntaxNode* passing);
+void setOperatorResult(SyntaxNode* opt, SyntaxNode* variableType);
 void setOperatorResultArray(SyntaxNode* opt);
 void setOperatorResultConst(SyntaxNode* opt, SyntaxNode* constant);
 void setOperatorModifier(SyntaxNode* opt, SyntaxNode* modifier);
@@ -240,8 +251,9 @@ void setClassTemplateParameters(SyntaxNode* cls, SyntaxNode* parameters);
 void setClassSemicolon(SyntaxNode* cls, SyntaxNode* semicolon);
 
 SyntaxNode* newDelegate(SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis, SyntaxNode* semicolon);
-void setDelegateResult(SyntaxNode* delegate, SyntaxNode* result, SyntaxNode* passing);
+void setDelegateResult(SyntaxNode* delegate, SyntaxNode* variableType);
 void setDelegateResultArray(SyntaxNode* delegate);
+void setDelegateResultOwning(SyntaxNode* delegate);
 void setDelegateResultConst(SyntaxNode* delegate, SyntaxNode* constant);
 void setDelegateKeyword(SyntaxNode* delegate, SyntaxNode* keyword);
 

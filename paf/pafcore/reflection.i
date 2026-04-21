@@ -34,7 +34,6 @@ namespace pafcore
 		
 		//static String ObjectToString(const Variant& value);
 		//static bool StringToObject(Variant& value, ClassType* classType, const char* str);
-		//static String InstancePropertyToString(Reference* that, InstanceProperty* instanceProperty);
 		//static String InstancePropertyToString(Variant* that, InstanceProperty* instanceProperty);
 		//static ErrorCode StringToInstanceProperty(Variant& that, InstanceProperty* instanceProperty, const char* str);
 		//static ErrorCode StringToInstanceProperty(Variant& that, const char* propertyName, const char* str);
@@ -80,7 +79,6 @@ namespace pafcore
 		static ErrorCode ListInstanceProperty_Erase(Variant* that, InstanceProperty* property, Iterator* iterator);
 
 		//static ErrorCode GetInstanceArrayProperty(Variant& value, Variant* that, InstanceArrayProperty* property, size_t index);
-		//static ErrorCode CallInstanceMethod(Variant& result, Reference* that, const char* methodName, Variant** args, int_t numArgs);
 		static ErrorCode CallInstanceMethod(Variant& result, Variant* that, InstanceMethod* method, Variant* arguments, int_t numArgs);
 		static ErrorCode CallStaticMethod(Variant& result, StaticMethod* method, Variant* arguments, int_t numArgs);
 #}

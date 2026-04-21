@@ -48,7 +48,7 @@ const char* g_errorStrings[] =
 	"template parameter redefinition",
 	"template class not instantiton",
 	"template interface not supported",
-	"missing reference base type",
+	"missing rc object base type",
 	"error in template class instance",
 	"too few formal parameters",
 	"too many formal parameters",

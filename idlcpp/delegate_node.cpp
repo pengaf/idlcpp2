@@ -26,35 +26,57 @@ DelegateNode::DelegateNode(IdentifyNode* name, TokenNode* leftParenthesis,
 	m_keyword = 0;
 	m_resultConst = 0;
 	m_resultTypeName = 0;
-	m_passing = 0;
+	m_typeCompound = 0;
+	m_byRef = 0;
 	m_name = name;
 	m_leftParenthesis = leftParenthesis;
 	m_parameterList = parameterList;
 	m_rightParenthesis = rightParenthesis;
 	m_semicolon = semicolon;
 	m_resultArray = false;
+	m_resultOwning = false;
 	m_parameterCount = size_t(-1);
 	m_classNode = 0;
 }
 
 bool DelegateNode::byValue()
 {
-	return 0 == m_passing;
+	return 0 == m_typeCompound && 0 == m_byRef && !m_resultOwning;
 }
 
 bool DelegateNode::byRef()
 {
-	return (0 != m_passing && '&' == m_passing->m_nodeType);
+	return 0 != m_byRef;
 }
 
 bool DelegateNode::byPtr()
 {
-	return (0 != m_passing && '*' == m_passing->m_nodeType);
+	return byObserverPtr() || byUniquePtr() || bySharedPtr();
 }
 
-bool DelegateNode::byNew()
+bool DelegateNode::byObserverPtr()
 {
-	return (0 != m_passing && '+' == m_passing->m_nodeType);
+	return (0 != m_typeCompound && '*' == m_typeCompound->m_nodeType);
+}
+
+bool DelegateNode::byUniquePtr()
+{
+	return (0 != m_typeCompound && '!' == m_typeCompound->m_nodeType);
+}
+
+bool DelegateNode::bySharedPtr()
+{
+	return (0 != m_typeCompound && '^' == m_typeCompound->m_nodeType);
+}
+
+bool DelegateNode::returnsOwning()
+{
+	return m_resultOwning;
+}
+
+void DelegateNode::setResultOwning(bool resultOwning)
+{
+	m_resultOwning = resultOwning;
 }
 
 size_t DelegateNode::getParameterCount() const
@@ -111,7 +133,7 @@ void DelegateNode::checkSemantic(TemplateArguments* templateArguments)
 		}
 		if (void_type == typeNode->getTypeCategory(templateArguments))
 		{
-			if (0 != m_passing && ('+' == m_passing->m_nodeType || '&' == m_passing->m_nodeType))
+			if ((0 != m_typeCompound && '*' != m_typeCompound->m_nodeType) || 0 != m_byRef)
 			{
 				RaiseError_InvalidResultType(this);
 			}
@@ -150,7 +172,12 @@ void DelegateNode::extendInternalCode(TypeNode* enclosingTypeNode, TemplateArgum
 
 	IdentifyNode* invokeIdentifyNode = (IdentifyNode*)newIdentify("invoke");
 	MethodNode* invokeMethodNode = (MethodNode*)newMethod(invokeIdentifyNode, m_leftParenthesis, m_parameterList, m_rightParenthesis, NULL);
-	setMethodResult(invokeMethodNode, m_resultTypeName, m_passing);
+	SyntaxNode* invokeResultType = newVariableType(m_resultTypeName, m_typeCompound);
+	if (m_byRef)
+	{
+		setVariableTypeRef(invokeResultType, m_byRef);
+	}
+	setMethodResult(invokeMethodNode, invokeResultType);
 	if (m_resultConst)
 	{
 		setMethodResultConst(invokeMethodNode, m_resultConst);

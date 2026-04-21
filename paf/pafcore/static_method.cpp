@@ -19,13 +19,13 @@ size_t StaticMethod::overloadCount() const
 	return m_overloadCount;
 }
 
-Result* StaticMethod::getResult(size_t overloadIndex)
+ObserverPtr<Result> StaticMethod::getResult(size_t overloadIndex)
 {
 	if(overloadIndex < m_overloadCount)
 	{
 		return m_overloads[overloadIndex].m_result;
 	}
-	return 0;
+	return nullptr;
 }
 
 size_t StaticMethod::getArgumentCount(size_t overloadIndex)
@@ -37,7 +37,7 @@ size_t StaticMethod::getArgumentCount(size_t overloadIndex)
 	return 0;
 }
 
-Argument* StaticMethod::getArgument(size_t overloadIndex, size_t index)
+ObserverPtr<Argument> StaticMethod::getArgument(size_t overloadIndex, size_t index)
 {
 	if(overloadIndex < m_overloadCount)
 	{
@@ -46,7 +46,7 @@ Argument* StaticMethod::getArgument(size_t overloadIndex, size_t index)
 			return &m_overloads[overloadIndex].m_args[index];
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 END_PAFCORE

@@ -3,7 +3,7 @@
 #include "primitive_type.h"
 #include "enum_type.h"
 #include "class_type.h"
-#include "reference.h"
+#include "object.h"
 #include "debug.h"
 #include "utility.h"
 #include <assert.h>
@@ -57,15 +57,130 @@ public:
 
 #endif//_DEBUG
 
+void Variant::SemanticToState(Semantic semantic, Metadata::Passing& passing, Metadata::TypeCompound& typeCompound)
+{
+	passing = Metadata::by_value;
+	typeCompound = Metadata::tc_none;
+
+	switch (semantic)
+	{
+	case by_value:
+		break;
+	case by_ref:
+		passing = Metadata::by_ref;
+		break;
+	case by_ptr:
+		typeCompound = Metadata::tc_observer_ptr;
+		break;
+	case by_array:
+		typeCompound = Metadata::tc_observer_array;
+		break;
+	default:
+		assert(false);
+		break;
+	}
+}
+
+Variant::Semantic Variant::StateToSemantic(Metadata::Passing passing, Metadata::TypeCompound typeCompound)
+{
+	if (Metadata::by_ref == passing)
+	{
+		return by_ref;
+	}
+	if (Metadata::tc_observer_array == typeCompound)
+	{
+		return by_array;
+	}
+	if (Metadata::tc_none != typeCompound)
+	{
+		return by_ptr;
+	}
+	return by_value;
+}
+
+void Variant::setState(bool constant, Semantic semantic)
+{
+	Metadata::Passing passing;
+	Metadata::TypeCompound typeCompound;
+	SemanticToState(semantic, passing, typeCompound);
+	m_passing = static_cast<byte_t>(passing);
+	m_typeCompound = static_cast<byte_t>(typeCompound);
+	m_constant = constant;
+}
+
+void Variant::resetState()
+{
+	m_passing = Metadata::by_value;
+	m_typeCompound = Metadata::tc_none;
+	m_storageKind = storage_empty;
+	m_constant = false;
+	m_temporary = false;
+	m_subClassProxy = false;
+}
+
+bool Variant::ownsMemory() const
+{
+	return storage_owning_instance == m_storageKind
+		|| storage_shared_instance == m_storageKind
+		|| storage_owning_array == m_storageKind
+		|| storage_embedded == m_storageKind;
+}
+
+bool Variant::destroyStorage()
+{
+	if (0 == m_pointer)
+	{
+		return false;
+	}
+
+	switch (static_cast<StorageKind>(m_storageKind))
+	{
+	case storage_empty:
+	case storage_alias:
+		return false;
+	case storage_embedded:
+		if (m_type->isValue() || m_type->isRcObject())
+		{
+			if (m_subClassProxy)
+			{
+				PAF_ASSERT(m_type->isValue() || m_type->isRcObject());
+				static_cast<ClassType*>(m_type)->destroySubclassProxy(m_pointer);
+			}
+			else
+			{
+				m_type->destroyInstance(m_pointer);
+			}
+		}
+		return true;
+	case storage_owning_instance:
+		if (m_subClassProxy)
+		{
+			PAF_ASSERT(m_type->isValue() || m_type->isRcObject());
+			static_cast<ClassType*>(m_type)->destroySubclassProxy(m_pointer);
+		}
+		else
+		{
+			m_type->destroyInstance(m_pointer);
+		}
+		return true;
+	case storage_shared_instance:
+		ReleaseSharedInterfaceStrong(m_pointer);
+		return true;
+	case storage_owning_array:
+		m_type->destroyArray(m_pointer);
+		return true;
+	default:
+		assert(false);
+		return false;
+	}
+}
+
 Variant::Variant()
 {
 	m_type = VoidType::GetSingleton();
 	m_pointer = 0;
 	m_arraySize = 0;
-	m_semantic = by_value;
-	m_constant = false;
-	m_temporary = false;
-	m_subClassProxy = false;
+	resetState();
 
 #ifdef _DEBUG
 	VariantLeakReporter::GetInstance()->onVariantConstruct(this);
@@ -74,27 +189,7 @@ Variant::Variant()
 
 Variant::~Variant()
 {
-	if (0 != m_pointer && m_primitiveValue != m_pointer &&
-		(by_value == m_semantic || by_new_ptr == m_semantic || by_new_array == m_semantic))
-	{
-		assert(m_primitiveValue != m_pointer);
-		if (by_new_array == m_semantic)
-		{
-			m_type->destroyArray(m_pointer);
-		}
-		else
-		{
-			if (m_subClassProxy)
-			{
-				PAF_ASSERT(m_type->isValue() || m_type->isReference());
-				static_cast<ClassType*>(m_type)->destroySubclassProxy(m_pointer);
-			}
-			else
-			{
-				m_type->destroyInstance(m_pointer);
-			}
-		}
-	}
+	destroyStorage();
 
 #ifdef _DEBUG
 	VariantLeakReporter::GetInstance()->onVariantDestruct(this);
@@ -103,35 +198,28 @@ Variant::~Variant()
 
 void Variant::clear()
 {
-	if(0 != m_pointer && (by_new_ptr == m_semantic || by_new_array == m_semantic))
-	{
-		assert(m_primitiveValue != m_pointer);
-		if(by_new_array == m_semantic)
-		{
-			m_type->destroyArray(m_pointer);
-		}
-		else
-		{
-			m_type->destroyInstance(m_pointer);
-		}
-	}
+	destroyStorage();
 	m_type = VoidType::GetSingleton();
 	m_pointer = 0;
 	m_arraySize = 0;
-	m_semantic = by_value;
-	m_constant = false;
+	resetState();
 }
 
 bool Variant::unhold()
 {
-	if(by_new_ptr == m_semantic)
+	if (storage_owning_instance == m_storageKind)
 	{
-		m_semantic = by_ptr;
+		m_storageKind = storage_alias;
 		return true;
 	}
-	else if(by_new_array == m_semantic)
+	else if (storage_shared_instance == m_storageKind)
 	{
-		m_semantic = by_array;
+		m_storageKind = storage_alias;
+		return true;
+	}
+	else if (storage_owning_array == m_storageKind)
+	{
+		m_storageKind = storage_alias;
 		return true;
 	}
 	return false;
@@ -141,17 +229,19 @@ void Variant::move(Variant& var)
 {
 	clear();
 	memcpy(this, &var, sizeof(Variant));
-	if(var.m_pointer == var.m_primitiveValue)
+	if(var.m_pointer == var.m_embeddedValue)
 	{
-		m_pointer = m_primitiveValue;
+		m_pointer = m_embeddedValue;
 	}
-	var.m_semantic = by_value;
 	var.m_pointer = 0;
+	var.m_type = VoidType::GetSingleton();
+	var.m_arraySize = 0;
+	var.resetState();
 }
 
 bool Variant::subscript(Variant& var, size_t index)
 {
-	if(by_value != m_semantic && (0 == index || index < m_arraySize))
+	if (by_value != getSemantic() && (0 == index || index < m_arraySize))
 	{
 		var.assignPtr(m_type, (void*)((size_t)m_pointer + m_type->m_size * index), m_constant, by_ref);
 		//var.assignArray(m_type, (void*)((size_t)m_pointer + m_type->m_size * index), m_arraySize - index, m_constant, by_ref);
@@ -165,19 +255,9 @@ void Variant::assignPrimitive(Type* type, const void* pointer)
 	assert(type->isPrimitive());
 	clear();
 	m_type = type;
-	m_pointer = m_primitiveValue;
+	m_pointer = m_embeddedValue;
 	memcpy(m_pointer, pointer, type->m_size);
-}
-
-void Variant::assignPrimitiveForNew(Type* type, const void* pointer)
-{
-	assert(type->isPrimitive());
-	clear();
-	m_type = type;
-	m_pointer = m_primitiveValue;
-	memcpy(m_pointer, pointer, type->m_size);
-	m_constant = false;
-	m_semantic = by_ptr;
+	m_storageKind = storage_embedded;
 }
 
 void Variant::assignEnum(Type* type, const void* pointer)
@@ -185,16 +265,18 @@ void Variant::assignEnum(Type* type, const void* pointer)
 	assert(type->isEnum());
 	clear();
 	m_type = type;
-	m_pointer = m_primitiveValue;
+	m_pointer = m_embeddedValue;
 	memcpy(m_pointer, pointer, type->m_size);
+	m_storageKind = storage_embedded;
 }
 
 void Variant::assignVoidPtr(const void* pointer, bool constant)
 {
 	clear();
 	m_pointer = (void*)pointer;
-	m_constant = constant;
-	m_semantic = by_ptr;
+	m_type = VoidType::GetSingleton();
+	m_storageKind = (0 != pointer) ? storage_alias : storage_empty;
+	setState(constant, by_ptr);
 }
 
 void Variant::assignPrimitivePtr(Type* type, const void* pointer, bool constant, Semantic semantic)
@@ -202,9 +284,17 @@ void Variant::assignPrimitivePtr(Type* type, const void* pointer, bool constant,
 	assert(type->isPrimitive());
 	clear();
 	m_type = type;
+	if (by_value == semantic)
+	{
+		m_pointer = m_embeddedValue;
+		memcpy(m_pointer, pointer, type->m_size);
+		m_storageKind = storage_embedded;
+		setState(constant, semantic);
+		return;
+	}
 	m_pointer = (void*)pointer;
-	m_constant = constant;
-	m_semantic = semantic;
+	m_storageKind = storage_alias;
+	setState(constant, semantic);
 }
 
 void Variant::assignEnumPtr(Type* type, const void* pointer, bool constant, Semantic semantic)
@@ -212,9 +302,17 @@ void Variant::assignEnumPtr(Type* type, const void* pointer, bool constant, Sema
 	assert(type->isEnum());
 	clear();
 	m_type = type;
+	if (by_value == semantic)
+	{
+		m_pointer = m_embeddedValue;
+		memcpy(m_pointer, pointer, type->m_size);
+		m_storageKind = storage_embedded;
+		setState(constant, semantic);
+		return;
+	}
 	m_pointer = (void*)pointer;
-	m_constant = constant;
-	m_semantic = semantic;
+	m_storageKind = storage_alias;
+	setState(constant, semantic);
 }
 
 void Variant::assignValuePtr(Type* type, const void* pointer, bool constant, Semantic semantic)
@@ -222,39 +320,104 @@ void Variant::assignValuePtr(Type* type, const void* pointer, bool constant, Sem
 	assert(type->isValue());
 	clear();
 	m_type = type;
+	if (by_value == semantic)
+	{
+		m_pointer = (void*)pointer;
+		m_storageKind = (0 != pointer) ? storage_alias : storage_empty;
+		setState(constant, semantic);
+		return;
+	}
 	m_pointer = (void*)pointer;
-	m_constant = constant;
-	m_semantic = semantic;
+	m_storageKind = storage_alias;
+	setState(constant, semantic);
 }
 
-void Variant::assignReferencePtr(Type* type, const void* pointer, bool constant, Semantic semantic)
+void Variant::assignRcPtr(Type* type, const void* pointer, bool constant, Semantic semantic)
 {
-	assert(type->isReference());
+	assert(type->isRcObject());
 	clear();
 	if(0 != pointer)
 	{
-		m_type = ((Reference*)pointer)->getType();
-		m_pointer = (void*)((Reference*)pointer)->getAddress();
+		Object* object = (Object*)pointer;
+		m_type = object->getType();
+		m_pointer = (void*)object;
 	}
 	else
 	{
 		m_type = type;
 		m_pointer = 0;
 	}
-	m_constant = constant;
-	m_semantic = semantic;
+	m_storageKind = (0 != m_pointer) ? storage_alias : storage_empty;
+	setState(constant, semantic);
 }
 
-void Variant::assignReferencePtr(Reference* pointer, bool constant, Semantic semantic)
+void Variant::assignRcPtr(Object* pointer, bool constant, Semantic semantic)
 {
 	clear();
 	if (0 != pointer)
 	{
 		m_type = pointer->getType();
-		m_pointer = (void*)pointer->getAddress();
+		m_pointer = (void*)pointer;
 	}
-	m_constant = constant;
-	m_semantic = semantic;
+	else
+	{
+		m_type = VoidType::GetSingleton();
+		m_pointer = 0;
+	}
+	m_storageKind = (0 != m_pointer) ? storage_alias : storage_empty;
+	setState(constant, semantic);
+}
+
+void Variant::assignOwningValuePtr(Type* type, const void* pointer, bool constant)
+{
+	assert(type->isValue());
+	clear();
+	m_type = type;
+	m_pointer = (void*)pointer;
+	m_storageKind = (0 != pointer) ? storage_owning_instance : storage_empty;
+	setState(constant, by_ptr);
+}
+
+void Variant::assignOwningRcPtr(Type* type, const void* pointer, bool constant)
+{
+	assert(type->isRcObject());
+	clear();
+	if (0 != pointer)
+	{
+		Object* object = (Object*)pointer;
+		m_type = object->getType();
+		m_pointer = (void*)object;
+		m_storageKind = storage_owning_instance;
+	}
+	else
+	{
+		m_type = type;
+		m_pointer = 0;
+		m_storageKind = storage_empty;
+	}
+	setState(constant, by_ptr);
+}
+
+void Variant::assignSharedPtr(Type* type, const void* pointer, bool constant)
+{
+	assert(0 != type);
+	assert(type->isRcObject());
+	clear();
+	if (0 != pointer)
+	{
+		Object* object = (Object*)pointer;
+		m_type = object->getType();
+		m_pointer = (void*)object;
+		IncSharedInterfaceStrong(m_pointer);
+		m_storageKind = storage_shared_instance;
+	}
+	else
+	{
+		m_type = type;
+		m_pointer = 0;
+		m_storageKind = storage_empty;
+	}
+	setState(constant, by_ptr);
 }
 
 
@@ -263,9 +426,9 @@ void Variant::assignNullPrimitive(Type* type)
 	assert(type->isPrimitive());
 	clear();
 	m_type = type;
-	m_pointer = m_primitiveValue;
-	std::uninitialized_fill_n(m_primitiveValue, max_primitive_type_size, 0);
-	//memset(m_pointer, 0, sizeof(m_primitiveValue));
+	m_pointer = m_embeddedValue;
+	std::uninitialized_fill_n(m_embeddedValue, sizeof(m_embeddedValue), 0);
+	m_storageKind = storage_embedded;
 }
 
 void Variant::assignNullEnum(Type* type)
@@ -273,15 +436,24 @@ void Variant::assignNullEnum(Type* type)
 	assert(type->isEnum());
 	clear();
 	m_type = type;
-	m_pointer = m_primitiveValue;
-	std::uninitialized_fill_n(m_primitiveValue, max_primitive_type_size, 0);
-	//memset(m_pointer, 0, sizeof(m_primitiveValue));
+	m_pointer = m_embeddedValue;
+	std::uninitialized_fill_n(m_embeddedValue, sizeof(m_embeddedValue), 0);
+	m_storageKind = storage_embedded;
 }
 
 void Variant::assignNullPtr()
 {
 	clear();
-	m_semantic = by_ptr;
+	setState(false, by_ptr);
+}
+
+void Variant::assignNullPtr(Type* type)
+{
+	clear();
+	m_type = type;
+	m_pointer = 0;
+	m_storageKind = storage_empty;
+	setState(false, by_ptr);
 }
 
 void Variant::assignPtr(Type* type, const void* pointer, bool constant, Semantic semantic)
@@ -301,7 +473,7 @@ void Variant::assignPtr(Type* type, const void* pointer, bool constant, Semantic
 		assignValuePtr(type, pointer, constant, semantic);
 		break;
 	default:
-		assignReferencePtr(type, pointer, constant, semantic);
+		assignRcPtr(type, pointer, constant, semantic);
 	}
 }
 
@@ -311,8 +483,18 @@ void Variant::assignArray(Type* type, const void* pointer, size_t arraySize, boo
 	m_type = type;
 	m_pointer = (void*)pointer;
 	m_arraySize = arraySize;
-	m_constant = constant;
-	m_semantic = semantic;
+	m_storageKind = (0 != pointer ? storage_alias : storage_empty);
+	setState(constant, semantic);
+}
+
+void Variant::assignOwningArray(Type* type, const void* pointer, size_t arraySize, bool constant)
+{
+	clear();
+	m_type = type;
+	m_pointer = (void*)pointer;
+	m_arraySize = arraySize;
+	m_storageKind = (0 != pointer ? storage_owning_array : storage_empty);
+	setState(constant, by_array);
 }
 
 //void Variant::assignObject(Type* type, const void* pointer, bool constant, bool hold)
@@ -329,7 +511,7 @@ void Variant::assignArray(Type* type, const void* pointer, size_t arraySize, boo
 //		assignValuePtr(type, pointer, constant, hold);
 //		break;
 //	default:
-//		assignReferencePtr(type, pointer, constant, hold);
+//		assignRcPtr(type, pointer, constant, hold);
 //	}
 //}
 
@@ -417,11 +599,11 @@ bool Variant::castToValue(Type* dstType, void* dst) const
 	return false;
 }
 
-bool Variant::castToReference(Type* dstType, void* dst) const
+bool Variant::castToRcObject(Type* dstType, void* dst) const
 {
-	assert(dstType->isReference());
+	assert(dstType->isRcObject());
 	void* ptr;
-	if(castToReferencePtr(dstType, &ptr) && ptr)
+	if(castToRcPtr(dstType, &ptr) && ptr)
 	{
 		return dstType->assign(dst, ptr);
 	}
@@ -476,14 +658,14 @@ bool Variant::castToValuePtr(Type* dstType, void** dst) const
 	return false;
 }
 
-bool Variant::castToReferencePtr(Type* dstType, void** dst) const
+bool Variant::castToRcPtr(Type* dstType, void** dst) const
 {
-	assert(dstType->isReference());
+	assert(dstType->isRcObject());
 	if(0 == m_pointer)
 	{
 		return false;
 	}
-	if(m_type->isReference())
+	if(m_type->isRcObject())
 	{
 		size_t offset;
 		if(static_cast<ClassType*>(m_type)->getClassOffset(offset, static_cast<ClassType*>(dstType)))
@@ -554,15 +736,15 @@ bool Variant::castToValuePtrAllowNull(Type* dstType, void** dst) const
 	return false;
 }
 
-bool Variant::castToReferencePtrAllowNull(Type* dstType, void** dst) const
+bool Variant::castToRcPtrAllowNull(Type* dstType, void** dst) const
 {
 	if (0 == m_pointer)
 	{
 		*dst = 0;
 		return true;
 	}
-	assert(dstType->isReference());
-	if (m_type->isReference())
+	assert(dstType->isRcObject());
+	if (m_type->isRcObject())
 	{
 		size_t offset;
 		if (static_cast<ClassType*>(m_type)->getClassOffset(offset, static_cast<ClassType*>(dstType)))
@@ -576,6 +758,10 @@ bool Variant::castToReferencePtrAllowNull(Type* dstType, void** dst) const
 
 bool Variant::castToObjectPtr(Type* dstType, void** dst) const
 {
+	if (dstType->isRcObject())
+	{
+		return castToRcPtr(dstType, dst);
+	}
 	switch (dstType->m_category)
 	{
 	case void_object:
@@ -586,14 +772,16 @@ bool Variant::castToObjectPtr(Type* dstType, void** dst) const
 		return castToEnumPtr(dstType, dst);
 	case value_object:
 		return castToValuePtr(dstType, dst);
-	case reference_object:
-		return castToReferencePtr(dstType, dst);
 	}
 	return false;
 }
 
 bool Variant::castToObject(Type* dstType, void* dst) const
 {
+	if (dstType->isRcObject())
+	{
+		return castToRcObject(dstType, dst);
+	}
 	switch(dstType->m_category)
 	{
 	case primitive_object:
@@ -602,8 +790,6 @@ bool Variant::castToObject(Type* dstType, void* dst) const
 		return castToEnum(dstType, dst);
 	case value_object:
 		return castToValue(dstType, dst);
-	case reference_object:
-		return castToReference(dstType, dst);
 	}
 	return false;
 }
@@ -614,11 +800,11 @@ void Variant::reinterpretCastToPtr(Variant& var, Type* dstType) const
 	assert(dstType && dstType->m_size);
 	var.m_type = dstType;
 	var.m_pointer = m_pointer;
-	var.m_constant = m_constant;
 	size_t size = m_type->m_size *(0 == m_arraySize ? 1 : m_arraySize);
 	var.m_arraySize = size / dstType->m_size;
-	var.m_semantic = by_ptr;
+	var.setState(m_constant, by_ptr);
 }
 
 END_PAFCORE
+
 

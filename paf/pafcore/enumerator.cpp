@@ -12,7 +12,7 @@ Enumerator::Enumerator(const char* name, Attributes* attributes, Type* type, int
 	m_value = value;
 }
 
-Type* Enumerator::_type_() const
+ObserverPtr<Type> Enumerator::_type_() const
 {
 	return m_type;
 }

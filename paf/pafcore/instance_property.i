@@ -154,7 +154,7 @@ namespace pafcore
 #}
 	};
 #{
-inline ClassType* InstanceProperty::objectType() const
+inline ObserverPtr<ClassType> InstanceProperty::objectType() const
 	{
 		return m_objectType;
 	}
@@ -204,7 +204,7 @@ inline bool InstanceProperty::hasCandidate() const
 	return isSimple() && m_candidateCount && m_getCandidate;
 	}
 
-inline Type* InstanceProperty::type() const
+inline ObserverPtr<Type> InstanceProperty::type() const
 	{
 		return m_type;
 	}
@@ -214,7 +214,7 @@ inline bool InstanceProperty::isPtr() const
 		return m_isPtr;
 	}
 
-inline Type* InstanceProperty::keyType() const
+inline ObserverPtr<Type> InstanceProperty::keyType() const
 	{
 		return m_keyType;
 	}

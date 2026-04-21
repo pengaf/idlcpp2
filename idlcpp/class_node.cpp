@@ -33,6 +33,90 @@
 
 const char g_strPublic[] = {"public "};
 
+namespace
+{
+	bool IsTypeNamed(TypeNode* typeNode, const char* fullName)
+	{
+		if (0 == typeNode)
+		{
+			return false;
+		}
+
+		std::string typeName;
+		typeNode->getFullName(typeName);
+		return typeName == fullName;
+	}
+
+	bool IsDerivedFrom(TypeNode* typeNode, const char* fullName, std::set<TypeNode*>& visited)
+	{
+		if (0 == typeNode)
+		{
+			return false;
+		}
+
+		if (!visited.insert(typeNode).second)
+		{
+			return false;
+		}
+
+		if (IsTypeNamed(typeNode, fullName))
+		{
+			return true;
+		}
+
+		ClassNode* classNode = 0;
+		TemplateArguments* templateArguments = 0;
+		if (typeNode->isTemplateClassInstance())
+		{
+			TemplateClassInstanceTypeNode* templateClassInstanceTypeNode = static_cast<TemplateClassInstanceTypeNode*>(typeNode);
+			classNode = templateClassInstanceTypeNode->m_classNode;
+			templateArguments = &templateClassInstanceTypeNode->m_templateClassInstanceNode->m_templateArguments;
+		}
+		else if (typeNode->isClass() && !typeNode->isTemplateClass())
+		{
+			classNode = static_cast<ClassTypeNode*>(typeNode)->m_classNode;
+		}
+		else
+		{
+			return false;
+		}
+
+		if (0 == classNode->m_baseList)
+		{
+			return false;
+		}
+
+		std::vector<TypeNameNode*> baseTypeNameNodes;
+		classNode->m_baseList->collectTypeNameNodes(baseTypeNameNodes);
+		for (TypeNameNode* baseTypeNameNode : baseTypeNameNodes)
+		{
+			TypeNode* baseTypeNode = baseTypeNameNode->getActualTypeNode(templateArguments);
+			if (IsDerivedFrom(baseTypeNode, fullName, visited))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool IsDerivedFrom(TypeNode* typeNode, const char* fullName)
+	{
+		std::set<TypeNode*> visited;
+		return IsDerivedFrom(typeNode, fullName, visited);
+	}
+
+	bool IsObjectType(TypeNode* typeNode)
+	{
+		return IsDerivedFrom(typeNode, "::pafcore::Object");
+	}
+
+	bool IsInterfaceType(TypeNode* typeNode)
+	{
+		return IsDerivedFrom(typeNode, "::pafcore::Interface");
+	}
+}
+
 void checkBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNameNodes, std::vector<TypeNode*>& baseTypeNodes, TemplateArguments* templateArguments)
 {
 	assert(baseTypeNameNodes.size() == baseTypeNodes.size());
@@ -60,20 +144,23 @@ void checkBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNa
 		{
 			if (0 == i)
 			{
-				if (reference_type != baseTypeCategory)
+				if (rc_object_type != baseTypeCategory
+					|| !IsObjectType(typeNode))
 				{
 					char buf[4096];
-					sprintf_s(buf, "\'%s\' : first base type must be reference type", typeNameNode->m_scopeNameList->m_scopeName->m_name->m_str.c_str());
+					sprintf_s(buf, "\'%s\' : first base type must derive from ::pafcore::Object", typeNameNode->m_scopeNameList->m_scopeName->m_name->m_str.c_str());
 					ErrorList_AddItem_CurrentFile(typeNameNode->m_scopeNameList->m_scopeName->m_name->m_lineNo,
 						typeNameNode->m_scopeNameList->m_scopeName->m_name->m_columnNo, semantic_error_base_type, buf);
 				}
 			}
 			else
 			{
-				if (reference_type != baseTypeCategory && value_type != baseTypeCategory)
+				if (rc_object_type != baseTypeCategory
+					|| !IsInterfaceType(typeNode)
+					|| IsObjectType(typeNode))
 				{
 					char buf[4096];
-					sprintf_s(buf, "\'%s\' : base type must be reference type or value type", typeNameNode->m_scopeNameList->m_scopeName->m_name->m_str.c_str());
+					sprintf_s(buf, "\'%s\' : non-first base type must derive from ::pafcore::Interface", typeNameNode->m_scopeNameList->m_scopeName->m_name->m_str.c_str());
 					ErrorList_AddItem_CurrentFile(typeNameNode->m_scopeNameList->m_scopeName->m_name->m_lineNo,
 						typeNameNode->m_scopeNameList->m_scopeName->m_name->m_columnNo, semantic_error_base_type, buf);
 				}
@@ -294,8 +381,8 @@ static void ParseConceptList(
 		"primitive_object",
 		"enum_object",
 		"value_object",
-		"reference_object",
-		"atomic_reference_object",
+		"rc_object",
+		"atomic_rc_object",
 		"enumerator",
 		"instance_field",
 		"static_field",
@@ -398,11 +485,7 @@ void ClassNode::extendInternalCode(TypeNode* enclosingTypeNode, TemplateArgument
 		templateArguments = &m_templateArguments;
 	}
 
-	if(!isAbstractClass())
-	{
-		//New NewArray
-		buildAdditionalMethods();
-	}
+	buildAdditionalMethods();
 
 	//size_t count = m_additionalMethods.size();
 	//for (size_t i = 0; i < count; ++i)
@@ -445,8 +528,8 @@ void ClassNode::GenerateCreateInstanceMethod(const char* methodName, MethodNode*
 	ScopeNameNode* scopeName = (ScopeNameNode*)newScopeName(m_name, 0, 0, 0);
 	ScopeNameListNode* scopeNameList = (ScopeNameListNode*)newScopeNameList(0, scopeName);
 	TypeNameNode* typeName = (TypeNameNode*)newTypeName(scopeNameList);
-	TokenNode* passing = (TokenNode*)newToken('+');
-	setMethodResult(method, typeName, passing);
+	setMethodResult(method, newVariableType(typeName, 0));
+	setMethodResultOwning(method);
 	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
 	setMethodModifier(method, modifier);
 	//if (constructor->m_filterNode)
@@ -460,7 +543,7 @@ void ClassNode::GenerateCreateInstanceMethod(const char* methodName, MethodNode*
 void ClassNode::GenerateCreateArrayMethod(const char* methodName, MethodNode* constructor)
 {
 	IdentifyNode* name = (IdentifyNode*)newIdentify(methodName);
-	ParameterNode* parameter = (ParameterNode*)newParameter(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0, 0, newIdentify("count"));
+	ParameterNode* parameter = (ParameterNode*)newParameter(newVariableType(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0), 0, newIdentify("count"));
 	ParameterListNode* parameterList = (ParameterListNode*)newParameterList(0,0,parameter);
 	MethodNode* method = (MethodNode*)newMethod(name, 
 		constructor->m_leftParenthesis, parameterList, 
@@ -470,8 +553,8 @@ void ClassNode::GenerateCreateArrayMethod(const char* methodName, MethodNode* co
 	ScopeNameNode* scopeName = (ScopeNameNode*)newScopeName(m_name, 0, 0, 0);
 	ScopeNameListNode* scopeNameList = (ScopeNameListNode*)newScopeNameList(0, scopeName);
 	TypeNameNode* typeName = (TypeNameNode*)newTypeName(scopeNameList);
-	TokenNode* passing = (TokenNode*)newToken('+');
-	setMethodResult(method, typeName, passing);
+	setMethodResult(method, newVariableType(typeName, 0));
+	setMethodResultOwning(method);
 	setMethodResultArray(method);
 	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
 	setMethodModifier(method, modifier);
@@ -479,6 +562,31 @@ void ClassNode::GenerateCreateArrayMethod(const char* methodName, MethodNode* co
 	//{
 	//	method->m_filterNode = (TokenNode*)newToken(constructor->m_filterNode->m_nodeType);
 	//}
+	method->m_enclosing = this;
+	m_additionalMethods.push_back(method);
+}
+
+void ClassNode::GenerateDeleteMethod(const char* methodName, bool isArray)
+{
+	IdentifyNode* name = (IdentifyNode*)newIdentify(methodName);
+	TypeNameNode* voidType = (TypeNameNode*)newPrimitiveType(newToken(snt_keyword_void), pt_void);
+	ScopeNameNode* scopeName = (ScopeNameNode*)newScopeName(m_name, 0, 0, 0);
+	ScopeNameListNode* scopeNameList = (ScopeNameListNode*)newScopeNameList(0, scopeName);
+	TypeNameNode* typeName = (TypeNameNode*)newTypeName(scopeNameList);
+	ParameterNode* parameter = (ParameterNode*)newParameter(newVariableType(typeName, (TokenNode*)newToken('*')), 0, newIdentify("value"));
+	ParameterListNode* parameterList = (ParameterListNode*)newParameterList(0, 0, parameter);
+	if (isArray)
+	{
+		ParameterNode* countParameter = (ParameterNode*)newParameter(newVariableType(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0), 0, newIdentify("count"));
+		parameterList = (ParameterListNode*)newParameterList(parameterList, (TokenNode*)newToken(','), countParameter);
+	}
+	MethodNode* method = (MethodNode*)newMethod(name,
+		(TokenNode*)newToken('('), parameterList,
+		(TokenNode*)newToken(')'), 0);
+	method->m_semicolon = (TokenNode*)newToken(';');
+	setMethodResult(method, newVariableType(voidType, 0));
+	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
+	setMethodModifier(method, modifier);
 	method->m_enclosing = this;
 	m_additionalMethods.push_back(method);
 }
@@ -491,6 +599,19 @@ void ClassNode::buildAdditionalMethods()
 	yytokenno = 0;
 	yylineno = 0;
 	yycolumnno = 0;
+
+	std::string fullName;
+	if (0 != m_typeNode)
+	{
+		m_typeNode->getFullName(fullName);
+	}
+	if (fullName == "::pafcore::Interface" || m_name->m_str == "Interface")
+	{
+		yytokenno = backupToken;
+		yylineno = backupLine;
+		yycolumnno = backupColumn;
+		return;
+	}
 
 	MethodNode* defaultConstructor = 0;
 	std::vector<MethodNode*> constructors;	
@@ -516,18 +637,22 @@ void ClassNode::buildAdditionalMethods()
 	}
 
 	size_t count = constructors.size();
-	for(size_t i = 0; i < count; ++i)
+	if (!isAbstractClass())
 	{
-		MethodNode* constructor = constructors[i];
-		GenerateCreateInstanceMethod("New", constructor);
-		//if(!isValueType())
-		//{
-		//	GenerateCreateInstanceMethod("NewARC", constructor);
-		//}
+		for(size_t i = 0; i < count; ++i)
+		{
+			MethodNode* constructor = constructors[i];
+			GenerateCreateInstanceMethod("New", constructor);
+		}
+		if(0 != defaultConstructor && isValueType())
+		{
+			GenerateCreateArrayMethod("NewArray", defaultConstructor);
+		}
 	}
-	if(0 != defaultConstructor && isValueType())
+	if (!isValueType())
 	{
-		GenerateCreateArrayMethod("NewArray", defaultConstructor);
+		GenerateDeleteMethod("Delete", false);
+		GenerateDeleteMethod("DeleteArray", true);
 	}
 	yytokenno = backupToken;
 	yylineno = backupLine;
@@ -537,6 +662,37 @@ void ClassNode::buildAdditionalMethods()
 bool ClassNode::isValueType()
 {
 	return m_isValueType;
+}
+
+bool ClassNode::derivesFromObject(TemplateArguments*)
+{
+	return IsObjectType(m_typeNode);
+}
+
+bool ClassNode::hasDirectInterfaceBase(TemplateArguments* templateArguments)
+{
+	if (0 == m_baseList)
+	{
+		return false;
+	}
+
+	std::vector<TypeNameNode*> baseTypeNameNodes;
+	m_baseList->collectTypeNameNodes(baseTypeNameNodes);
+	size_t baseCount = baseTypeNameNodes.size();
+	for (size_t i = 1; i < baseCount; ++i)
+	{
+		TypeNode* baseTypeNode = baseTypeNameNodes[i]->getActualTypeNode(templateArguments);
+		if (IsInterfaceType(baseTypeNode))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ClassNode::needGetAddress(TemplateArguments* templateArguments)
+{
+	return hasDirectInterfaceBase(templateArguments);
 }
 
 bool ClassNode::isAbstractClass()
@@ -592,12 +748,15 @@ bool ClassNode::isCopyableClass(TemplateArguments* templateArguments)
 			}
 			else
 			{
-				assert(typeNode->isClass() && !typeNode->isTemplateClass());
-				ClassTypeNode* classTypeNode = static_cast<ClassTypeNode*>(typeNode);
-				if (!classTypeNode->m_classNode->isCopyableClass(0))
+				if (typeNode->isClass() && !typeNode->isTemplateClass())
 				{
-					baseClassCopyable = false;
-					break;
+					ClassTypeNode* classTypeNode = static_cast<ClassTypeNode*>(typeNode);
+					if (classTypeNode->m_classNode
+						&& !classTypeNode->m_classNode->isCopyableClass(0))
+					{
+						baseClassCopyable = false;
+						break;
+					}
 				}
 			}
 		}
@@ -638,9 +797,14 @@ void ClassNode::collectOverrideMethods(std::vector<MethodNode*>& methodNodes, Te
 		}
 		else
 		{
-			assert(typeNode->isClass() && !typeNode->isTemplateClass());
-			ClassTypeNode* classTypeNode = static_cast<ClassTypeNode*>(typeNode);
-			classTypeNode->m_classNode->collectOverrideMethods(methodNodes, 0);
+			if (typeNode->isClass() && !typeNode->isTemplateClass())
+			{
+				ClassTypeNode* classTypeNode = static_cast<ClassTypeNode*>(typeNode);
+				if (classTypeNode->m_classNode)
+				{
+					classTypeNode->m_classNode->collectOverrideMethods(methodNodes, 0);
+				}
+			}
 		}
 	}
 }
@@ -679,11 +843,14 @@ bool ClassNode::hasOverrideMethod(TemplateArguments* templateArguments)
 		}
 		else
 		{
-			assert(typeNode->isClass() && !typeNode->isTemplateClass());
-			ClassTypeNode* classTypeNode = static_cast<ClassTypeNode*>(typeNode);
-			if (classTypeNode->m_classNode->hasOverrideMethod(0))
+			if (typeNode->isClass() && !typeNode->isTemplateClass())
 			{
-				return true;
+				ClassTypeNode* classTypeNode = static_cast<ClassTypeNode*>(typeNode);
+				if (classTypeNode->m_classNode
+					&& classTypeNode->m_classNode->hasOverrideMethod(0))
+				{
+					return true;
+				}
 			}
 		}
 	}
@@ -815,9 +982,7 @@ void ClassNode::checkTypeNames(TypeNode* enclosingTypeNode, TemplateArguments* t
 	for (size_t i = 0; i < count; ++i)
 	{
 		MethodNode* methodNode = m_additionalMethods[i];
-		//methodNode->checkTypeNames(m_typeNode, templateArguments);
-		assert(methodNode->m_resultTypeName);
-		methodNode->m_resultTypeName->calcTypeNodes(m_typeNode, templateArguments);
+		methodNode->checkTypeNames(m_typeNode, templateArguments);
 	}
 }
 
@@ -855,9 +1020,12 @@ void ClassNode::checkSemantic(TemplateArguments* templateArguments)
 		{
 			std::string typeName;
 			m_typeNode->getFullName(typeName);
-			if (typeName != "::pafcore::Reference")
+			if (typeName != "::pafcore::Object"
+				&& typeName != "::pafcore::Interface"
+				&& m_name->m_str != "Object"
+				&& m_name->m_str != "Interface")
 			{
-				RaiseError_MissingReferenceBaseType(m_name);
+				RaiseError_MissingRcObjectBaseType(m_name);
 			}
 		}
 	}

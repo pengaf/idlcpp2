@@ -8,13 +8,14 @@
 #include "compiler.h"
 #include <assert.h>
 
-ParameterNode::ParameterNode(TypeNameNode* typeName, TokenNode* out, TokenNode* passing, IdentifyNode* name)
+ParameterNode::ParameterNode(TypeNameNode* typeName, TokenNode* out, TokenNode* typeCompound, TokenNode* byRef, IdentifyNode* name)
 {
 	m_nodeType = snt_parameter;
 	m_constant = 0;
 	m_typeName = typeName;
 	m_out = out;
-	m_passing = passing;
+	m_typeCompound = typeCompound;
+	m_byRef = byRef;
 	m_name = name;
 	m_array = false;
 	m_allowNull = false;
@@ -27,32 +28,32 @@ bool ParameterNode::isConstant()
 
 bool ParameterNode::isByValue()
 {
-	return 0 == m_passing;
+	return 0 == m_typeCompound && 0 == m_byRef;
 }
 
 bool ParameterNode::isByRef()
 {
-	return (0 != m_passing && '&' == m_passing->m_nodeType);
+	return 0 != m_byRef;
 }
 
 bool ParameterNode::isByPtr()
 {
-	return (0 != m_passing && '&' != m_passing->m_nodeType);
+	return isByObserverPtr() || isByUniquePtr() || isBySharedPtr();
 }
 
-bool ParameterNode::isByNonRefPtr()
+bool ParameterNode::isByObserverPtr()
 {
-	return (0 != m_passing && '*' == m_passing->m_nodeType);
+	return (0 != m_typeCompound && '*' == m_typeCompound->m_nodeType);
 }
 
-bool ParameterNode::isByDecRefPtr()
+bool ParameterNode::isByUniquePtr()
 {
-	return (0 != m_passing && '-' == m_passing->m_nodeType);
+	return (0 != m_typeCompound && '!' == m_typeCompound->m_nodeType);
 }
 
-bool ParameterNode::isByIncRefPtr()
+bool ParameterNode::isBySharedPtr()
 {
-	return (0 != m_passing && '+' == m_passing->m_nodeType);
+	return (0 != m_typeCompound && '^' == m_typeCompound->m_nodeType);
 }
 
 bool ParameterNode::isArray()
@@ -94,7 +95,7 @@ void ParameterNode::checkSemantic(TemplateArguments* templateArguments)
 	}
 	if(void_type == typeNode->getTypeCategory(templateArguments))
 	{ 
-		if ((isInput() && !isByNonRefPtr()) || (isOutput() && isByIncRefPtr()))
+		if ((isInput() && !isByObserverPtr()) || isOutput())
 		{
 			RaiseError_InvalidParameterType(this);
 		}

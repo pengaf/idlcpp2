@@ -36,6 +36,23 @@ bool Type::assign(void* dst, const void* src)
 	return false;
 }
 
+bool Type::getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound)
+{
+	(void)value;
+	(void)address;
+	(void)constant;
+	(void)typeCompound;
+	return false;
+}
+
+bool Type::setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound)
+{
+	(void)address;
+	(void)value;
+	(void)typeCompound;
+	return false;
+}
+
 //Metadata* Type::findMember(const char* name)
 //{
 //	return 0;

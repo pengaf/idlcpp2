@@ -148,7 +148,7 @@ bool StaticProperty::hasCandidate() const
 	return isSimple() && m_candidateCount && m_getCandidate;
 }
 
-Type* StaticProperty::type() const
+ObserverPtr<Type> StaticProperty::type() const
 {
 	return m_type;
 }
@@ -158,7 +158,7 @@ bool StaticProperty::isPtr() const
 	return m_isPtr;
 }
 
-Type* StaticProperty::keyType() const
+ObserverPtr<Type> StaticProperty::keyType() const
 {
 	return m_keyType;
 }

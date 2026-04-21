@@ -22,6 +22,8 @@ public:
 		m_hasListProperty = false;
 		m_hasMapProperty = false;
 		m_hasDelegate = false;
+		m_useSmartPointer = false;
+		m_useMemoryHeader = false;
 	}
 	~SourceFile();
 public:
@@ -37,5 +39,7 @@ public:
 	bool m_hasListProperty;
 	bool m_hasMapProperty;
 	bool m_hasDelegate;
+	bool m_useSmartPointer;
+	bool m_useMemoryHeader;
 };
 

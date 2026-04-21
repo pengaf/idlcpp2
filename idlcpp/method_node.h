@@ -13,13 +13,15 @@ public:
 	TokenNode* m_modifier;
 	TokenNode* m_resultConst;
 	TypeNameNode* m_resultTypeName;
-	TokenNode* m_passing;//& * +
+	TokenNode* m_typeCompound;//* ! ^
+	TokenNode* m_byRef;
 	TokenNode* m_leftParenthesis;
 	ParameterListNode* m_parameterList;
 	TokenNode* m_rightParenthesis;
 	TokenNode* m_constant;
 	TokenNode* m_semicolon;
 	bool m_resultArray;
+	bool m_resultOwning;
 	bool m_override;
 	mutable size_t m_parameterCount;
 public:
@@ -30,8 +32,12 @@ public:
 	bool isAbstract();
 	bool byValue();
 	bool byRef();
+	bool byObserverPtr();
+	bool byUniquePtr();
+	bool bySharedPtr();
 	bool byPtr();
-	bool byNew();
+	bool returnsOwning();
+	void setResultOwning(bool resultOwning = true);
 	size_t getParameterCount() const;
 	void calcManglingName(std::string& name, TemplateArguments* templateArguments);
 	virtual void checkTypeNames(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments);

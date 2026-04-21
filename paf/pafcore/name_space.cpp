@@ -37,7 +37,7 @@ NameSpace::~NameSpace()
 		{
 		case name_space:
 			PAF_ASSERT(static_cast<NameSpace*>(member)->m_enclosing == this);
-			paf_delete(static_cast<NameSpace*>(member));
+			pafcore::Destroy(static_cast<NameSpace*>(member));
 			break;
 		case type_alias:
 			PAF_ASSERT(static_cast<TypeAlias*>(member)->m_enclosing == this);
@@ -62,7 +62,7 @@ NameSpace* NameSpace::getNameSpace(const char* name)
 		auto it = m_members.find(fakeMetadata);
 		if(m_members.end() == it)
 		{
-			subNameSpace = paf_new NameSpace(name);
+			subNameSpace = Create<NameSpace>(name);
 			m_members.insert(subNameSpace);
 			subNameSpace->m_enclosing = this;
 		}
@@ -104,7 +104,7 @@ void NameSpace::unregisterMember(Metadata* metadata)
 }
 
 
-Metadata* NameSpace::_findMember_(string_t name)
+ObserverPtr<Metadata> NameSpace::_findMember_(string_t name)
 {
 	Metadata* member = 0;
 	char buffer[sizeof(Metadata)];
@@ -123,7 +123,7 @@ size_t NameSpace::_getMemberCount_()
 	return m_members.size();
 }
 
-Metadata* NameSpace::_getMember_(size_t index)
+ObserverPtr<Metadata> NameSpace::_getMember_(size_t index)
 {
 	if (index < m_members.size())
 	{
@@ -133,7 +133,7 @@ Metadata* NameSpace::_getMember_(size_t index)
 	}
 	else
 	{
-		return 0;
+		return nullptr;
 	}
 }
 

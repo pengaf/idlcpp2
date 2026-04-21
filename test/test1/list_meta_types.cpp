@@ -25,8 +25,10 @@ const char* CategoryToString(pafcore::Category category)
         return "enum_object";
     case pafcore::value_object:
         return "value_object";
-    case pafcore::reference_object:
-        return "reference_object";
+    case pafcore::rc_object:
+        return "rc_object";
+    case pafcore::atomic_rc_object:
+        return "atomic_rc_object";
     case pafcore::enumerator:
         return "enumerator";
     case pafcore::instance_field:

@@ -13,15 +13,18 @@ PropertyNode::PropertyNode(IdentifyNode* name, PropertyCategory category)
 {
 	m_nodeType = snt_property;
 	m_modifier = 0;
+	m_constant = 0;
 	m_typeName = 0;
-	m_passing = 0;
+	m_typeCompound = 0;
+	m_byRef = 0;
 	m_name = name;
 	m_get = 0;
 	m_set = 0;
 	m_propertyCategory = category;
 	m_candidate = false;
 	m_keyTypeName = 0;
-	m_keyPassing = 0;
+	m_keyTypeCompound = 0;
+	m_keyByRef = 0;
 
 }
 
@@ -67,27 +70,62 @@ bool PropertyNode::hasCandidate()
 
 bool PropertyNode::isKeyByPtr()
 {
-	return (0 != m_keyPassing && '*' == m_keyPassing->m_nodeType);
+	return isKeyByObserverPtr() || isKeyByUniquePtr() || isKeyBySharedPtr();
+}
+
+bool PropertyNode::isKeyByObserverPtr()
+{
+	return (0 != m_keyTypeCompound && '*' == m_keyTypeCompound->m_nodeType);
+}
+
+bool PropertyNode::isKeyByUniquePtr()
+{
+	return (0 != m_keyTypeCompound && '!' == m_keyTypeCompound->m_nodeType);
+}
+
+bool PropertyNode::isKeyBySharedPtr()
+{
+	return (0 != m_keyTypeCompound && '^' == m_keyTypeCompound->m_nodeType);
 }
 
 bool PropertyNode::isKeyByValue()
 {
-	return 0 == m_keyPassing;
+	return 0 == m_keyTypeCompound && 0 == m_keyByRef;
+}
+
+bool PropertyNode::isKeyByRef()
+{
+	return 0 != m_keyByRef;
 }
 
 bool PropertyNode::isByValue()
 {
-	return 0 == m_passing;
+	return 0 == m_typeCompound && 0 == m_byRef;
+}
+
+bool PropertyNode::isByObserverPtr()
+{
+	return (0 != m_typeCompound && '*' == m_typeCompound->m_nodeType);
+}
+
+bool PropertyNode::isByUniquePtr()
+{
+	return (0 != m_typeCompound && '!' == m_typeCompound->m_nodeType);
+}
+
+bool PropertyNode::isBySharedPtr()
+{
+	return (0 != m_typeCompound && '^' == m_typeCompound->m_nodeType);
 }
 
 bool PropertyNode::isByPtr()
 {
-	return (0 != m_passing && '*' == m_passing->m_nodeType);
+	return isByObserverPtr() || isByUniquePtr() || isBySharedPtr();
 }
 
 bool PropertyNode::isByRef()
 {
-	return (0 != m_passing && '&' == m_passing->m_nodeType);
+	return 0 != m_byRef;
 }
 
 void PropertyNode::setGetter(GetterSetterNode* getter)
@@ -122,12 +160,37 @@ void PropertyNode::checkSemantic(TemplateArguments* templateArguments)
 
 	assert(snt_class == m_enclosing->m_nodeType);
 	ClassNode* classNode = static_cast<ClassNode*>(m_enclosing);
+
+	if ((0 != m_typeCompound
+		&& '*' != m_typeCompound->m_nodeType
+		&& '!' != m_typeCompound->m_nodeType
+		&& '^' != m_typeCompound->m_nodeType)
+		|| (0 != m_byRef && 0 != m_typeCompound))
+	{
+		RaiseError_InvalidPropertyType(this);
+		return;
+	}
+
+	if ((0 != m_keyTypeCompound
+		&& '*' != m_keyTypeCompound->m_nodeType
+		&& '!' != m_keyTypeCompound->m_nodeType
+		&& '^' != m_keyTypeCompound->m_nodeType)
+		|| (0 != m_keyByRef && 0 != m_keyTypeCompound))
+	{
+		RaiseError_InvalidPropertyType(this);
+		return;
+	}
+
 	TypeNode* typeNode = m_typeName->getTypeNode(templateArguments);
 	if (0 == typeNode)
 	{
 		return;
 	}
 	if (void_type == typeNode->getTypeCategory(templateArguments) && !isByPtr())
+	{
+		RaiseError_InvalidPropertyType(this);
+	}
+	if (isByUniquePtr() && rc_object_type == typeNode->getTypeCategory(templateArguments))
 	{
 		RaiseError_InvalidPropertyType(this);
 	}

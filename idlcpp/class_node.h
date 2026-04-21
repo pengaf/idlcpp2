@@ -33,7 +33,7 @@ struct ClassNode : ScopeNode
 	TemplateParametersNode* m_templateParametersNode;
 	ClassTypeNode* m_typeNode;
 	TemplateArguments m_templateArguments;
-	std::vector<MethodNode*> m_additionalMethods;//New NewARC NewArray
+	std::vector<MethodNode*> m_additionalMethods;//New NewArray
 	bool m_isValueType;
 	bool m_override;
 	LazyBool m_abstractFlag;
@@ -49,10 +49,14 @@ public:
 	bool needSubclassProxy(TemplateArguments* templateArguments);
 	bool isValueType();
 	bool hasOverrideMethod(TemplateArguments* templateArguments);
+	bool derivesFromObject(TemplateArguments* templateArguments);
+	bool hasDirectInterfaceBase(TemplateArguments* templateArguments);
+	bool needGetAddress(TemplateArguments* templateArguments);
 	bool isAdditionalMethod(MethodNode* methodNode);
 	void collectOverrideMethods(std::vector<MethodNode*>& methodNodes, TemplateArguments* templateArguments);
 	void GenerateCreateInstanceMethod(const char* methodName, MethodNode* constructor);
 	void GenerateCreateArrayMethod(const char* methodName, MethodNode* constructor);
+	void GenerateDeleteMethod(const char* methodName, bool isArray);
 
 	virtual TypeNode* getTypeNode();
 	virtual void getLocalName(std::string& name, TemplateArguments* templateArguments);

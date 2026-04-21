@@ -24,16 +24,6 @@ Metadata::Metadata(const char* name, Attributes* attributes)
 	m_attributes = attributes;
 }
 
-long_t Metadata::addRef()
-{
-	return 0x40000000;
-};
-
-long_t Metadata::release()
-{
-	return 0x40000000;
-};
-
 Category Metadata::_category_() const
 {
 	Type* type = const_cast<Metadata*>(this)->getType();

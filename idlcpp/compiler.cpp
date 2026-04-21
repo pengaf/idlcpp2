@@ -259,6 +259,25 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 		TypeNode* typeNode = it->typeNode;
 		if (typeNode->isTypeDeclaration())
 		{
+			std::string typeName;
+			typeNode->getFullName(typeName);
+			if (typeName == "::pafcore::Interface" && typeNode->m_sourceFile != sourceFile)
+			{
+				std::string fileName;
+				GetRelativePath(fileName, m_mainSourceFile->m_fileName.c_str(), typeNode->m_sourceFile->m_fileName.c_str());
+				size_t dotPos = fileName.find_last_of('.');
+				size_t slashPos = fileName.find_last_of("\\/");
+				if (std::string::npos == slashPos || slashPos < dotPos)
+				{
+					fileName.erase(dotPos);
+				}
+				ConvertFileBaseNameToSnakeCase(fileName);
+				fileName += ".h";
+				FormatPathForInclude(fileName);
+				writeStringToFile("#include \"", file);
+				writeStringToFile(fileName.c_str(), fileName.length(), file);
+				writeStringToFile("\"\n", file);
+			}
 			continue;
 		}
 		if (typeNode->m_sourceFile != sourceFile)
@@ -375,6 +394,30 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 		}
 		writeStringToFile("\n", file);
 	}
+}
+
+void Compiler::outputMemoryHeader(FILE* file)
+{
+	std::string memoryFileName;
+	auto it = g_importDirectories.m_directories.begin();
+	auto end = g_importDirectories.m_directories.end();
+	for (; it != end; ++it)
+	{
+		std::filesystem::path path = std::filesystem::path(*it) / "memory.h";
+		if (fileExisting(path.generic_u8string().c_str()))
+		{
+			GetRelativePath(memoryFileName, m_mainSourceFile->m_fileName.c_str(), path.generic_u8string().c_str());
+			break;
+		}
+	}
+	if (memoryFileName.empty())
+	{
+		memoryFileName = "memory.h";
+	}
+	FormatPathForInclude(memoryFileName);
+	writeStringToFile("#include \"", file);
+	writeStringToFile(memoryFileName.c_str(), memoryFileName.length(), file);
+	writeStringToFile("\"\n", file);
 }
 
 void Compiler::outputUsedTypesForMetaHeader(FILE* file, SourceFile* sourceFile)

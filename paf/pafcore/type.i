@@ -2,6 +2,7 @@
 
 namespace pafcore
 {
+#{ class Variant; #}
 	abstract class #PAFCORE_EXPORT Type : Metadata
 	{
 		size_t _size_ { get };
@@ -13,12 +14,14 @@ namespace pafcore
 		virtual void destroyInstance(void* address);
 		virtual void destroyArray(void* address);
 		virtual bool assign(void* dst, const void* src);
+		virtual bool getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound);
+		virtual bool setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound);
 		virtual Metadata* findMember(const char* name) = 0;
 	public:
 		bool isPrimitive() const;
 		bool isEnum() const;
 		bool isValue() const;
-		bool isReference() const;
+		bool isRcObject() const;
 		bool isClass() const;
 		const char* getDeclarationFile() const;
 	public:
@@ -51,14 +54,14 @@ inline size_t Type::_size_() const
 		return value_object == m_category;
 	}
 	
-	inline bool Type::isReference() const
+	inline bool Type::isRcObject() const
 	{
-		return reference_object <= m_category;
+		return rc_object <= m_category;
 	}
 
 	inline bool Type::isClass() const
 	{
-		return value_object <= m_category;
+		return isValue() || isRcObject();
 	}
 	
 	inline const char* Type::getDeclarationFile() const
@@ -69,3 +72,4 @@ inline size_t Type::_size_() const
 #}
 
 }
+

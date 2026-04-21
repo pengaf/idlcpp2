@@ -25,16 +25,16 @@ size_t EnumType::_getEnumeratorCount_()
 	return m_enumeratorCount;
 }
 
-Enumerator* EnumType::_getEnumerator_(size_t index)
+ObserverPtr<Enumerator> EnumType::_getEnumerator_(size_t index)
 {
 	if(index < m_enumeratorCount)
 	{
 		return &m_enumerators[index];
 	}
-	return 0;
+	return nullptr;
 }
 
-Enumerator* EnumType::_getEnumeratorByValue_(int value)
+ObserverPtr<Enumerator> EnumType::_getEnumeratorByValue_(int value)
 {
 	for(size_t i = 0; i < m_enumeratorCount; ++i)
 	{
@@ -44,10 +44,10 @@ Enumerator* EnumType::_getEnumeratorByValue_(int value)
 			return enumerator;
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
-Enumerator* EnumType::_getEnumeratorByName_(string_t name)
+ObserverPtr<Enumerator> EnumType::_getEnumeratorByName_(string_t name)
 {
 	Metadata dummy(name);
 	Enumerator* res = std::lower_bound(m_enumerators, m_enumerators + m_enumeratorCount, dummy);
@@ -55,7 +55,7 @@ Enumerator* EnumType::_getEnumeratorByName_(string_t name)
 	{
 		return res;
 	}
-	return 0;
+	return nullptr;
 }
 
 Enumerator* EnumType::findEnumerator(const char* name)

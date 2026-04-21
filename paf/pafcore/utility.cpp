@@ -15,53 +15,6 @@ extern "C" int strcmp(const char* lhs, const char* rhs);
 #include "resource.h"
 #endif
 
-BEGIN_PAFCORE
-
-size_t stringBinarySearch(const char** strs, size_t stride, size_t count, const char* value)
-{
-	size_t left = 0;
-	size_t right = count;
-	while (left < right)
-	{
-		size_t mid = (left + right) / 2;
-		int_t cmp = strcmp(value, *reinterpret_cast<const char**>(reinterpret_cast<size_t>(strs) + stride * mid));
-		if (0 == cmp)
-		{
-			return mid;
-		}
-		if (cmp < 0)
-		{
-			right = mid;
-		}
-		else
-		{
-			left = mid + 1;
-		}
-	}
-	return count;
-}
-
-void* allocateMemory(size_t n)
-{
-	return pafcore::Allocate(n);
-}
-
-void freeMemory(void* p)
-{
-	pafcore::Deallocate(p);
-}
-
-void DummyDestroyInstance(void* address)
-{}
-
-void DummyDestroyArray(void* address)
-{}
-
-void DummyAssign(void* dst, const void* src)
-{}
-
-END_PAFCORE
-
 #if defined(_WIN32)
 static BOOL CALLBACK EnumThreadWndProc(HWND hwnd, LPARAM lParam)
 {
@@ -243,32 +196,4 @@ void PafAssert(wchar_t const* condition, wchar_t const* file, unsigned line, wch
 	(void)line;
 	(void)format;
 #endif
-}
-
-void* PAFCORE_CDECL operator new(size_t size, const char* fileName, int line, int)
-{
-	(void)fileName;
-	(void)line;
-	return pafcore::Allocate(size);
-}
-
-void* PAFCORE_CDECL operator new[](size_t size, const char* fileName, int line, int)
-{
-	(void)fileName;
-	(void)line;
-	return pafcore::Allocate(size);
-}
-
-void PAFCORE_CDECL operator delete(void* block, const char* fileName, int line, int)
-{
-	(void)fileName;
-	(void)line;
-	pafcore::Deallocate(block);
-}
-
-void PAFCORE_CDECL operator delete[](void* block, const char* fileName, int line, int)
-{
-	(void)fileName;
-	(void)line;
-	pafcore::Deallocate(block);
 }

@@ -5,13 +5,29 @@
 
 BEGIN_PAFCORE
 
+namespace
+{
+	void ReleaseNotifyHandlerLink(NotifyHandlerLink* link)
+	{
+		if (0 == link)
+		{
+			return;
+		}
+
+		if (0 == DecStrong(link))
+		{
+			NotifyHandlerLink::Delete(link);
+		}
+	}
+}
+
 NotifyHandlerLink::~NotifyHandlerLink()
 {
 }
 
 NotifyHandlerLink* NotifyHandlerLink::New(NotifyHandler* first, NotifyHandler* second)
 {
-	return paf_new NotifyHandlerLink(first, second);
+	return CreateObject<NotifyHandlerLink>(first, second);
 }
 
 bool NotifyHandlerLink::find(NotifyHandler* p)
@@ -39,12 +55,12 @@ NotifyHandler* NotifyHandlerLink::remove(NotifyHandler* p)
 	if (p == m_first)
 	{
 		res = m_second;
-		static_cast<NotifyHandlerLink*>(this)->release();
+		ReleaseNotifyHandlerLink(static_cast<NotifyHandlerLink*>(this));
 	}
 	else if (p == m_second)
 	{
 		res = m_first;
-		static_cast<NotifyHandlerLink*>(this)->release();
+		ReleaseNotifyHandlerLink(static_cast<NotifyHandlerLink*>(this));
 	}
 	else if (m_first->isStrictTypeOf<NotifyHandlerLink>())
 	{
@@ -122,12 +138,12 @@ NotifyHandlerList::~NotifyHandlerList()
 	{
 		if (m_notifyHandler->isStrictTypeOf<NotifyHandlerLink>())
 		{
-			m_notifyHandler->release();
+			ReleaseNotifyHandlerLink(static_cast<NotifyHandlerLink*>(m_notifyHandler));
 		}
 	}
 }
 
-void NotifyHandlerList::addNotifyHandler(NotifyHandler* handler) const
+void NotifyHandlerList::addNotifyHandler(ObserverPtr<NotifyHandler> handler) const
 {
 	if (!NotifyHandlerLink::FindInList(m_notifyHandler, handler))
 	{
@@ -135,7 +151,7 @@ void NotifyHandlerList::addNotifyHandler(NotifyHandler* handler) const
 	}
 }
 
-void NotifyHandlerList::removeNotifyHandler(NotifyHandler* handler) const
+void NotifyHandlerList::removeNotifyHandler(ObserverPtr<NotifyHandler> handler) const
 {
 	if (NotifyHandlerLink::FindInList(m_notifyHandler, handler))
 	{
@@ -143,7 +159,7 @@ void NotifyHandlerList::removeNotifyHandler(NotifyHandler* handler) const
 	}
 }
 
-bool NotifyHandlerList::findNotifyHandler(NotifyHandler* handler) const
+bool NotifyHandlerList::findNotifyHandler(ObserverPtr<NotifyHandler> handler) const
 {
 	return NotifyHandlerLink::FindInList(m_notifyHandler, handler);
 }

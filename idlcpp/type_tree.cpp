@@ -436,7 +436,7 @@ MemberNode* ClassTypeNode::getSyntaxNode()
 
 TypeCategory ClassTypeNode::getTypeCategory(TemplateArguments* templateArguments)
 {
-	return m_classNode->isValueType() ? value_type : reference_type;
+	return m_classNode->isValueType() ? value_type : rc_object_type;
 }
 
 TemplateClassInstanceTypeNode::TemplateClassInstanceTypeNode()

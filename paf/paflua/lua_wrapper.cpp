@@ -709,7 +709,7 @@ pafcore::ErrorCode MakeStaticMapProperty(lua_State *L, pafcore::StaticProperty* 
 pafcore::ErrorCode GetNestedType(lua_State *L, pafcore::Type* nestedType)
 {
 	pafcore::Variant value;
-	value.assignReferencePtr(RuntimeTypeOf<pafcore::Type>::RuntimeType::GetSingleton(), nestedType, false, ::pafcore::Variant::by_ptr);
+	value.assignRcPtr(RuntimeTypeOf<pafcore::Type>::RuntimeType::GetSingleton(), nestedType, false, ::pafcore::Variant::by_ptr);
 	VariantToLua(L, &value);
 	return pafcore::s_ok;
 }
@@ -730,7 +730,10 @@ pafcore::ErrorCode GetInstanceFieldRef(lua_State *L, pafcore::Variant* that, paf
 	}
 	else if(field->isPointer())
 	{
-		value.assignPtr(field->m_type, *(void**)fieldAddress, field->m_constant, ::pafcore::Variant::by_ref);
+		if (!field->m_type->getSmartPointer(value, reinterpret_cast<void*>(fieldAddress), field->m_constant, static_cast<pafcore::Metadata::TypeCompound>(field->m_typeCompound)))
+		{
+			return pafcore::e_invalid_field_type;
+		}
 	}
 	else
 	{		
@@ -760,7 +763,7 @@ pafcore::ErrorCode SetInstanceField(lua_State *L, pafcore::Variant* that, pafcor
 	pafcore::Variant* arg = LuaToVariant(&value, L, 3);
 	if (field->isPointer())
 	{
-		if (!arg->castToObjectPtr(field->m_type, (void**)fieldAddress))
+		if (!field->m_type->setSmartPointer(reinterpret_cast<void*>(fieldAddress), *arg, static_cast<pafcore::Metadata::TypeCompound>(field->m_typeCompound)))
 		{
 			return pafcore::e_invalid_field_type;
 		}
@@ -784,7 +787,10 @@ pafcore::ErrorCode GetStaticField(lua_State *L, pafcore::StaticField* field)
 	}
 	else if (field->isPointer())
 	{
-		value.assignPtr(field->m_type, *(void**)field->m_address, field->m_constant, ::pafcore::Variant::by_ref);
+		if (!field->m_type->getSmartPointer(value, reinterpret_cast<void*>(field->m_address), field->m_constant, static_cast<pafcore::Metadata::TypeCompound>(field->m_typeCompound)))
+		{
+			return pafcore::e_invalid_field_type;
+		}
 	}
 	else
 	{	
@@ -808,7 +814,7 @@ pafcore::ErrorCode SetStaticField(lua_State *L, pafcore::StaticField* field)
 	pafcore::Variant* arg = LuaToVariant(&value, L, 3);
 	if (field->isPointer())
 	{
-		if (!arg->castToObjectPtr(field->m_type, (void**)field->m_address))
+		if (!field->m_type->setSmartPointer(reinterpret_cast<void*>(field->m_address), *arg, static_cast<pafcore::Metadata::TypeCompound>(field->m_typeCompound)))
 		{
 			return pafcore::e_invalid_field_type;
 		}
@@ -887,7 +893,7 @@ int Variant_Call(lua_State *L)
 		}
 		break;
 	case pafcore::value_object:
-	case pafcore::reference_object:
+	case pafcore::rc_object:
 		{
 			pafcore::ClassType* type = (pafcore::ClassType*)variant->m_type;
 			pafcore::InstanceMethod* method = type->findInstanceMethod("op_call", true);
@@ -964,7 +970,7 @@ int Variant_Operator(lua_State *L, const char* op)
 		}
 		break;
 	case pafcore::value_object:
-	case pafcore::reference_object:
+	case pafcore::rc_object:
 		{
 			pafcore::ClassType* type = (pafcore::ClassType*)variant->m_type;
 			method = type->findInstanceMethod(op, true);
@@ -1037,7 +1043,7 @@ int Variant_ComparisonOperator(lua_State *L, CompareOperation op)
 		}
 		break; }
 	case pafcore::value_object:
-	case pafcore::reference_object: {
+	case pafcore::rc_object: {
 		pafcore::ClassType* type = (pafcore::ClassType*)variant->m_type;
 		pafcore::InstanceMethod* method = type->findInstanceMethod(s_compareOperationName[(int)op], true);
 		if (0 != method)
@@ -1109,16 +1115,16 @@ int Subclassing(lua_State *L)
 	int numArgs = lua_gettop(L);
 	if (1 == numArgs && lua_type(L, -1) == LUA_TTABLE)
 	{
-		LuaSubclassInvoker* subclassInvoker = paf_new LuaSubclassInvoker(L);
+		LuaSubclassInvoker* subclassInvoker = pafcore::Create<LuaSubclassInvoker>(L);
 		void* implementor = classType->createSubclassProxy(subclassInvoker);
 		pafcore::Variant impVar;
 		if (classType->isValue())
 		{
-			impVar.assignValuePtr(classType, implementor, false, ::pafcore::Variant::by_new_ptr);
+			impVar.assignOwningValuePtr(classType, implementor, false);
 		}
 		else
 		{
-			impVar.assignReferencePtr(classType, implementor, false, ::pafcore::Variant::by_new_ptr);
+			impVar.assignOwningRcPtr(classType, implementor, false);
 		}
 		impVar.setSubClassProxy();
 		VariantToLua(L, &impVar);
@@ -1137,13 +1143,13 @@ int Delegate_AddCallBack(lua_State *L)
 	{
 		if (lua_type(L, -1) != LUA_TFUNCTION)
 		{
-			Variant_Error(L, "the second argument of _delegate_ must be a function", pafcore::e_invalid_arg_type_1);
+			Variant_Error(L, "the first argument of _delegate_ must be a function", pafcore::e_invalid_arg_type_1);
 			return 0;
 		}		
-		LuaCallBack2* callBack = paf_new LuaCallBack2(L);
+		LuaCallBack2* callBack = pafcore::Create<LuaCallBack2>(L);
 		delegate->addCallBack(callBack);
 		pafcore::Variant impVar;
-		impVar.assignReferencePtr(RuntimeTypeOf<::paflua::LuaCallBack>::RuntimeType::GetSingleton(), callBack, false, ::pafcore::Variant::by_new_ptr);
+		impVar.assignOwningRcPtr(RuntimeTypeOf<::paflua::LuaCallBack2>::RuntimeType::GetSingleton(), callBack, false);
 		impVar.setSubClassProxy();
 		VariantToLua(L, &impVar);
 		return 1;
@@ -1161,10 +1167,10 @@ int Delegate_AddCallBack(lua_State *L)
 			return 0;
 		}
 		const char* str = lua_tostring(L, -1);
-		LuaCallBack* callBack = paf_new LuaCallBack(L, str);
+		LuaCallBack* callBack = pafcore::Create<LuaCallBack>(L, str);
 		delegate->addCallBack(callBack);
 		pafcore::Variant impVar;
-		impVar.assignReferencePtr(RuntimeTypeOf<::paflua::LuaCallBack>::RuntimeType::GetSingleton(), callBack, false, ::pafcore::Variant::by_new_ptr);
+		impVar.assignOwningRcPtr(RuntimeTypeOf<::paflua::LuaCallBack>::RuntimeType::GetSingleton(), callBack, false);
 		impVar.setSubClassProxy();
 		VariantToLua(L, &impVar);
 		return 1;
@@ -1192,7 +1198,7 @@ int Delegate_AddCallBack(lua_State *L)
 //		pafcore::Variant* variant = (pafcore::Variant*)luaL_checkudata(L, -1, variant_metatable_name);
 //		if (variant)
 //		{
-//			if (pafcore::reference_object == variant->m_type->m_category &&
+//			if (pafcore::rc_object == variant->m_type->m_category &&
 //				static_cast<pafcore::ClassType*>(variant->m_type)->isType(RuntimeTypeOf<::pafcore::Lu>::RuntimeType::GetSingleton()))
 //
 //		}
@@ -1220,10 +1226,9 @@ int Delegate_AddCallBack(lua_State *L)
 //		return 0;
 //	}
 //	const char* str = lua_tostring(L, -1);
-//	LuaCallBack* callBack = paf_new LuaCallBack(L, str);
 //	delegate->addCallBack(callBack);
 //	pafcore::Variant impVar;
-//	impVar.assignReferencePtr(RuntimeTypeOf<::paflua::LuaCallBack>::RuntimeType::GetSingleton(), callBack, false, ::pafcore::Variant::by_new_ptr);
+//	impVar.assignOwningRcPtr(RuntimeTypeOf<::paflua::LuaCallBack>::RuntimeType::GetSingleton(), callBack, false);
 //	impVar.setSubClassProxy();
 //	VariantToLua(L, &impVar);
 //	return 1;
@@ -1258,7 +1263,7 @@ pafcore::ErrorCode Variant_Index_Identify(lua_State *L, pafcore::Variant* varian
 			if(0 != member)
 			{
 				pafcore::Variant value;
-				value.assignReferencePtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
+				value.assignRcPtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
 				VariantToLua(L, &value);
 				return pafcore::s_ok;
 			}
@@ -1295,7 +1300,7 @@ pafcore::ErrorCode Variant_Index_Identify(lua_State *L, pafcore::Variant* varian
 				//case pafcore::static_method:
 				//	{
 				//		pafcore::Variant value;
-				//		value.assignReferencePtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
+				//		value.assignRcPtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
 				//		VariantToLua(L, &value);
 				//		return pafcore::s_ok;
 				//	}
@@ -1322,7 +1327,7 @@ pafcore::ErrorCode Variant_Index_Identify(lua_State *L, pafcore::Variant* varian
 				//case pafcore::static_method:
 				//	{
 				//		pafcore::Variant value;
-				//		value.assignReferencePtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
+				//		value.assignRcPtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
 				//		VariantToLua(L, &value);
 				//		return pafcore::s_ok;
 				//	}
@@ -1395,7 +1400,7 @@ pafcore::ErrorCode Variant_Index_Identify(lua_State *L, pafcore::Variant* varian
 		//case pafcore::instance_method:
 		//	{
 		//		pafcore::Variant value;
-		//		value.assignReferencePtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
+		//		value.assignRcPtr(RuntimeTypeOf<pafcore::Metadata>::RuntimeType::GetSingleton(), member, false, ::pafcore::Variant::by_ptr);
 		//		VariantToLua(L, &value);
 		//		return pafcore::s_ok;
 		//	}
@@ -1546,7 +1551,7 @@ pafcore::ErrorCode Variant_Index_Identify(lua_State *L, pafcore::Variant* varian
 			if (strcmp(&name[2], "ype_") == 0)//_type_
 			{
 				pafcore::Variant typeVar;
-				typeVar.assignReferencePtr(RuntimeTypeOf<pafcore::Type>::RuntimeType::GetSingleton(), variant->m_type, false, ::pafcore::Variant::by_ptr);
+				typeVar.assignRcPtr(RuntimeTypeOf<pafcore::Type>::RuntimeType::GetSingleton(), variant->m_type, false, ::pafcore::Variant::by_ptr);
 				VariantToLua(L, &typeVar);
 				return pafcore::s_ok;
 			}
@@ -2146,3 +2151,4 @@ struct luaL_Reg g_staticMapPropertyInstance_reg[] =
 };
 
 END_PAFLUA
+

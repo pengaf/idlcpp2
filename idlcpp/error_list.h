@@ -47,7 +47,7 @@ enum ErrorCode
 	semantic_error_template_parameter_redefinition,
 	semantic_error_template_class_not_instantiton,
 	semantic_error_template_interface_not_supported,
-	semantic_error_missing_reference_base_type,
+	semantic_error_missing_rc_object_base_type,
 	semantic_error_template_class_instance_internal,
 	semantic_error_too_few_formal_parameters,
 	semantic_error_too_many_formal_parameters,
