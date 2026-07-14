@@ -71,7 +71,7 @@ namespace pafcore
 			string_class,
 		};
 	public:
-		ClassType(const char* name, Category category, const char* declarationFile);
+		ClassType(const char* name, MetadataKind kind, const char* declarationFile);
 	public:
 		virtual Metadata* findMember(const char* name) override;
 		virtual bool getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound) override;

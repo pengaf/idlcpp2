@@ -1,5 +1,5 @@
 #include "common_funcs.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "member_node.h"
 #include "enum_node.h"
 #include "class_node.h"
@@ -23,7 +23,7 @@ void GetMetaTypeFullName(std::string& metaTypeName, MemberNode* memberNode, Temp
 {
 	std::string typeName;
 	memberNode->getFullName(typeName, templateArguments);
-	std::replace_if(typeName.begin(), typeName.end(), isNotIdentifyChar, '_');
+	std::replace_if(typeName.begin(), typeName.end(), isNotIdentifierChar, '_');
 	metaTypeName = typeName + g_options.m_metaTypePostfix;
 }
 
@@ -31,7 +31,7 @@ void GetMetaTypeFullName(std::string& metaTypeName, TypeNode* typeNode)
 {
 	std::string typeName;
 	typeNode->getFullName(typeName);
-	std::replace_if(typeName.begin(), typeName.end(), isNotIdentifyChar, '_');
+	std::replace_if(typeName.begin(), typeName.end(), isNotIdentifierChar, '_');
 	metaTypeName = typeName + g_options.m_metaTypePostfix;
 }
 
@@ -39,16 +39,16 @@ void GetSubclassProxyFullName(std::string& subclassProxyName, ClassNode* classNo
 {
 	std::string typeName;
 	classNode->getFullName(typeName, templateArguments);
-	std::replace_if(typeName.begin(), typeName.end(), isNotIdentifyChar, '_');
+	std::replace_if(typeName.begin(), typeName.end(), isNotIdentifierChar, '_');
 	subclassProxyName = typeName + g_options.m_subclassProxyPostfix;
 }
 
-TypeCategory CalcTypeNativeName(std::string& typeName, TypeNameNode* typeNameNode, TemplateArguments* templateArguments)
+TypeKind CalcTypeNativeName(std::string& typeName, TypeNameNode* typeNameNode, TemplateArguments* templateArguments)
 {
 	TypeNode* typeNode = typeNameNode->getTypeNode(templateArguments);
 	assert(typeNode);
 	typeNode->getNativeName(typeName);
-	return typeNode->getTypeCategory(templateArguments);
+	return typeNode->getTypeKind(templateArguments);
 }
 
 void CollectTypeNodes(std::vector<TypeNode*>& typeNodes, ClassTypeNode* classTypeNode)
@@ -59,7 +59,7 @@ void CollectTypeNodes(std::vector<TypeNode*>& typeNodes, ClassTypeNode* classTyp
 	for (; it != end; ++it)
 	{
 		TypeNode* srcChild = *it;
-		switch (srcChild->m_category)
+		switch (srcChild->m_kind)
 		{
 		case tc_enum_type:
 			typeNodes.push_back(srcChild);

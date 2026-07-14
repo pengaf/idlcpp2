@@ -147,7 +147,7 @@ namespace pafcore
 		};
 		Type* m_type;
 		Type* m_keyType;
-		byte_t m_category;
+		byte_t m_kind;
 		bool m_isPtr;
 		bool m_isKeyPtr;
 		bool m_serializable;
@@ -161,22 +161,22 @@ inline ObserverPtr<ClassType> InstanceProperty::objectType() const
 
 inline bool InstanceProperty::isSimple() const
 	{
-		return simple_property == m_category;
+		return simple_property == m_kind;
 	}
 
 inline bool InstanceProperty::isArray() const
 	{
-		return array_property == m_category;
+		return array_property == m_kind;
 	}
 
 inline bool InstanceProperty::isList() const
 	{
-		return list_property == m_category;
+		return list_property == m_kind;
 	}
 
 inline bool InstanceProperty::isMap() const
 	{
-		return map_property == m_category;
+		return map_property == m_kind;
 	}
 
 inline bool InstanceProperty::hasGetter() const

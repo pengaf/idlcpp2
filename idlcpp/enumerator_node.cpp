@@ -1,13 +1,13 @@
 #include "enumerator_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "attribute_list_node.h"
 #include <assert.h>
 
-EnumeratorNode::EnumeratorNode(AttributeListNode* attributeList, IdentifyNode* name)
+EnumeratorNode::EnumeratorNode(IdentifierNode* name, TokenNode* equalSign)
 {
 	m_nodeType = snt_enumerator;
-	m_attributeList = attributeList;
 	m_name = name;
+	m_equalSign = equalSign;
 }
 
 void EnumeratorNode::checkSemantic()

@@ -6,7 +6,7 @@
 namespace pafcore
 {
 	//�� Xml ���л�ʱ�� Base64 �洢
-//	class(value_object) #PAFCORE_EXPORT Buffer
+//	class(value_instance) #PAFCORE_EXPORT Buffer
 //	{
 //#{
 //	public:

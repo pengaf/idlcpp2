@@ -20,7 +20,7 @@
 
 namespace pafcore
 {
-	class(value_object) #PAFCORE_EXPORT Reflection
+	class(value_instance) #PAFCORE_EXPORT Reflection
 	{
 		static String GetTypeFullName(Type* type);
 		static String GetTypeAliasFullName(TypeAlias* typeAlias);

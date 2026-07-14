@@ -1,7 +1,7 @@
-#include "enumerator.h"
-#include "enumerator.mh"
-#include "enumerator.ic"
-#include "enumerator.mc"
+#include "enum_member.h"
+#include "enum_member.mh"
+#include "enum_member.ic"
+#include "enum_member.mc"
 
 BEGIN_PAFCORE
 

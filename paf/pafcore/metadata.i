@@ -96,15 +96,15 @@ namespace pafcore
 		Attribute* attributes;
 	};
 #}
-	enum Category
+	enum class MetadataKind ##: uint8_t
 	{
-		void_object,
-		primitive_object,
-		enum_object,
-		value_object,
-		rc_object,
-		atomic_rc_object,
-		enumerator,
+		void_instance,
+		primitive_instance,
+		enum_instance,
+		value_instance,
+		object_instance,
+		interface_instance,
+		enum_member,
 		instance_field,
 		static_field,
 		instance_property,
@@ -119,12 +119,38 @@ namespace pafcore
 		class_type,
 		type_alias,
 		name_space,
+		//dummy
+		dummy_metadata,
+		dummy_type,
+	};
+#{
+	enum class TypeCompound : uint8_t
+	{
+		none,
+		observer_ptr,
+		shared_ptr,
+		observer_array,
+		shared_array,
 	};
 
-	abstract class #PAFCORE_EXPORT Metadata : Object
+	enum class Passing : uint8_t
+	{
+		by_value,
+		by_ref,
+	};
+
+	enum class PropertyKind
+	{
+		simple_property,
+		array_property,
+		list_property,
+		map_property,
+	};
+#}
+	abstract class(dummy_metadata) #PAFCORE_EXPORT Metadata : Object
 	{
 		string_t _name_ { get };
-		Category _category_ { get };
+		MetadataKind _kind_ { get };
 		size_t _attributeCount_ { get };
 		string_t _getAttributeName_(size_t index);
 		string_t _getAttributeContent_(size_t index);
@@ -132,28 +158,6 @@ namespace pafcore
 		bool _hasAttribute_(string_t attributeName);
 #{
 	public:
-		enum Passing
-		{
-			by_value,
-			by_ref,
-		};
-		enum TypeCompound
-		{
-			tc_none,
-			tc_observer_ptr,
-			tc_unique_ptr,
-			tc_shared_ptr,
-			tc_observer_array,
-			tc_unique_array,
-			tc_shared_array,
-		};
-		enum PropertyCategory
-		{
-			simple_property,
-			array_property,
-			list_property,
-			map_property,
-		};
 	public:
 		Metadata(const char* name, Attributes* attributes = 0);
 		//Metadata(const Metadata&) = default;

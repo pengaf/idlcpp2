@@ -1,16 +1,13 @@
 #pragma once
-
-#include "member_node.h"
+#include "entity_node.h"
 
 struct TokenNode;
-struct TypeNameNode;
 
-struct EnumeratorNode : SyntaxNodeImpl
+struct EnumeratorNode : EntityNode
 {
-	AttributeListNode* m_attributeList;
-	IdentifyNode* m_name;
+	TokenNode* m_equalSign{ nullptr };
 public:
-	EnumeratorNode(AttributeListNode* attributeList, IdentifyNode* name);
+	EnumeratorNode(IdentifierNode* name, TokenNode* equalSign);
 	void checkSemantic();
 };
 

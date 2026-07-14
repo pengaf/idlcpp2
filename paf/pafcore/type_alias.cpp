@@ -16,7 +16,7 @@ TypeAlias::TypeAlias(const char* name, Type* type, const char* declarationFile) 
 
 TypeAlias::~TypeAlias()
 {
-	if (m_enclosing && name_space == m_enclosing->_category_())
+	if (m_enclosing && name_space == m_enclosing->_kind_())
 	{
 		static_cast<NameSpace*>(m_enclosing)->unregisterMember(this);
 	}

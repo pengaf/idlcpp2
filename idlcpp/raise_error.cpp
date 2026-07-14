@@ -1,6 +1,6 @@
 #include "raise_error.h"
 #include "error_list.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "type_name_node.h"
 #include "parameter_node.h"
 #include "method_node.h"
@@ -15,7 +15,7 @@
 
 const size_t error_info_buffer_size = 512;
 
-void RaiseError_NestedTemplateClass(IdentifyNode* node)
+void RaiseError_NestedTemplateClass(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : template class can not as a nested type", node->m_str.c_str());
@@ -23,7 +23,7 @@ void RaiseError_NestedTemplateClass(IdentifyNode* node)
 		node->m_columnNo, semantic_error_nested_template_class, buf);
 }
 
-void RaiseError_InvalidTypeName(IdentifyNode* node)
+void RaiseError_InvalidTypeName(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : is not a type name", node->m_str.c_str());
@@ -36,10 +36,10 @@ void RaiseError_InvalidTypeName(ScopeNameListNode* node)
 	char buf[error_info_buffer_size];
 	std::string str;
 	node->getString(str);
-	IdentifyNode* identifyNode = node->m_scopeName->m_name;
+	IdentifierNode* identifierNode = node->m_scopeName->m_name;
 	sprintf_s(buf, "\'%s\' : is not a type name", str.c_str());
-	ErrorList_AddItem_CurrentFile(identifyNode->m_lineNo,
-		identifyNode->m_columnNo, semantic_error_invalid_type_name, buf);
+	ErrorList_AddItem_CurrentFile(identifierNode->m_lineNo,
+		identifierNode->m_columnNo, semantic_error_invalid_type_name, buf);
 }
 
 void RaiseError_InvalidTypeName(TypeNameNode* node)
@@ -47,10 +47,10 @@ void RaiseError_InvalidTypeName(TypeNameNode* node)
 	char buf[error_info_buffer_size];
 	std::string str;
 	node->getString(str);
-	IdentifyNode* identifyNode = node->m_scopeNameList->m_scopeName->m_name;
+	IdentifierNode* identifierNode = node->m_scopeNameList->m_scopeName->m_name;
 	sprintf_s(buf, "\'%s\' : is not a type name", str.c_str());
-	ErrorList_AddItem_CurrentFile(identifyNode->m_lineNo,
-		identifyNode->m_columnNo, semantic_error_invalid_type_name, buf);
+	ErrorList_AddItem_CurrentFile(identifierNode->m_lineNo,
+		identifierNode->m_columnNo, semantic_error_invalid_type_name, buf);
 }
 
 void RaiseError_InvalidParameterType(ParameterNode* node)
@@ -212,7 +212,7 @@ void RaiseError_InvalidPropertyType(PropertyNode* node)
 		tokenNode->m_columnNo, semantic_error_invalid_property, buf);
 }
 
-void RaiseError_InvalidClassTemplateName(IdentifyNode* node)
+void RaiseError_InvalidClassTemplateName(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : is not a class template name", node->m_str.c_str());
@@ -225,13 +225,13 @@ void RaiseError_InvalidClassTemplateName(TypeNameNode* node)
 	char buf[error_info_buffer_size];
 	std::string name;
 	node->getString(name);
-	IdentifyNode* identifyNode = node->m_scopeNameList->m_scopeName->m_name;
+	IdentifierNode* identifierNode = node->m_scopeNameList->m_scopeName->m_name;
 	sprintf_s(buf, "\'%s\' : is not a class template name", name.c_str());
-	ErrorList_AddItem_CurrentFile(identifyNode->m_lineNo,
-		identifyNode->m_columnNo, semantic_error_invalid_class_template_name, buf);
+	ErrorList_AddItem_CurrentFile(identifierNode->m_lineNo,
+		identifierNode->m_columnNo, semantic_error_invalid_class_template_name, buf);
 }
 
-void RaiseError_TooManyTemplateArguments(IdentifyNode* node)
+void RaiseError_TooManyTemplateArguments(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : too many template arguments", node->m_str.c_str());
@@ -239,7 +239,7 @@ void RaiseError_TooManyTemplateArguments(IdentifyNode* node)
 		node->m_columnNo, semantic_error_too_many_template_arguments, buf);
 }
 
-void RaiseError_TooFewTemplateArguments(IdentifyNode* node)
+void RaiseError_TooFewTemplateArguments(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : too few template arguments", node->m_str.c_str());
@@ -257,7 +257,7 @@ void RaiseError_InvalidTemplateArgument(TypeNameNode* node)
 		node->m_scopeNameList->m_scopeName->m_name->m_columnNo, semantic_error_invalid_template_argument, buf);
 }
 
-void RaiseError_TemplateParameterRedefinition(IdentifyNode* node)
+void RaiseError_TemplateParameterRedefinition(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "redefinition of template parameter \'%s\'", node->m_str.c_str());
@@ -265,7 +265,7 @@ void RaiseError_TemplateParameterRedefinition(IdentifyNode* node)
 		node->m_columnNo, semantic_error_template_parameter_redefinition, buf);
 }
 
-void RaiseError_TemplateClassInstanceInvalidTypeName(const char* typeName, IdentifyNode* node)
+void RaiseError_TemplateClassInstanceInvalidTypeName(const char* typeName, IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : template class is not explicit instantition", typeName);
@@ -273,7 +273,7 @@ void RaiseError_TemplateClassInstanceInvalidTypeName(const char* typeName, Ident
 		node->m_columnNo, semantic_error_template_class_not_instantiton, buf);
 }
 
-void RaiseError_TemplateInterfaceNotSupported(IdentifyNode* node)
+void RaiseError_TemplateInterfaceNotSupported(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : template interface is not supported", node->m_str.c_str());
@@ -281,7 +281,7 @@ void RaiseError_TemplateInterfaceNotSupported(IdentifyNode* node)
 		node->m_columnNo, semantic_error_template_interface_not_supported, buf);
 }
 
-void RaiseError_MissingRcObjectBaseType(IdentifyNode* node)
+void RaiseError_MissingRcObjectBaseType(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : rc object type must inherit from ::pafcore::Object", node->m_str.c_str());
@@ -289,7 +289,7 @@ void RaiseError_MissingRcObjectBaseType(IdentifyNode* node)
 		node->m_columnNo, semantic_error_missing_rc_object_base_type, buf);
 }
 
-void RaiseError_InterfaceMethodIsNotVirtual(IdentifyNode* node)
+void RaiseError_InterfaceMethodIsNotVirtual(IdentifierNode* node)
 {
 	char buf[error_info_buffer_size];
 	sprintf_s(buf, "\'%s\' : override method must be virtual or abstract", node->m_str.c_str());

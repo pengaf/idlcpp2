@@ -1,11 +1,11 @@
 #include "scope_name_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "type_name_list_node.h"
 #include "type_name_node.h"
 #include <vector>
 #include <assert.h>
 
-ScopeNameNode::ScopeNameNode(IdentifyNode* name, TokenNode* leftBracket, TypeNameListNode* parameterList, TokenNode* rightBracket)
+ScopeNameNode::ScopeNameNode(IdentifierNode* name, TokenNode* leftBracket, TypeNameListNode* parameterList, TokenNode* rightBracket)
 {
 	m_nodeType = snt_scope_name;
 	m_name = name;

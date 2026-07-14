@@ -6,7 +6,7 @@
 #include <map>
 
 struct TokenNode;
-struct IdentifyNode;
+struct IdentifierNode;
 struct ScopeNameListNode;
 struct TypeNameListNode;
 struct ScopeNode;
@@ -16,20 +16,21 @@ struct TemplateClassInstanceNode;
 struct TypeNode;
 struct TemplateArguments;
 
-enum TypeCategory;
+enum TypeKind;
 
 struct TypeNameNode : SyntaxNodeImpl
 {
-	TokenNode* m_keyword;
-	ScopeNameListNode* m_scopeNameList;
-	TokenNode* m_filterNode;
-	TypeNode* m_startTypeNode;
-	TypeNode* m_typeNode;
+	TokenNode* m_keyword{ nullptr };
+	ScopeNameListNode* m_scopeNameList{ nullptr };
+	TypeNode* m_startTypeNode{ nullptr };
+	TypeNode* m_typeNode{ nullptr };
+	bool m_noCode{ false };
+	bool m_noMeta{ false };
 public:
 	TypeNameNode(TokenNode* keyword, PredefinedType primitiveType);
 	TypeNameNode(ScopeNameListNode* scopeNameList);
-	bool isNoCode();
-	bool isNoMeta();
+	bool isNoCode() const;
+	bool isNoMeta() const;
 	bool calcTypeNodes(TypeNode* enclosingTypeTreeNode, TemplateArguments* templateArguments);
 	TypeNode* getTypeNode(TemplateArguments* templateArguments);
 	TypeNode* getActualTypeNode(TemplateArguments* templateArguments);

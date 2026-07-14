@@ -1,7 +1,7 @@
 #include "attribute_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 
-AttributeNode::AttributeNode(IdentifyNode* name, IdentifyNode* content, bool u8content)
+AttributeNode::AttributeNode(IdentifierNode* name, IdentifierNode* content, bool u8content)
 {
 	m_nodeType = snt_attribute;
 	m_name = name;

@@ -4,7 +4,7 @@
 #include "program_node.h"
 #include "namespace_node.h"
 #include "token_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "enumerator_list_node.h"
 #include "scope_name_list_node.h"
 #include "member_list_node.h"
@@ -28,7 +28,7 @@
 #include <assert.h>
 
 void generateCode_Token(FILE* file, TokenNode* tokenNode, int indentation);
-void generateCode_Identify(FILE* file, IdentifyNode* identifyNode, int indentation, bool addSpace = true);
+void generateCode_Identifier(FILE* file, IdentifierNode* identifierNode, int indentation, bool addSpace = true);
 void generateCode_Parameter(FILE* file, ParameterNode* parameterNode, ScopeNode* scopeNode);
 void generateCode_TypeName(FILE* file, TypeNameNode* typeNameNode, ScopeNode* scopeNode, bool addKeyword, int indentation);
 void generateCode_ParameterList(FILE* file, ParameterListNode* parameterListNode, ScopeNode* scopeNode);
@@ -148,12 +148,12 @@ void writeDelegateImpl_CastResult(DelegateNode* delegateNode, FILE* file, int in
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, delegateNode->m_resultTypeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, delegateNode->m_resultTypeName, 0);
 
 	TypeNameNode* resultNode = static_cast<TypeNameNode*>(delegateNode->m_resultTypeName);
 	if (delegateNode->byValue())
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -179,7 +179,7 @@ void writeDelegateImpl_CastResult(DelegateNode* delegateNode, FILE* file, int in
 		{
 			sprintf_s(buf, "%s* __res_ptr__ = 0;\n", typeName.c_str());
 			writeStringToFile(buf, file, indentation);
-			switch (typeCategory)
+			switch (typeKind)
 			{
 			case value_type:
 				sprintf_s(buf, "__result__.castToValuePtr(RuntimeTypeOf<%s>::RuntimeType::GetSingleton(), (void**)&__res_ptr__);\n", typeName.c_str());
@@ -208,7 +208,7 @@ void writeDelegateImpl_CastResult(DelegateNode* delegateNode, FILE* file, int in
 			return;
 		}
 
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "__result__.castToVoidPtr(&__res__);\n");
@@ -240,11 +240,11 @@ void writeDelegateImpl_SetResultType(DelegateNode* delegateNode, FILE* file, int
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, delegateNode->m_resultTypeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, delegateNode->m_resultTypeName, 0);
 
-	if (delegateNode->byValue() && (primitive_type == typeCategory || enum_type == typeCategory))
+	if (delegateNode->byValue() && (primitive_type == typeKind || enum_type == typeKind))
 	{
-		if (primitive_type == typeCategory)
+		if (primitive_type == typeKind)
 		{
 			sprintf_s(buf, "__result__.assignNullPrimitive(RuntimeTypeOf<%s>::RuntimeType::GetSingleton());\n", typeName.c_str());
 		}
@@ -337,7 +337,7 @@ void GetClassName(std::string& className, ClassNode* classNode)
 	className = classNode->m_name->m_str;
 	if(classNode->m_templateParametersNode)
 	{
-		std::vector<IdentifyNode*> templateParameterNodes;
+		std::vector<IdentifierNode*> templateParameterNodes;
 		classNode->m_templateParametersNode->collectParameterNodes(templateParameterNodes);
 		className += "<";
 		size_t count = templateParameterNodes.size();
@@ -469,7 +469,7 @@ void SourceFileGenerator::generateCode_Delegate(FILE* file, DelegateNode* delega
 		file = 0;
 	}
 	TypeNode* resultTypeNode = delegateNode->m_resultTypeName->getTypeNode(0);
-	bool isVoid = (void_type == resultTypeNode->getTypeCategory(0) && 0 == delegateNode->m_typeCompound && 0 == delegateNode->m_byRef);
+	bool isVoid = (void_type == resultTypeNode->getTypeKind(0) && 0 == delegateNode->m_typeCompound && 0 == delegateNode->m_byRef);
 
 	std::string typeName = scopeClassName + delegateNode->m_name->m_str;
 
@@ -588,7 +588,7 @@ void SourceFileGenerator::generateCode_TemplateHeader(FILE* file, ClassNode* cla
 {
 	if(classNode->m_templateParametersNode)
 	{
-		std::vector<IdentifyNode*> templateParameterNodes;
+		std::vector<IdentifierNode*> templateParameterNodes;
 		classNode->m_templateParametersNode->collectParameterNodes(templateParameterNodes);
 		writeStringToFile("template<", file, indentation);
 		size_t count = templateParameterNodes.size();
@@ -636,7 +636,7 @@ void SourceFileGenerator::generateCode_AdditionalMethod(FILE* file, MethodNode* 
 	writeStringToFile(typeName.c_str(), file);
 	writeStringToFile("::", file);
 
-	generateCode_Identify(file, methodNode->m_name, 0);
+	generateCode_Identifier(file, methodNode->m_name, 0);
 
 	generateCode_Token(file, methodNode->m_leftParenthesis, 0);
 	std::vector<ParameterNode*> parameterNodes;

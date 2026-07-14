@@ -8,7 +8,7 @@
 BEGIN_PAFCORE
 
 EnumType::EnumType(const char* name, const char* declarationFile)
-: Type(name, enum_object, declarationFile)
+: Type(name, enum_instance, declarationFile)
 {
 	m_enumerators = 0;
 	m_enumeratorCount = 0;
@@ -38,10 +38,10 @@ ObserverPtr<Enumerator> EnumType::_getEnumeratorByValue_(int value)
 {
 	for(size_t i = 0; i < m_enumeratorCount; ++i)
 	{
-		Enumerator* enumerator = &m_enumerators[i];
-		if(value == enumerator->m_value)
+		Enumerator* enum_member = &m_enumerators[i];
+		if(value == enum_member->m_value)
 		{
-			return enumerator;
+			return enum_member;
 		}
 	}
 	return nullptr;
@@ -71,7 +71,7 @@ Enumerator* EnumType::findEnumerator(const char* name)
 
 pafcore::ErrorCode EnumType::Enum_get__name_(pafcore::InstanceProperty* instanceProperty, pafcore::Variant* that, pafcore::Variant* value)
 {
-	if(enum_object != that->m_type->m_category)
+	if(enum_instance != that->m_type->m_kind)
 	{
 		return pafcore::e_invalid_this_type;
 	}
@@ -81,12 +81,12 @@ pafcore::ErrorCode EnumType::Enum_get__name_(pafcore::InstanceProperty* instance
 		return pafcore::e_invalid_this_type;
 	}
 	EnumType* enumType = static_cast<EnumType*>(that->m_type);
-	Enumerator* enumerator = enumType->_getEnumeratorByValue_(e);
-	if(0 == enumerator)
+	Enumerator* enum_member = enumType->_getEnumeratorByValue_(e);
+	if(0 == enum_member)
 	{	
 		return pafcore::e_invalid_this_type;
 	}
-	string_t res = enumerator->_name_();
+	string_t res = enum_member->_name_();
 	value->assignPrimitive(RuntimeTypeOf<string_t>::RuntimeType::GetSingleton(), &res);
 	return pafcore::s_ok;
 }

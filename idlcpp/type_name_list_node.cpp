@@ -3,11 +3,11 @@
 #include <algorithm>
 
 
-TypeNameListNode::TypeNameListNode(TypeNameListNode* typeNameList, TokenNode* delimiter, TypeNameNode* typeName)
+TypeNameListNode::TypeNameListNode(TypeNameListNode* typeNameList, TokenNode* comma, TypeNameNode* typeName)
 {
 	m_nodeType = snt_type_name_list;
 	m_typeNameList = typeNameList;
-	m_delimiter = delimiter;
+	m_comma = comma;
 	m_typeName = typeName;
 }
 
@@ -27,7 +27,7 @@ void TypeNameListNode::collectTypeNameNodes(std::vector<std::pair<TokenNode*, Ty
 	TypeNameListNode* list = this;
 	while(0 != list)
 	{
-		typeNameNodes.push_back(std::make_pair(list->m_delimiter, list->m_typeName));
+		typeNameNodes.push_back(std::make_pair(list->m_comma, list->m_typeName));
 		list = list->m_typeNameList;
 	}
 	std::reverse(typeNameNodes.begin(), typeNameNodes.end());
@@ -40,7 +40,7 @@ void TypeNameListNode::collectTypeNameNodesNotNoCode(std::vector<std::pair<Token
 	{
 		if (!list->m_typeName->isNoCode())
 		{
-			typeNameNodes.push_back(std::make_pair(list->m_delimiter, list->m_typeName));
+			typeNameNodes.push_back(std::make_pair(list->m_comma, list->m_typeName));
 		}
 		list = list->m_typeNameList;
 	}
@@ -54,7 +54,7 @@ void TypeNameListNode::collectTypeNameNodesNotNoMeta(std::vector<std::pair<Token
 	{
 		if (!list->m_typeName->isNoMeta())
 		{
-			typeNameNodes.push_back(std::make_pair(list->m_delimiter, list->m_typeName));
+			typeNameNodes.push_back(std::make_pair(list->m_comma, list->m_typeName));
 		}
 		list = list->m_typeNameList;
 	}

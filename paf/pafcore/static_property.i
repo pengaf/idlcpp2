@@ -141,7 +141,7 @@ namespace pafcore
 		Type* m_keyType;
 		bool m_isPtr;
 		bool m_isKeyPtr;
-		byte_t m_category;
+		byte_t m_kind;
 #}
 	};
 

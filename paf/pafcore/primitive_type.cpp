@@ -69,62 +69,62 @@ Metadata* PrimitiveType::findTypeMember(const char* name)
 template<bool short_less_int>
 struct TypePromoter
 {
-	static PrimitiveTypeCategory GetPromotedTypeCategory(PrimitiveTypeCategory typeCategory)
+	static PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind)
 	{
-		if (typeCategory <= unsigned_short_type)
+		if (typeKind <= unsigned_short_type)
 		{
 			return int_type;
 		}
-		return typeCategory;
+		return typeKind;
 	}
 };
 
 template<>
 struct TypePromoter<false>
 {
-	static PrimitiveTypeCategory GetPromotedTypeCategory(PrimitiveTypeCategory typeCategory)
+	static PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind)
 	{
-		if (typeCategory < unsigned_short_type)
+		if (typeKind < unsigned_short_type)
 		{
 			return int_type;
 		}
-		else if (typeCategory == unsigned_short_type)
+		else if (typeKind == unsigned_short_type)
 		{
 			return unsigned_int_type;
 		}
-		return typeCategory;
+		return typeKind;
 	}
 };
 
-inline PrimitiveTypeCategory GetPromotedTypeCategory(PrimitiveTypeCategory typeCategory)
+inline PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind)
 {
-	return TypePromoter<sizeof(unsigned short) < sizeof(int)>::GetPromotedTypeCategory(typeCategory);
+	return TypePromoter<sizeof(unsigned short) < sizeof(int)>::GetPromotedTypeKind(typeKind);
 }
 
-inline PrimitiveTypeCategory GetPromotedTypeCategory(PrimitiveTypeCategory typeCategory1, PrimitiveTypeCategory typeCategory2)
+inline PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind1, PrimitiveTypeKind typeKind2)
 {
-	PrimitiveTypeCategory small, large; 
-	if(typeCategory1 < typeCategory2)
+	PrimitiveTypeKind small, large; 
+	if(typeKind1 < typeKind2)
 	{
-		small = typeCategory1;
-		large = typeCategory2;
+		small = typeKind1;
+		large = typeKind2;
 	}
 	else
 	{
-		small = typeCategory2;
-		large = typeCategory1;
+		small = typeKind2;
+		large = typeKind1;
 	}
 	if(unsigned_int_type == small && long_type == large)
 	{
 		return unsigned_long_type;
 	}
-	return GetPromotedTypeCategory(large);
+	return GetPromotedTypeKind(large);
 }
 
-CPPPrimitiveType* GetPrimitiveTypeFromTypeCategory(PrimitiveTypeCategory typeCategory)
+CPPPrimitiveType* GetPrimitiveTypeFromTypeKind(PrimitiveTypeKind typeKind)
 {
 	CPPPrimitiveType* res = 0;
-	switch(typeCategory)
+	switch(typeKind)
 	{
 	case bool_type:
 		res = BoolType::GetSingleton();
@@ -189,8 +189,8 @@ ErrorCode CPPPrimitiveType::Primitive_op_plus(Variant* result, Variant** args, i
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char resultValue[max_primitive_type_size];
@@ -211,15 +211,15 @@ ErrorCode CPPPrimitiveType::Primitive_op_negate(Variant* result, Variant** args,
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		switch (arg0Type->m_typeCategory)
+		switch (arg0Type->m_typeKind)
 		{
 		case unsigned_int_type:
 		case unsigned_long_type:
 		case unsigned_long_long_type:
 			return e_invalid_this_type;
 		}
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char resultValue[max_primitive_type_size];
@@ -240,7 +240,7 @@ ErrorCode CPPPrimitiveType::Primitive_op_increment(Variant* result, Variant** ar
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if (float_type <= arg0Type->m_typeCategory)
+		if (float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
@@ -262,7 +262,7 @@ ErrorCode CPPPrimitiveType::Primitive_op_postIncrement(Variant* result, Variant*
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if (float_type <= arg0Type->m_typeCategory)
+		if (float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
@@ -284,7 +284,7 @@ ErrorCode CPPPrimitiveType::Primitive_op_decrement(Variant* result, Variant** ar
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if (bool_type == arg0Type->m_typeCategory  || float_type <= arg0Type->m_typeCategory)
+		if (bool_type == arg0Type->m_typeKind  || float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
@@ -306,7 +306,7 @@ ErrorCode CPPPrimitiveType::Primitive_op_postDecrement(Variant* result, Variant*
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if (bool_type == arg0Type->m_typeCategory || float_type <= arg0Type->m_typeCategory)
+		if (bool_type == arg0Type->m_typeKind || float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
@@ -344,12 +344,12 @@ ErrorCode CPPPrimitiveType::Primitive_op_bitwiseNot(Variant* result, Variant** a
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if (float_type <= arg0Type->m_typeCategory)
+		if (float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 		char value0[max_primitive_type_size];
 		char resultValue[max_primitive_type_size];
 		arg0Type->castTo(value0, resType, args[0]->m_pointer);
@@ -375,8 +375,8 @@ inline ErrorCode Primitive_op_binary(Variant* result, Variant** args, int_t numA
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
 		CPPPrimitiveType* arg1Type = static_cast<CPPPrimitiveType*>(args[1]->m_type);
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory, arg1Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind, arg1Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char value1[max_primitive_type_size];
@@ -405,17 +405,17 @@ inline ErrorCode Primitive_op_binaryIntegerOnly(Variant* result, Variant** args,
 			return e_invalid_arg_type_1;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if(float_type <= arg0Type->m_typeCategory)
+		if(float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg1Type = static_cast<CPPPrimitiveType*>(args[1]->m_type);
-		if(float_type <= arg1Type->m_typeCategory)
+		if(float_type <= arg1Type->m_typeKind)
 		{
 			return e_invalid_arg_type_1;
 		}
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory, arg1Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind, arg1Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char value1[max_primitive_type_size];
@@ -497,8 +497,8 @@ inline ErrorCode Primitive_op_compare(Variant* result, Variant** args, int_t num
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
 		CPPPrimitiveType* arg1Type = static_cast<CPPPrimitiveType*>(args[1]->m_type);
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory, arg1Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind, arg1Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char value1[max_primitive_type_size];
@@ -578,8 +578,8 @@ inline ErrorCode Primitive_op_compoundAssign(Variant* result, Variant** args, in
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
 		CPPPrimitiveType* arg1Type = static_cast<CPPPrimitiveType*>(args[1]->m_type);
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory, arg1Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind, arg1Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char value1[max_primitive_type_size];
@@ -610,17 +610,17 @@ inline ErrorCode Primitive_op_compoundAssign_IntegerOnly(Variant* result, Varian
 			return e_invalid_arg_type_1;
 		}
 		CPPPrimitiveType* arg0Type = static_cast<CPPPrimitiveType*>(args[0]->m_type);
-		if(float_type <= arg0Type->m_typeCategory)
+		if(float_type <= arg0Type->m_typeKind)
 		{
 			return e_invalid_this_type;
 		}
 		CPPPrimitiveType* arg1Type = static_cast<CPPPrimitiveType*>(args[1]->m_type);
-		if(float_type <= arg1Type->m_typeCategory)
+		if(float_type <= arg1Type->m_typeKind)
 		{
 			return e_invalid_arg_type_1;
 		}
-		PrimitiveTypeCategory resTypeCategory = GetPromotedTypeCategory(arg0Type->m_typeCategory, arg1Type->m_typeCategory);
-		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeCategory(resTypeCategory);
+		PrimitiveTypeKind resTypeKind = GetPromotedTypeKind(arg0Type->m_typeKind, arg1Type->m_typeKind);
+		CPPPrimitiveType* resType = GetPrimitiveTypeFromTypeKind(resTypeKind);
 
 		char value0[max_primitive_type_size];
 		char value1[max_primitive_type_size];

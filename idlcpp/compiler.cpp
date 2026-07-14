@@ -8,7 +8,7 @@
 #include "type_tree.h"
 #include "program_node.h"
 #include "namespace_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "member_list_node.h"
 #include "class_node.h"
 #include "type_name_node.h"
@@ -301,7 +301,7 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 		}
 		else
 		{
-			if (it->tokenNo < typeNode->m_identifyNode->m_tokenNo && typeNode->getEnclosing()->isNamespace())
+			if (it->tokenNo < typeNode->m_identifierNode->m_tokenNo && typeNode->getEnclosing()->isNamespace())
 			{
 				if (std::find(typeNodes.begin(), typeNodes.end(), typeNode) == typeNodes.end())
 				{

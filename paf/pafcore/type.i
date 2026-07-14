@@ -3,19 +3,17 @@
 namespace pafcore
 {
 #{ class Variant; #}
-	abstract class #PAFCORE_EXPORT Type : Metadata
+	abstract class(dummy_type) #PAFCORE_EXPORT Type : Metadata
 	{
 		size_t _size_ { get };
 #{
 	public:
-		Type(const char* name, Category category, const char* declarationFile);
+		Type(const char* name, MetadataKind kind, const char* declarationFile);
 		~Type();
 	public:
-		virtual void destroyInstance(void* address);
-		virtual void destroyArray(void* address);
-		virtual bool assign(void* dst, const void* src);
-		virtual bool getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound);
-		virtual bool setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound);
+		virtual void destruct(void* address, size_t count);
+		virtual void copyConstruct(void* address);
+		virtual bool copyAssign(void* dst, const void* src);
 		virtual Metadata* findMember(const char* name) = 0;
 	public:
 		bool isPrimitive() const;
@@ -24,8 +22,12 @@ namespace pafcore
 		bool isRcObject() const;
 		bool isClass() const;
 		const char* getDeclarationFile() const;
-	public:
-		Category m_category;
+		size_t size() const
+		{
+			return m_size;
+		}
+	protected:
+		MetadataKind m_kind;
 		size_t m_size;
 		Metadata* m_enclosing;
 		const char* m_declarationFile;//�������������ļ�·��
@@ -41,22 +43,22 @@ inline size_t Type::_size_() const
 
 	inline bool Type::isPrimitive() const
 	{
-		return primitive_object == m_category;
+		return primitive_instance == m_kind;
 	}
 	
 	inline bool Type::isEnum() const
 	{
-		return enum_object == m_category;
+		return enum_instance == m_kind;
 	}
 	
 	inline bool Type::isValue() const
 	{
-		return value_object == m_category;
+		return value_instance == m_kind;
 	}
 	
 	inline bool Type::isRcObject() const
 	{
-		return rc_object <= m_category;
+		return object_instance <= m_kind;
 	}
 
 	inline bool Type::isClass() const

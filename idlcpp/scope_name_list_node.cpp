@@ -10,7 +10,7 @@ ScopeNameListNode::ScopeNameListNode(ScopeNameListNode* scopeNameList, ScopeName
 	m_global = false;
 }
 
-void ScopeNameListNode::collectIdentifyNodes(std::vector<ScopeNameNode*>& scopeNameNodes)
+void ScopeNameListNode::collectIdentifierNodes(std::vector<ScopeNameNode*>& scopeNameNodes)
 {
 	ScopeNameListNode* list = this;
 	while (0 != list)
@@ -24,7 +24,7 @@ void ScopeNameListNode::collectIdentifyNodes(std::vector<ScopeNameNode*>& scopeN
 bool ScopeNameListNode::calcTemplateParametersTypeNodes(TypeNode* enclosingTypeTreeNode, TemplateArguments* templateArguments)
 {
 	std::vector<ScopeNameNode*> scopeNameNodes;
-	collectIdentifyNodes(scopeNameNodes);
+	collectIdentifierNodes(scopeNameNodes);
 	auto begin = scopeNameNodes.begin();
 	auto end = scopeNameNodes.end();
 	for (auto it = begin; it != end; ++it)
@@ -42,7 +42,7 @@ void ScopeNameListNode::getString(std::string& str)
 {
 	str = m_global ? "::" : "";
 	std::vector<ScopeNameNode*> scopeNameNodes;
-	collectIdentifyNodes(scopeNameNodes);
+	collectIdentifierNodes(scopeNameNodes);
 	auto begin = scopeNameNodes.begin();
 	auto end = scopeNameNodes.end();
 	for (auto it = begin; it != end; ++it)

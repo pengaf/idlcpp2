@@ -1,13 +1,13 @@
 #pragma once
 
-#include "syntax_node_impl.h"
+#include "entity_node.h"
 #include "type_name_node.h"
 #include <vector>
 #include <string>
 #include <map>
 
 struct ProgramNode;
-struct IdentifyNode;
+struct IdentifierNode;
 struct ScopeNode;
 struct ClassNode;
 struct NamespaceNode;
@@ -15,7 +15,7 @@ struct TypeNameNode;
 struct TypeNode;
 struct TemplateArguments;
 struct AttributeListNode;
-enum TypeCategory;
+enum TypeKind;
 class SourceFile;
 
 enum TypeTreeFilter
@@ -27,18 +27,17 @@ enum TypeTreeFilter
 	ttf_all = 0xF,
 };
 
-struct MemberNode : SyntaxNodeImpl
+struct MemberNode : EntityNode
 {
-	AttributeListNode* m_attributeList;
-	IdentifyNode* m_name;
-	ScopeNode* m_enclosing;
-	TokenNode* m_filterNode;
-	IdentifyNode* m_nativeName;
+	ScopeNode* m_enclosing{ nullptr };
+	IdentifierNode* m_nativeName{ nullptr };
+	TokenNode* m_semicolon{ nullptr };
 	int m_orderIndex;//for field & property syntax order
+	bool m_noCode{ false };
+	bool m_noMeta{ false };
 public:
-	MemberNode();
-	bool isNoCode();
-	bool isNoMeta();
+	bool isNoCode() const;
+	bool isNoMeta() const;
 	bool canGenerateMetaCode();
 	bool canGenerateNativeCode();
 	void getEnclosings(std::vector<ScopeNode*>& enclosings);

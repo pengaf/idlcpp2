@@ -4,19 +4,19 @@
 #include <vector>
 
 struct TokenNode;
-struct IdentifyNode;
-struct TemplateParameterListNode;
+struct IdentifierNode;
+struct IdentifierListNode;
 
 struct TemplateParametersNode : SyntaxNodeImpl
 {
 	TokenNode* m_keyword;
 	TokenNode* m_leftBracket;
-	TemplateParameterListNode* m_parameterList;
+	IdentifierListNode* m_parameterList;
 	TokenNode* m_rightBracket;
 public:
-	TemplateParametersNode(TokenNode* keyword, TokenNode* leftBracket, TemplateParameterListNode* parameterList, TokenNode* rightBracket);
-	void collectParameterNodes(std::vector<std::pair<TokenNode*, IdentifyNode*>>& parameterNodes);
-	void collectParameterNodes(std::vector<IdentifyNode*>& parameterNodes);
+	TemplateParametersNode(TokenNode* keyword, TokenNode* leftBracket, IdentifierListNode* parameterList, TokenNode* rightBracket);
+	void collectParameterNodes(std::vector<std::pair<TokenNode*, IdentifierNode*>>& parameterNodes);
+	void collectParameterNodes(std::vector<IdentifierNode*>& parameterNodes);
 	size_t getParameterCount();
 	bool checkSemantic();
 };

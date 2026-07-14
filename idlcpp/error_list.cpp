@@ -1,7 +1,7 @@
 #include "error_list.h"
 #include "compiler.h"
 #include "source_file.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "template_class_instance_node.h"
 #include "type_tree.h"
 
@@ -19,7 +19,7 @@ const char* g_errorStrings[] =
 	"namespace redefined",
 	"type redefined",
 	"template redefined",
-	"enumerator redefined",
+	"enum_member redefined",
 	"nested template class",
 
 	"missing type specifier",

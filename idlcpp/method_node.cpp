@@ -1,8 +1,7 @@
 #include "method_node.h"
-#include "parameter_list_node.h"
-#include "parameter_node.h"
+#include "variable_list_node.h"
 #include "type_name_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "class_node.h"
 #include "error_list.h"
 #include "raise_error.h"
@@ -14,34 +13,19 @@
 
 const char g_strPure[] = {" = 0 "};
 
-MethodNode::MethodNode(IdentifyNode* name, TokenNode* leftParenthesis, ParameterListNode* parameterList, TokenNode* rightParenthesis, TokenNode* constant)
+MethodNode::MethodNode(VariableListNode* resultList, IdentifierNode* name, TokenNode* leftParenthesis, VariableListNode* parameterList, TokenNode* rightParenthesis)
 {
 	m_nodeType = snt_method;
-	m_modifier = 0;
-	m_resultConst = 0;
-	m_resultTypeName = 0;
-	m_typeCompound = 0;
-	m_byRef = 0;
+	m_resultList = resultList;
 	m_name = name;
 	m_leftParenthesis = leftParenthesis;
 	m_parameterList = parameterList;
 	m_rightParenthesis = rightParenthesis;
-	m_constant = constant;
-	m_semicolon = 0;
-	m_resultArray = false;
-	m_resultOwning = false;
-	m_override = false;
-	m_parameterCount = size_t(-1);
 }
 
 bool MethodNode::isStatic()
 {
 	return (0 != m_modifier && snt_keyword_static == m_modifier->m_nodeType);
-}
-
-bool MethodNode::isConstant()
-{
-	return (0 != m_constant && snt_keyword_const == m_constant->m_nodeType);
 }
 
 bool MethodNode::isVirtual()
@@ -187,7 +171,7 @@ void MethodNode::checkSemantic(TemplateArguments* templateArguments)
 		{
 			return;
 		}
-		if (void_type == typeNode->getTypeCategory(templateArguments))
+		if (void_type == typeNode->getTypeKind(templateArguments))
 		{
 			if ((0 != m_typeCompound && '*' != m_typeCompound->m_nodeType) || 0 != m_byRef)
 			{

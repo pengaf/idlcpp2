@@ -14,7 +14,7 @@ struct TypedefNode;
 struct TypeDeclarationNode;
 struct TemplateClassInstanceNode;
 struct TokenNode;
-struct IdentifyNode;
+struct IdentifierNode;
 struct FieldNode;
 struct PropertyNode;
 struct MethodNode;

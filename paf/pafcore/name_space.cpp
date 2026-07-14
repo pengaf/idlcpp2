@@ -32,8 +32,8 @@ NameSpace::~NameSpace()
 	for (; it != end; ++it)
 	{
 		Metadata* member = *it;
-		Category category = member->_category_();
-		switch (category)
+		MetadataKind kind = member->_kind_();
+		switch (kind)
 		{
 		case name_space:
 			PAF_ASSERT(static_cast<NameSpace*>(member)->m_enclosing == this);
@@ -44,7 +44,7 @@ NameSpace::~NameSpace()
 			static_cast<TypeAlias*>(member)->m_enclosing = 0;
 			break;
 		default:
-			PAF_ASSERT(void_type == category || primitive_type == category || enum_type == category || class_type == category);
+			PAF_ASSERT(void_type == kind || primitive_type == kind || enum_type == kind || class_type == kind);
 			PAF_ASSERT(static_cast<Type*>(member)->m_enclosing == this);
 			static_cast<Type*>(member)->m_enclosing = 0;
 		}
@@ -69,7 +69,7 @@ NameSpace* NameSpace::getNameSpace(const char* name)
 		else
 		{
 			Metadata* member = *it;
-			if(name_space == member->_category_())
+			if(name_space == member->_kind_())
 			{
 				subNameSpace = static_cast<NameSpace*>(member);
 				PAF_ASSERT(this == subNameSpace->m_enclosing);
@@ -85,14 +85,14 @@ ErrorCode NameSpace::registerMember(Metadata* member)
 	{
 		return e_invalid_namespace;
 	}
-	Category category = member->_category_();
-	if (type_alias == category)
+	MetadataKind kind = member->_kind_();
+	if (type_alias == kind)
 	{
 		static_cast<TypeAlias*>(member)->m_enclosing = this;
 	}
 	else
 	{
-		PAF_ASSERT(void_type == category || primitive_type == category || enum_type == category || class_type == category);
+		PAF_ASSERT(void_type == kind || primitive_type == kind || enum_type == kind || class_type == kind);
 		static_cast<Type*>(member)->m_enclosing = this;
 	}
 	return m_members.insert(member).second ? s_ok : e_name_conflict;
@@ -142,7 +142,7 @@ Metadata* NameSpace::findMember(const char * name)
 	Metadata* member = _findMember_(name);
 	if(0 != member)
 	{
-		if(member->_category_() == type_alias)
+		if(member->_kind_() == type_alias)
 		{
 			member = static_cast<TypeAlias*>(member)->m_type;
 		}

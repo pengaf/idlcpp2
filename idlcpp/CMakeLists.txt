@@ -38,12 +38,58 @@ set(idlcpp_grammar_sources
     "${idlcpp_flex_l}"
 )
 
-source_group("Grammar" FILES ${idlcpp_grammar_sources})
-source_group(
-    "Grammar Generated"
-    FILES
-        ${BISON_IdlcppParser_OUTPUTS}
-        ${FLEX_IdlcppScanner_OUTPUTS}
+
+set(idlcpp_header_files
+    "attribute_list_node.h"
+    "attribute_node.h"
+    "class_node.h"
+    "common_funcs.h"
+    "compiler.h"
+    "compound_type_node.h"
+    "entity_node.h"
+    "enum_node.h"
+    "enumerator_list_node.h"
+    "enumerator_node.h"
+    "error_list.h"
+    "field_node.h"
+    "header_file_generator.h"
+    "identifier_list_node.h"
+    "identifier_node.h"
+    "idlcpp.h"
+    "import_directory.h"
+    "member_list_node.h"
+    "member_node.h"
+    "meta_header_file_generator.h"
+    "meta_source_file_generator.h"
+    "method_node.h"
+    "namespace_node.h"
+    "options.h"
+    "platform.h"
+    "program_node.h"
+    "property_accessor_list_node.h"
+    "property_accessor_node.h"
+    "property_node.h"
+    "raise_error.h"
+    "scope_name_list_node.h"
+    "scope_name_node.h"
+    "source_file.h"
+    "source_file_generator.h"
+    "syntax_node_impl.h"
+    "template_arguments.h"
+    "template_class_instance_node.h"
+    "template_parameters_node.h"
+    "token_list_node.h"
+    "token_node.h"
+    "type_declaration_node.h"
+    "type_name_list_node.h"
+    "type_name_node.h"
+    "type_tree.h"
+    "typedef_node.h"
+    "utility.h"
+    "variable_list_node.h"
+    "variable_node.h"
+    "yyfuncs.h"
+    "scope_node.h"
 )
 
 set(idlcpp_source_files
@@ -52,16 +98,16 @@ set(idlcpp_source_files
     "class_node.cpp"
     "common_funcs.cpp"
     "compiler.cpp"
-    "delegate_node.cpp"
+    "compound_type_node.cpp"
+    "entity_node.cpp"
     "enum_node.cpp"
     "enumerator_list_node.cpp"
     "enumerator_node.cpp"
     "error_list.cpp"
     "field_node.cpp"
-    "getter_setter_node.cpp"
     "header_file_generator.cpp"
-    "identify_list_node.cpp"
-    "identify_node.cpp"
+    "identifier_list_node.cpp"
+    "identifier_node.cpp"
     "idlcpp.cpp"
     "import_directory.cpp"
     "member_list_node.cpp"
@@ -70,12 +116,11 @@ set(idlcpp_source_files
     "meta_source_file_generator.cpp"
     "method_node.cpp"
     "namespace_node.cpp"
-    "operator_node.cpp"
     "options.cpp"
-    "parameter_list_node.cpp"
-    "parameter_node.cpp"
     "platform.cpp"
     "program_node.cpp"
+    "property_accessor_list_node.cpp"
+    "property_accessor_node.cpp"
     "property_node.cpp"
     "raise_error.cpp"
     "scope_name_list_node.cpp"
@@ -85,24 +130,34 @@ set(idlcpp_source_files
     "syntax_node_impl.cpp"
     "template_arguments.cpp"
     "template_class_instance_node.cpp"
-    "template_parameter_list_node.cpp"
     "template_parameters_node.cpp"
     "token_list_node.cpp"
     "token_node.cpp"
-    "typed_member_prefix_node.cpp"
     "type_declaration_node.cpp"
     "type_name_list_node.cpp"
     "type_name_node.cpp"
-    "variable_type_list_node.cpp"
-    "variable_type_node.cpp"
     "type_tree.cpp"
     "typedef_node.cpp"
     "utility.cpp"
+    "variable_list_node.cpp"
+    "variable_node.cpp"
     "yyfuncs.cpp"
 )
 
+source_group("Grammar" FILES ${idlcpp_grammar_sources})
+source_group(
+    "Grammar Generated"
+    FILES
+        ${BISON_IdlcppParser_OUTPUTS}
+        ${FLEX_IdlcppScanner_OUTPUTS}
+)
+source_group("Header Files" FILES ${idlcpp_header_files})
+source_group("Source Files" FILES ${idlcpp_source_files})
+
+
 add_executable(
     idlcpp
+    ${idlcpp_header_files}
     ${idlcpp_source_files}
     ${idlcpp_grammar_sources}
     ${BISON_IdlcppParser_OUTPUTS}

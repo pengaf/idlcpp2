@@ -2,8 +2,8 @@
 #include "type_name_node.h"
 #include "scope_name_node.h"
 #include "scope_name_list_node.h"
-#include "identify_node.h"
-#include "identify_list_node.h"
+#include "identifier_node.h"
+#include "identifier_list_node.h"
 #include "type_name_list_node.h"
 
 #include "template_parameters_node.h"
@@ -129,10 +129,10 @@ void checkBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNa
 		{
 			continue;
 		}
-		TypeCategory baseTypeCategory = typeNode->getTypeCategory(templateArguments);
+		TypeKind baseTypeKind = typeNode->getTypeKind(templateArguments);
 		if(classNode->isValueType())
 		{
-			if (value_type != baseTypeCategory)
+			if (value_type != baseTypeKind)
 			{
 				char buf[4096];
 				sprintf_s(buf, "\'%s\' : base type must be value type", typeNameNode->m_scopeNameList->m_scopeName->m_name->m_str.c_str());
@@ -144,7 +144,7 @@ void checkBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNa
 		{
 			if (0 == i)
 			{
-				if (rc_object_type != baseTypeCategory
+				if (rc_object_type != baseTypeKind
 					|| !IsObjectType(typeNode))
 				{
 					char buf[4096];
@@ -155,7 +155,7 @@ void checkBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNa
 			}
 			else
 			{
-				if (rc_object_type != baseTypeCategory
+				if (rc_object_type != baseTypeKind
 					|| !IsInterfaceType(typeNode)
 					|| IsObjectType(typeNode))
 				{
@@ -183,7 +183,7 @@ void checkBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNa
 
 struct Overload
 {
-	IdentifyNode* methodName;
+	IdentifierNode* methodName;
 	size_t parameterCount;
 	std::string manglingName;
 	bool operator < (const Overload& arg) const
@@ -215,20 +215,20 @@ bool isDefaultConstructor(ClassNode* classNode, MethodNode* methodNode)
 
 void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNodes, TemplateArguments* templateArguments)
 {
-	std::set<IdentifyNode*, CompareIdentifyPtr> methodNames;
-	std::set<IdentifyNode*, CompareIdentifyPtr> staticMethodNames;
-	std::set<IdentifyNode*, CompareIdentifyPtr> otherNames;
+	std::set<IdentifierNode*, CompareIdentifierPtr> methodNames;
+	std::set<IdentifierNode*, CompareIdentifierPtr> staticMethodNames;
+	std::set<IdentifierNode*, CompareIdentifierPtr> otherNames;
 	std::set<Overload> methods;
 	std::set<Overload> staticMethods;
 
 	size_t count = memberNodes.size();
-	IdentifyNode* collisionNode = 0;
+	IdentifierNode* collisionNode = 0;
 	for(size_t i = 0; i < count; ++i)
 	{
 		MemberNode* memberNode = memberNodes[i];
 		bool nameCollision = false;
-		IdentifyNode* identify = memberNode->m_name;
-		if (0 == identify)
+		IdentifierNode* identifier = memberNode->m_name;
+		if (0 == identifier)
 		{
 			//invalid operator has no name
 			continue;
@@ -241,18 +241,18 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 				if(0 != methodNode->m_resultTypeName)
 				{
 					char buf[4096];
-					sprintf_s(buf, "\'%s\' : constructor with return type", identify->m_str.c_str());
-					ErrorList_AddItem_CurrentFile(identify->m_lineNo,
-						identify->m_columnNo, semantic_error_constructor_with_return_type, buf);
+					sprintf_s(buf, "\'%s\' : constructor with return type", identifier->m_str.c_str());
+					ErrorList_AddItem_CurrentFile(identifier->m_lineNo,
+						identifier->m_columnNo, semantic_error_constructor_with_return_type, buf);
 					continue;
 				}
 				if(0 != methodNode->m_modifier)
 				{
 					char buf[4096];
-					sprintf_s(buf, "\'%s\' : constructor cannot be declared %s", identify->m_str.c_str(), 
+					sprintf_s(buf, "\'%s\' : constructor cannot be declared %s", identifier->m_str.c_str(), 
 						g_keywordTokens[methodNode->m_modifier->m_nodeType - snt_begin_output - 1]);
-					ErrorList_AddItem_CurrentFile(identify->m_lineNo,
-						identify->m_columnNo, semantic_error_constructor_with_modifier, buf);
+					ErrorList_AddItem_CurrentFile(identifier->m_lineNo,
+						identifier->m_columnNo, semantic_error_constructor_with_modifier, buf);
 					continue;
 				}
 			}
@@ -261,13 +261,13 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 				if(0 == methodNode->m_resultTypeName)
 				{
 					char buf[4096];
-					sprintf_s(buf, "\'%s\' : missing type specifier", identify->m_str.c_str());
-					ErrorList_AddItem_CurrentFile(identify->m_lineNo,
-						identify->m_columnNo, semantic_error_missing_type_specifier, buf);
+					sprintf_s(buf, "\'%s\' : missing type specifier", identifier->m_str.c_str());
+					ErrorList_AddItem_CurrentFile(identifier->m_lineNo,
+						identifier->m_columnNo, semantic_error_missing_type_specifier, buf);
 					continue;
 				}
 			}
-			auto it = otherNames.find(identify);
+			auto it = otherNames.find(identifier);
 			if(otherNames.end() != it)
 			{
 				collisionNode = *it;
@@ -277,7 +277,7 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 			{
 				if (methodNode->isStatic())
 				{
-					it = methodNames.find(identify);
+					it = methodNames.find(identifier);
 					if (methodNames.end() != it)
 					{
 						collisionNode = *it;
@@ -286,7 +286,7 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 				}
 				else
 				{
-					it = staticMethodNames.find(identify);
+					it = staticMethodNames.find(identifier);
 					if (staticMethodNames.end() != it)
 					{
 						collisionNode = *it;
@@ -296,7 +296,7 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 				if (!nameCollision)
 				{
 					Overload overload;
-					overload.methodName = identify;
+					overload.methodName = identifier;
 					overload.parameterCount = methodNode->getParameterCount();
 					methodNode->calcManglingName(overload.manglingName, templateArguments);
 					if (methodNode->isStatic())
@@ -309,7 +309,7 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 						}
 						else
 						{
-							staticMethodNames.insert(identify);
+							staticMethodNames.insert(identifier);
 						}
 					}
 					else
@@ -323,7 +323,7 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 						}
 						else
 						{
-							methodNames.insert(identify);
+							methodNames.insert(identifier);
 						}
 					}
 				}
@@ -331,14 +331,14 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 		}
 		else
 		{
-			if(identify->m_str == classNode->m_name->m_str)
+			if(identifier->m_str == classNode->m_name->m_str)
 			{
 				char buf[4096];
-				sprintf_s(buf, "\'%s\' : class member name cannot equal to class name", identify->m_str.c_str());
-				ErrorList_AddItem_CurrentFile(identify->m_lineNo,
-					identify->m_columnNo, semantic_error_member_name_equal_to_class_name, buf);
+				sprintf_s(buf, "\'%s\' : class member name cannot equal to class name", identifier->m_str.c_str());
+				ErrorList_AddItem_CurrentFile(identifier->m_lineNo,
+					identifier->m_columnNo, semantic_error_member_name_equal_to_class_name, buf);
 			}
-			auto it = otherNames.find(identify);
+			auto it = otherNames.find(identifier);
 			if(otherNames.end() !=  it)
 			{
 				collisionNode = *it;
@@ -346,14 +346,14 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 			}
 			else
 			{
-				otherNames.insert(identify);
+				otherNames.insert(identifier);
 			}	
-			if((it = methodNames.find(identify)) != methodNames.end())
+			if((it = methodNames.find(identifier)) != methodNames.end())
 			{
 				collisionNode = *it;
 				nameCollision = true;
 			}
-			else if((it = staticMethodNames.find(identify)) != staticMethodNames.end())
+			else if((it = staticMethodNames.find(identifier)) != staticMethodNames.end())
 			{
 				collisionNode = *it;
 				nameCollision = true;
@@ -362,28 +362,22 @@ void checkMemberNames(ClassNode* classNode, std::vector<MemberNode*>& memberNode
 		if(nameCollision)
 		{
 			char buf[4096];
-			sprintf_s(buf, "\'%s\' : member already defined at line %d, column %d", identify->m_str.c_str(), 
+			sprintf_s(buf, "\'%s\' : member already defined at line %d, column %d", identifier->m_str.c_str(), 
 				collisionNode->m_lineNo, collisionNode->m_columnNo);
-			ErrorList_AddItem_CurrentFile(identify->m_lineNo,
-				identify->m_columnNo, semantic_error_member_redefined, buf);
+			ErrorList_AddItem_CurrentFile(identifier->m_lineNo,
+				identifier->m_columnNo, semantic_error_member_redefined, buf);
 		}
 	}
 }
 
 static void ParseConceptList(
-	IdentifyNode*& categoryNode,
+	IdentifierNode*& metadataKind,
 	ClassNode::LazyBool& copyableFlag,
-	IdentifyListNode* conceptList)
+	IdentifierListNode* conceptList)
 {
-	const char* s_categorys[] =
+	const char* s_kinds[] =
 	{
-		"void_object",
-		"primitive_object",
-		"enum_object",
-		"value_object",
-		"rc_object",
-		"atomic_rc_object",
-		"enumerator",
+		"enum_member",
 		"instance_field",
 		"static_field",
 		"instance_property",
@@ -398,27 +392,29 @@ static void ParseConceptList(
 		"class_type",
 		"type_alias",
 		"name_space",
+		"dummy_metadata",
+		"dummy_type",
 	};
 
-	std::vector<IdentifyNode*> identifyNodes;
-	conceptList->collectIdentifyNodes(identifyNodes);
-	for (IdentifyNode* identifyNode : identifyNodes)
+	std::vector<IdentifierNode*> identifierNodes;
+	conceptList->collectIdentifierNodes(identifierNodes);
+	for (IdentifierNode* identifierNode : identifierNodes)
 	{
-		if (identifyNode->m_str == "copyable")
+		if (identifierNode->m_str == "copyable")
 		{
 			copyableFlag = ClassNode::lb_true;
 		}
-		else if (identifyNode->m_str == "noncopyable")
+		else if (identifierNode->m_str == "noncopyable")
 		{
 			copyableFlag = ClassNode::lb_false;
 		}
-		else if (0 == categoryNode)
+		else if (0 == metadataKind)
 		{
-			for (int i = 0; i < sizeof(s_categorys) / sizeof(s_categorys[0]); ++i)
+			for (int i = 0; i < sizeof(s_kinds) / sizeof(s_kinds[0]); ++i)
 			{
-				if (identifyNode->m_str == s_categorys[i])
+				if (identifierNode->m_str == s_kinds[i])
 				{
-					categoryNode = identifyNode;
+					metadataKind = identifierNode;
 					break;
 				}
 			}
@@ -427,11 +423,10 @@ static void ParseConceptList(
 }
 
 
-ClassNode::ClassNode(TokenNode* keyword, IdentifyListNode* conceptList, IdentifyNode* name)
+ClassNode::ClassNode(TokenNode* keyword, IdentifierListNode* conceptList, IdentifierNode* name)
 {
 	assert(snt_keyword_struct == keyword->m_nodeType 
-		|| snt_keyword_class == keyword->m_nodeType 
-		|| snt_keyword_delegate == keyword->m_nodeType);
+		|| snt_keyword_class == keyword->m_nodeType);
 
 	m_nodeType = snt_class;
 	m_keyword = keyword;
@@ -446,18 +441,10 @@ ClassNode::ClassNode(TokenNode* keyword, IdentifyListNode* conceptList, Identify
 	m_semicolon = 0;
 	m_templateParametersNode = 0;
 	m_typeNode = 0;
-	m_category = 0;
+	m_metadataKind = 0;
 	m_copyableFlag = lb_unknown;
 
-	ParseConceptList(m_category, m_copyableFlag, conceptList);
-	if(0 == m_category)
-	{
-		m_isValueType = (snt_keyword_struct == keyword->m_nodeType || snt_keyword_delegate == keyword->m_nodeType);
-	}
-	else
-	{
-		m_isValueType = (m_category->m_str == "value_object");
-	}
+	ParseConceptList(m_metadataKind, m_copyableFlag, conceptList);
 	m_override = false;
 	m_abstractFlag = lb_unknown;
 }
@@ -520,7 +507,7 @@ extern int yycolumnno;
 
 void ClassNode::GenerateCreateInstanceMethod(const char* methodName, MethodNode* constructor)
 {
-	IdentifyNode* name = (IdentifyNode*)newIdentify(methodName);
+	IdentifierNode* name = (IdentifierNode*)newIdentifier(methodName);
 	MethodNode* method = (MethodNode*)newMethod(name, 
 		constructor->m_leftParenthesis, constructor->m_parameterList, 
 		constructor->m_rightParenthesis, constructor->m_constant);
@@ -528,7 +515,7 @@ void ClassNode::GenerateCreateInstanceMethod(const char* methodName, MethodNode*
 	ScopeNameNode* scopeName = (ScopeNameNode*)newScopeName(m_name, 0, 0, 0);
 	ScopeNameListNode* scopeNameList = (ScopeNameListNode*)newScopeNameList(0, scopeName);
 	TypeNameNode* typeName = (TypeNameNode*)newTypeName(scopeNameList);
-	setMethodResult(method, newVariableType(typeName, 0));
+	setMethodResult(method, newVariable(typeName, 0));
 	setMethodResultOwning(method);
 	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
 	setMethodModifier(method, modifier);
@@ -542,8 +529,8 @@ void ClassNode::GenerateCreateInstanceMethod(const char* methodName, MethodNode*
 
 void ClassNode::GenerateCreateArrayMethod(const char* methodName, MethodNode* constructor)
 {
-	IdentifyNode* name = (IdentifyNode*)newIdentify(methodName);
-	ParameterNode* parameter = (ParameterNode*)newParameter(newVariableType(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0), 0, newIdentify("count"));
+	IdentifierNode* name = (IdentifierNode*)newIdentifier(methodName);
+	ParameterNode* parameter = (ParameterNode*)newParameter(newVariable(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0), 0, newIdentifier("count"));
 	ParameterListNode* parameterList = (ParameterListNode*)newParameterList(0,0,parameter);
 	MethodNode* method = (MethodNode*)newMethod(name, 
 		constructor->m_leftParenthesis, parameterList, 
@@ -553,7 +540,7 @@ void ClassNode::GenerateCreateArrayMethod(const char* methodName, MethodNode* co
 	ScopeNameNode* scopeName = (ScopeNameNode*)newScopeName(m_name, 0, 0, 0);
 	ScopeNameListNode* scopeNameList = (ScopeNameListNode*)newScopeNameList(0, scopeName);
 	TypeNameNode* typeName = (TypeNameNode*)newTypeName(scopeNameList);
-	setMethodResult(method, newVariableType(typeName, 0));
+	setMethodResult(method, newVariable(typeName, 0));
 	setMethodResultOwning(method);
 	setMethodResultArray(method);
 	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
@@ -568,23 +555,23 @@ void ClassNode::GenerateCreateArrayMethod(const char* methodName, MethodNode* co
 
 void ClassNode::GenerateDeleteMethod(const char* methodName, bool isArray)
 {
-	IdentifyNode* name = (IdentifyNode*)newIdentify(methodName);
+	IdentifierNode* name = (IdentifierNode*)newIdentifier(methodName);
 	TypeNameNode* voidType = (TypeNameNode*)newPrimitiveType(newToken(snt_keyword_void), pt_void);
 	ScopeNameNode* scopeName = (ScopeNameNode*)newScopeName(m_name, 0, 0, 0);
 	ScopeNameListNode* scopeNameList = (ScopeNameListNode*)newScopeNameList(0, scopeName);
 	TypeNameNode* typeName = (TypeNameNode*)newTypeName(scopeNameList);
-	ParameterNode* parameter = (ParameterNode*)newParameter(newVariableType(typeName, (TokenNode*)newToken('*')), 0, newIdentify("value"));
+	ParameterNode* parameter = (ParameterNode*)newParameter(newVariable(typeName, (TokenNode*)newToken('*')), 0, newIdentifier("value"));
 	ParameterListNode* parameterList = (ParameterListNode*)newParameterList(0, 0, parameter);
 	if (isArray)
 	{
-		ParameterNode* countParameter = (ParameterNode*)newParameter(newVariableType(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0), 0, newIdentify("count"));
+		ParameterNode* countParameter = (ParameterNode*)newParameter(newVariable(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), 0), 0, newIdentifier("count"));
 		parameterList = (ParameterListNode*)newParameterList(parameterList, (TokenNode*)newToken(','), countParameter);
 	}
 	MethodNode* method = (MethodNode*)newMethod(name,
 		(TokenNode*)newToken('('), parameterList,
 		(TokenNode*)newToken(')'), 0);
 	method->m_semicolon = (TokenNode*)newToken(';');
-	setMethodResult(method, newVariableType(voidType, 0));
+	setMethodResult(method, newVariable(voidType, 0));
 	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
 	setMethodModifier(method, modifier);
 	method->m_enclosing = this;
@@ -657,11 +644,6 @@ void ClassNode::buildAdditionalMethods()
 	yytokenno = backupToken;
 	yylineno = backupLine;
 	yycolumnno = backupColumn;
-}
-
-bool ClassNode::isValueType()
-{
-	return m_isValueType;
 }
 
 bool ClassNode::derivesFromObject(TemplateArguments*)
@@ -915,7 +897,7 @@ void ClassNode::collectTypes(TypeNode* enclosingTypeNode, TemplateArguments* tem
 			return;
 		}
 	}
-	switch (enclosingTypeNode->m_category)
+	switch (enclosingTypeNode->m_kind)
 	{
 	case tc_namespace:
 		m_typeNode = static_cast<NamespaceTypeNode*>(enclosingTypeNode)->addClass(this);

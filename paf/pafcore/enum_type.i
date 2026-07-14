@@ -1,5 +1,5 @@
 #import "type.i"
-#import "enumerator.i"
+#import "enum_member.i"
 
 
 namespace pafcore

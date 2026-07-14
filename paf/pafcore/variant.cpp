@@ -5,126 +5,14 @@
 #include "class_type.h"
 #include "object.h"
 #include "debug.h"
-#include "utility.h"
+#include "memory.h"
 #include <assert.h>
 #include <memory>
 #include <cstring>
 
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
 
 BEGIN_PAFCORE
 
-
-#ifdef _DEBUG
-
-class VariantLeakReporter
-{
-public:
-	~VariantLeakReporter()
-	{
-		m_liveObjects.lock();
-		for (auto& item : m_liveObjects.m_objects)
-		{
-			Variant* variant = item.first;
-			size_t serialNumber = item.second;
-			char buf[1024];
-			sprintf_s(buf, "pafcore Warning: Live Variant at 0x%p, SerialNumber:%zu\n",
-				variant, serialNumber);
-			OutputDebugStringA(buf);
-		}
-		m_liveObjects.unlock();
-	}
-public:
-	void onVariantConstruct(Variant* variant)
-	{
-		m_liveObjects.addPtr(variant);
-	}
-	void onVariantDestruct(Variant* variant)
-	{
-		m_liveObjects.removePtr(variant);
-	}
-public:
-	LiveObjects<Variant> m_liveObjects;
-public:
-	static VariantLeakReporter* GetInstance()
-	{
-		static VariantLeakReporter s_instance;
-		return &s_instance;
-	}
-};
-
-#endif//_DEBUG
-
-void Variant::SemanticToState(Semantic semantic, Metadata::Passing& passing, Metadata::TypeCompound& typeCompound)
-{
-	passing = Metadata::by_value;
-	typeCompound = Metadata::tc_none;
-
-	switch (semantic)
-	{
-	case by_value:
-		break;
-	case by_ref:
-		passing = Metadata::by_ref;
-		break;
-	case by_ptr:
-		typeCompound = Metadata::tc_observer_ptr;
-		break;
-	case by_array:
-		typeCompound = Metadata::tc_observer_array;
-		break;
-	default:
-		assert(false);
-		break;
-	}
-}
-
-Variant::Semantic Variant::StateToSemantic(Metadata::Passing passing, Metadata::TypeCompound typeCompound)
-{
-	if (Metadata::by_ref == passing)
-	{
-		return by_ref;
-	}
-	if (Metadata::tc_observer_array == typeCompound)
-	{
-		return by_array;
-	}
-	if (Metadata::tc_none != typeCompound)
-	{
-		return by_ptr;
-	}
-	return by_value;
-}
-
-void Variant::setState(bool constant, Semantic semantic)
-{
-	Metadata::Passing passing;
-	Metadata::TypeCompound typeCompound;
-	SemanticToState(semantic, passing, typeCompound);
-	m_passing = static_cast<byte_t>(passing);
-	m_typeCompound = static_cast<byte_t>(typeCompound);
-	m_constant = constant;
-}
-
-void Variant::resetState()
-{
-	m_passing = Metadata::by_value;
-	m_typeCompound = Metadata::tc_none;
-	m_storageKind = storage_empty;
-	m_constant = false;
-	m_temporary = false;
-	m_subClassProxy = false;
-}
-
-bool Variant::ownsMemory() const
-{
-	return storage_owning_instance == m_storageKind
-		|| storage_shared_instance == m_storageKind
-		|| storage_owning_array == m_storageKind
-		|| storage_embedded == m_storageKind;
-}
 
 bool Variant::destroyStorage()
 {
@@ -180,20 +68,11 @@ Variant::Variant()
 	m_type = VoidType::GetSingleton();
 	m_pointer = 0;
 	m_arraySize = 0;
-	resetState();
-
-#ifdef _DEBUG
-	VariantLeakReporter::GetInstance()->onVariantConstruct(this);
-#endif//_DEBUG
 }
 
 Variant::~Variant()
 {
 	destroyStorage();
-
-#ifdef _DEBUG
-	VariantLeakReporter::GetInstance()->onVariantDestruct(this);
-#endif//_DEBUG
 }
 
 void Variant::clear()
@@ -202,7 +81,6 @@ void Variant::clear()
 	m_type = VoidType::GetSingleton();
 	m_pointer = 0;
 	m_arraySize = 0;
-	resetState();
 }
 
 bool Variant::unhold()
@@ -256,8 +134,9 @@ void Variant::assignPrimitive(Type* type, const void* pointer)
 	clear();
 	m_type = type;
 	m_pointer = m_embeddedValue;
-	memcpy(m_pointer, pointer, type->m_size);
-	m_storageKind = storage_embedded;
+	m_arraySize = 0;
+	m_typeCompound = TypeCompound::none;
+	memcpy(m_pointer, pointer, type->size());
 }
 
 void Variant::assignEnum(Type* type, const void* pointer)
@@ -266,18 +145,94 @@ void Variant::assignEnum(Type* type, const void* pointer)
 	clear();
 	m_type = type;
 	m_pointer = m_embeddedValue;
-	memcpy(m_pointer, pointer, type->m_size);
-	m_storageKind = storage_embedded;
+	m_typeCompound = TypeCompound::none;
+	memcpy(m_pointer, pointer, type->size());
 }
 
-void Variant::assignVoidPtr(const void* pointer, bool constant)
+void Variant::assignClass(Type* type, const void* pointer)
+{
+	assert(type->isClass());
+	clear();
+	m_type = type;
+	size_t size = type->size();
+	if(size <= max_embedded_value_size)
+	{
+		m_pointer = m_embeddedValue;
+	}
+	else
+	{
+		m_pointer = Malloc(size);
+	}
+	m_typeCompound = TypeCompound::none;
+	type->copyConstruct(m_pointer, pointer);
+}
+
+//void Variant::assignVoidPtr(const void* pointer)
+//{
+//	clear();
+//	m_type = VoidType::GetSingleton();
+//	m_pointer = (void*)pointer;
+//	m_arraySize = 0;
+//	m_typeCompound = TypeCompound::observer_ptr;
+//}
+
+void Variant::copyObserverPtr(Type* type, const GenericSmartPtr& pointer)
 {
 	clear();
-	m_pointer = (void*)pointer;
-	m_type = VoidType::GetSingleton();
-	m_storageKind = (0 != pointer) ? storage_alias : storage_empty;
-	setState(constant, by_ptr);
+	m_type = type;
+	m_pointer = pointer;
+	m_typeCompound = TypeCompound::observer_ptr;
 }
+
+void Variant::copyObserverArray(Type* type, const GenericSmartPtr& pointer)
+{
+	clear();
+	m_type = type;
+	m_pointer = pointer;
+	m_typeCompound = TypeCompound::observer_array;
+}
+
+void Variant::copySharedPtr(Type* type, const GenericSmartPtr& pointer)
+{
+	clear();
+	m_type = type;
+	m_pointer = pointer;
+	if(m_type->isRcObject())
+	{
+		reinterpret_cast<RCObject*>(pointer.get())->incRefCount();
+	}
+	else
+	{
+		IncStrongRefCount(pointer.get());
+	}
+	m_typeCompound = TypeCompound::shared_ptr;
+}
+
+void Variant::copySharedArray(Type* type, const GenericSmartPtr& pointer)
+{
+	clear();
+	m_type = type;
+	m_pointer = pointer;
+	IncArrayRefCount(pointer.get());
+	m_typeCompound = TypeCompound::shared_array;
+}
+
+void Variant::moveSharedPtr(Type* type, const GenericSmartPtr& pointer)
+{
+	clear();
+	m_type = type;
+	m_pointer = std::move(pointer);
+	m_typeCompound = TypeCompound::shared_ptr;
+}
+
+void Variant::moveSharedArray(Type* type, const GenericSmartPtr& pointer)
+{
+	clear();
+	m_type = type;
+	m_pointer = std::move(pointer);
+	m_typeCompound = TypeCompound::shared_array;
+}
+
 
 void Variant::assignPrimitivePtr(Type* type, const void* pointer, bool constant, Semantic semantic)
 {
@@ -287,7 +242,7 @@ void Variant::assignPrimitivePtr(Type* type, const void* pointer, bool constant,
 	if (by_value == semantic)
 	{
 		m_pointer = m_embeddedValue;
-		memcpy(m_pointer, pointer, type->m_size);
+		memcpy(m_pointer, pointer, type->size());
 		m_storageKind = storage_embedded;
 		setState(constant, semantic);
 		return;
@@ -305,7 +260,7 @@ void Variant::assignEnumPtr(Type* type, const void* pointer, bool constant, Sema
 	if (by_value == semantic)
 	{
 		m_pointer = m_embeddedValue;
-		memcpy(m_pointer, pointer, type->m_size);
+		memcpy(m_pointer, pointer, type->size());
 		m_storageKind = storage_embedded;
 		setState(constant, semantic);
 		return;
@@ -458,18 +413,18 @@ void Variant::assignNullPtr(Type* type)
 
 void Variant::assignPtr(Type* type, const void* pointer, bool constant, Semantic semantic)
 {
-	switch(type->m_category)
+	switch(type->m_kind)
 	{
-	case void_object:
+	case void_instance:
 		assignVoidPtr(pointer, constant);
 		break;
-	case primitive_object:
+	case primitive_instance:
 		assignPrimitivePtr(type, pointer, constant, semantic);
 		break;
-	case enum_object:
+	case enum_instance:
 		assignEnumPtr(type, pointer, constant, semantic);
 		break;
-	case value_object:
+	case value_instance:
 		assignValuePtr(type, pointer, constant, semantic);
 		break;
 	default:
@@ -499,15 +454,15 @@ void Variant::assignOwningArray(Type* type, const void* pointer, size_t arraySiz
 
 //void Variant::assignObject(Type* type, const void* pointer, bool constant, bool hold)
 //{
-//	switch(type->m_category)
+//	switch(type->m_kind)
 //	{
-//	case primitive_object:
+//	case primitive_instance:
 //		assignPrimitive(type, pointer);
 //		break;
-//	case enum_object:
+//	case enum_instance:
 //		assignEnum(type, pointer);
 //		break;
-//	case value_object:
+//	case value_instance:
 //		assignValuePtr(type, pointer, constant, hold);
 //		break;
 //	default:
@@ -762,15 +717,15 @@ bool Variant::castToObjectPtr(Type* dstType, void** dst) const
 	{
 		return castToRcPtr(dstType, dst);
 	}
-	switch (dstType->m_category)
+	switch (dstType->m_kind)
 	{
-	case void_object:
+	case void_instance:
 		return castToVoidPtr(dst);
-	case primitive_object:
+	case primitive_instance:
 		return castToPrimitivePtr(dstType, dst);
-	case enum_object:
+	case enum_instance:
 		return castToEnumPtr(dstType, dst);
-	case value_object:
+	case value_instance:
 		return castToValuePtr(dstType, dst);
 	}
 	return false;
@@ -782,13 +737,13 @@ bool Variant::castToObject(Type* dstType, void* dst) const
 	{
 		return castToRcObject(dstType, dst);
 	}
-	switch(dstType->m_category)
+	switch(dstType->m_kind)
 	{
-	case primitive_object:
+	case primitive_instance:
 		return castToPrimitive(dstType, dst);
-	case enum_object:
+	case enum_instance:
 		return castToEnum(dstType, dst);
-	case value_object:
+	case value_instance:
 		return castToValue(dstType, dst);
 	}
 	return false;

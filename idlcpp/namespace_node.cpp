@@ -6,7 +6,7 @@
 #include "compiler.h"
 #include <assert.h>
 
-NamespaceNode::NamespaceNode(TokenNode* keyword, IdentifyNode* name, TokenNode* leftBrace, MemberListNode* memberList, TokenNode* rightBrace)
+NamespaceNode::NamespaceNode(TokenNode* keyword, IdentifierNode* name, TokenNode* leftBrace, MemberListNode* memberList, TokenNode* rightBrace)
 {
 	m_nodeType = snt_namespace;
 	m_keyword = keyword;

@@ -11,7 +11,7 @@ struct DelegateNode;
 struct TemplateParametersNode;
 struct EnumNode;
 struct TokenNode;
-struct IdentifyNode;
+struct IdentifierNode;
 struct FieldNode;
 struct PropertyNode;
 struct MethodNode;

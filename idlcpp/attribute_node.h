@@ -2,15 +2,15 @@
 
 #include "syntax_node_impl.h"
 
-struct IdentifyNode;
+struct IdentifierNode;
 
 struct AttributeNode : SyntaxNodeImpl
 {
-	IdentifyNode* m_name;
-	IdentifyNode* m_content;
+	IdentifierNode* m_name;
+	IdentifierNode* m_content;
 	bool m_u8content;
 public:
-	AttributeNode(IdentifyNode* name, IdentifyNode* content, bool u8content);
+	AttributeNode(IdentifierNode* name, IdentifierNode* content, bool u8content);
 };
 
 struct CompareAttributePtr

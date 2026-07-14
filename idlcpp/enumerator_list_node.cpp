@@ -1,12 +1,12 @@
 #include "enumerator_list_node.h"
 #include <algorithm>
 
-EnumeratorListNode::EnumeratorListNode(EnumeratorListNode* enumeratorList, TokenNode* delimiter, EnumeratorNode* enumerator)
+EnumeratorListNode::EnumeratorListNode(EnumeratorListNode* enumeratorList, TokenNode* comma, EnumeratorNode* enum_member)
 {
 	m_nodeType = snt_enumerator_list;
 	m_enumeratorList = enumeratorList;
-	m_delimiter = delimiter;
-	m_enumerator = enumerator;
+	m_comma = comma;
+	m_enumerator = enum_member;
 }
 
 void EnumeratorListNode::collectEnumeratorNodes(std::vector<std::pair<TokenNode*, EnumeratorNode*>>& enumeratorNodes)
@@ -14,7 +14,7 @@ void EnumeratorListNode::collectEnumeratorNodes(std::vector<std::pair<TokenNode*
 	EnumeratorListNode* list = this;
 	while(0 != list)
 	{
-		enumeratorNodes.push_back(std::make_pair(list->m_delimiter, list->m_enumerator));
+		enumeratorNodes.push_back(std::make_pair(list->m_comma, list->m_enumerator));
 		list = list->m_enumeratorList;
 	}
 	std::reverse(enumeratorNodes.begin(), enumeratorNodes.end());

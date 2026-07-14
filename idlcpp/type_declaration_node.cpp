@@ -5,11 +5,11 @@
 #include "type_tree.h"
 #include <assert.h>
 
-TypeDeclarationNode::TypeDeclarationNode(IdentifyNode* name, TypeCategory typeCategory)
+TypeDeclarationNode::TypeDeclarationNode(IdentifierNode* name, TypeKind typeKind)
 {
 	m_nodeType = snt_type_declaration;
 	m_name = name;
-	m_typeCategory = typeCategory;
+	m_typeKind = typeKind;
 	m_typeNode = 0;
 }
 
@@ -23,7 +23,7 @@ void TypeDeclarationNode::collectTypes(TypeNode* enclosingTypeNode, TemplateArgu
 	//assert(enclosingTypeNode->isNamespace() || enclosingTypeNode->isClass());
 	assert(0 == m_typeNode);
 
-	switch (enclosingTypeNode->m_category)
+	switch (enclosingTypeNode->m_kind)
 	{
 	case tc_namespace:
 		m_typeNode = static_cast<NamespaceTypeNode*>(enclosingTypeNode)->addTypeDeclaration(this);

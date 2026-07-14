@@ -91,7 +91,7 @@ namespace pafcore
 #}
 	};
 
-	class(value_object) #PAFCORE_EXPORT NotifyHandlerList
+	class(value_instance) #PAFCORE_EXPORT NotifyHandlerList
 	{
 		void addNotifyHandler(NotifyHandler* handler) const;
 		void removeNotifyHandler(NotifyHandler* handler) const;

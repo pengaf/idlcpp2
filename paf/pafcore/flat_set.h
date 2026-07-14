@@ -1,12 +1,10 @@
 #pragma once
 
 #include "utility.h"
-#include <algorithm>
-#include <cstdint>
-#include <functional>
-#include <iterator>
-#include <memory>
+#include "memory.h"
 #include <utility>
+#include <iterator>
+#include <functional>
 
 BEGIN_PAFCORE
 

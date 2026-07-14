@@ -9,8 +9,8 @@ struct TemplateArguments;
 
 struct MemberListNode : SyntaxNodeImpl
 {
-	MemberListNode* m_memberList;
-	MemberNode* m_member;
+	MemberListNode* m_memberList{ nullptr };
+	MemberNode* m_member{ nullptr };
 public:
 	MemberListNode(MemberListNode* memberList, MemberNode* member);
 	void initializeMembersEnclosing(ScopeNode* parent);

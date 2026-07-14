@@ -30,8 +30,8 @@ static Metadata* FindMetadataByName(Metadata** members, size_t memberCount, cons
 	return nullptr;
 }
 
-ClassType::ClassType(const char* name, Category category, const char* declarationFile)
-: Type(name, category, declarationFile)
+ClassType::ClassType(const char* name, MetadataKind kind, const char* declarationFile)
+: Type(name, kind, declarationFile)
 {
 	m_baseClasses = 0;
 	m_baseClassCount = 0;
@@ -117,7 +117,7 @@ TypeAlias* ClassType::findNestedTypeAlias(const char* name, bool includeBaseClas
 InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && instance_field == member->_category_())
+	if (member && instance_field == member->_kind_())
 	{
 		return static_cast<InstanceField*>(member);
 	}
@@ -127,7 +127,7 @@ InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseCl
 StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && static_field == member->_category_())
+	if (member && static_field == member->_kind_())
 	{
 		return static_cast<StaticField*>(member);
 	}
@@ -157,7 +157,7 @@ StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasse
 InstanceProperty* ClassType::findInstanceProperty(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && instance_property == member->_category_())
+	if (member && instance_property == member->_kind_())
 	{
 		return static_cast<InstanceProperty*>(member);
 	}
@@ -187,7 +187,7 @@ InstanceProperty* ClassType::findInstanceProperty(const char* name, bool include
 StaticProperty* ClassType::findStaticProperty(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && static_property == member->_category_())
+	if (member && static_property == member->_kind_())
 	{
 		return static_cast<StaticProperty*>(member);
 	}
@@ -303,7 +303,7 @@ Metadata* ClassType::findClassMember(const char* name, bool includeBaseClasses, 
 	Metadata* member = FindMetadataByName(m_classMembers, m_classMemberCount, name);
 	if (nullptr != member)
 	{
-		if (typeAliasToType && type_alias == member->_category_())
+		if (typeAliasToType && type_alias == member->_kind_())
 		{
 			member = static_cast<TypeAlias*>(member)->m_type;
 		}

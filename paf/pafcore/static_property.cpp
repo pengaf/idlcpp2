@@ -24,7 +24,7 @@ StaticProperty::StaticProperty(
 	m_setter = setter;
 	m_candidateCount = candidateCount;
 	m_getCandidate = getCandidate;
-	m_category = simple_property;
+	m_kind = simple_property;
 }
 
 StaticProperty::StaticProperty(
@@ -50,7 +50,7 @@ StaticProperty::StaticProperty(
 	m_arrayResizer = resizer;
 	m_arrayGetIterator = getIterator;
 	m_arrayGetValue = getValue;
-	m_category = array_property;
+	m_kind = array_property;
 }
 
 StaticProperty::StaticProperty(
@@ -74,7 +74,7 @@ StaticProperty::StaticProperty(
 	m_listGetValue = getValue;
 	m_listInsert = insert;
 	m_listErase = erase;
-	m_category = list_property;
+	m_kind = list_property;
 }
 
 StaticProperty::StaticProperty(
@@ -100,27 +100,27 @@ StaticProperty::StaticProperty(
 	m_mapGetIterator = getIterator;
 	m_mapGetKey = getKey;
 	m_mapGetValue = getValue;
-	m_category = map_property;
+	m_kind = map_property;
 }
 
 bool StaticProperty::isSimple() const
 {
-	return simple_property == m_category;
+	return simple_property == m_kind;
 }
 
 bool StaticProperty::isArray() const
 {
-	return array_property == m_category;
+	return array_property == m_kind;
 }
 
 bool StaticProperty::isList() const
 {
-	return list_property == m_category;
+	return list_property == m_kind;
 }
 
 bool StaticProperty::isMap() const
 {
-	return map_property == m_category;
+	return map_property == m_kind;
 }
 
 bool StaticProperty::hasGetter() const

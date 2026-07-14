@@ -1,5 +1,5 @@
 #include "type_name_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "typedef_node.h"
 #include "error_list.h"
 #include "raise_error.h"
@@ -23,8 +23,6 @@ TypeNameNode::TypeNameNode(TokenNode* keyword, PredefinedType primitiveType)
 	assert(primitiveType < pt_end);
 	m_nodeType = snt_type_name;
 	m_keyword = keyword;
-	m_scopeNameList = 0;
-	m_filterNode = 0;
 	m_startTypeNode = g_typeTree.getPredefinedTypeNode(primitiveType);
 	m_typeNode = m_startTypeNode;
 }
@@ -32,21 +30,17 @@ TypeNameNode::TypeNameNode(TokenNode* keyword, PredefinedType primitiveType)
 TypeNameNode::TypeNameNode(ScopeNameListNode* scopeNameList)
 {
 	m_nodeType = snt_type_name;
-	m_keyword = 0;
 	m_scopeNameList = scopeNameList;
-	m_filterNode = 0;
-	m_startTypeNode = 0;
-	m_typeNode = 0;
 }
 
-bool TypeNameNode::isNoCode()
+bool TypeNameNode::isNoCode() const
 {
-	return (m_filterNode && snt_keyword_nocode == m_filterNode->m_nodeType);
+	return m_noCode;
 }
 
-bool TypeNameNode::isNoMeta()
+bool TypeNameNode::isNoMeta() const
 {
-	return (m_filterNode && snt_keyword_nometa == m_filterNode->m_nodeType);
+	return m_noMeta;
 }
 
 bool TypeNameNode::calcTypeNodes(TypeNode* enclosingTypeTreeNode, TemplateArguments* templateArguments)
@@ -90,7 +84,7 @@ TypeNode* TypeNameNode::getTypeNode(TemplateArguments* templateArguments)
 		TypeNode* actualStartTypeNode = m_startTypeNode->getActualTypeNode(templateArguments);
 		assert(actualStartTypeNode);
 		std::vector<ScopeNameNode*> scopeNameNodes;
-		m_scopeNameList->collectIdentifyNodes(scopeNameNodes);
+		m_scopeNameList->collectIdentifierNodes(scopeNameNodes);
 		if (scopeNameNodes.size() == 1)
 		{
 			result = actualStartTypeNode;
@@ -166,7 +160,7 @@ TypeNode* TypeNameNode::getTypeNode(TemplateArguments* templateArguments)
 		else
 		{
 			std::vector<ScopeNameNode*> scopeNameNodes;
-			m_scopeNameList->collectIdentifyNodes(scopeNameNodes);
+			m_scopeNameList->collectIdentifierNodes(scopeNameNodes);
 			TypeNode* initialTypeTreeNode = 0;
 			TypeNode* finalTypeTreeNode = 0;
 			if (m_startTypeNode->isTemplateClass() && !scopeNameNodes[0]->isTemplateForm())

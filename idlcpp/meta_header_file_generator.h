@@ -10,7 +10,7 @@ struct TypedefNode;
 struct TypeDeclarationNode;
 struct NamespaceNode;
 struct TokenNode;
-struct IdentifyNode;
+struct IdentifierNode;
 struct FieldNode;
 struct PropertyNode;
 struct MethodNode;

@@ -7,14 +7,12 @@
 
 #include <assert.h>
 
-TypedefNode::TypedefNode(TokenNode* keyword, IdentifyNode* name, TypeNameNode* typeName)
+TypedefNode::TypedefNode(TokenNode* keyword, TypeNameNode* typeName, IdentifierNode* name)
 {
 	m_nodeType = snt_typedef;
 	m_keyword = keyword;
-	m_name = name;
 	m_typeName = typeName;
-	m_typeNode = 0;
-	m_srcTypeNode = 0;
+	m_name = name;
 }
 
 TypeNode* TypedefNode::getTypeNode()
@@ -34,7 +32,7 @@ void TypedefNode::collectTypes(TypeNode* enclosingTypeNode, TemplateArguments* t
 			m_srcTypeNode = static_cast<TypedefTypeNode*>(m_srcTypeNode)->m_typedefNode->m_srcTypeNode;
 			assert(!m_srcTypeNode->isTypedef());
 		}
-		switch (enclosingTypeNode->m_category)
+		switch (enclosingTypeNode->m_kind)
 		{
 		case tc_namespace:
 			m_typeNode = static_cast<NamespaceTypeNode*>(enclosingTypeNode)->addTypedef(this);

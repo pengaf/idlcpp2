@@ -2,32 +2,18 @@
 
 #include "member_node.h"
 
-struct TokenNode;
-struct TypeNameNode;
+struct CompoundTypeNode;
 
 struct FieldNode : MemberNode
 {
-	TokenNode* m_static;
-	TokenNode* m_constant;
-	TypeNameNode* m_typeName;
-	TokenNode* m_typeCompound;
-	TokenNode* m_leftBracket;
-	TokenNode* m_rightBracket;
-	TokenNode* m_semicolon;
-	bool m_smartArray;
+	TokenNode* m_modifier{ nullptr };
+	CompoundTypeNode* m_compoundType{ nullptr };
+	TokenNode* m_leftBracket{ nullptr };
+	TokenNode* m_rightBracket{ nullptr };
 public:
-	FieldNode(TypeNameNode* typeName, TokenNode* typeCompound, IdentifyNode* name, TokenNode* leftBracket, TokenNode* rightBracket);
-	bool isStatic();
-	bool isConstant();
-	bool isPointer();
-	bool isObserverPtr();
-	bool isUniquePtr();
-	bool isSharedPtr();
-	bool isArray();
-	bool isSmartArray();
-	bool isObserverArray();
-	bool isUniqueArray();
-	bool isSharedArray();
+	FieldNode(CompoundTypeNode* compoundType, IdentifierNode* name, TokenNode* leftBracket, TokenNode* rightBracket);
+	bool isStatic() const;
+	bool isArray() const;
 	virtual void checkTypeNames(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments);
 	virtual void checkSemantic(TemplateArguments* templateArguments);
 };

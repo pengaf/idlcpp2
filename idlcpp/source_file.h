@@ -37,8 +37,6 @@ public:
 	std::vector<SourceFile*> m_importSourceFiles;
 	bool m_hasArrayProperty;
 	bool m_hasListProperty;
-	bool m_hasMapProperty;
-	bool m_hasDelegate;
 	bool m_useSmartPointer;
 	bool m_useMemoryHeader;
 };

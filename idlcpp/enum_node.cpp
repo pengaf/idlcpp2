@@ -2,7 +2,7 @@
 #include "class_node.h"
 #include "enumerator_node.h"
 #include "enumerator_list_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "error_list.h"
 #include "compiler.h"
 #include "type_tree.h"
@@ -10,7 +10,7 @@
 #include <vector>
 #include <assert.h>
 
-EnumNode::EnumNode(TokenNode* keyword, TokenNode* keyword2, IdentifyNode* name, TokenNode* leftBrace, EnumeratorListNode* enumeratorList, TokenNode* rightBrace)
+EnumNode::EnumNode(TokenNode* keyword, TokenNode* keyword2, IdentifierNode* name, TokenNode* leftBrace, EnumeratorListNode* enumeratorList, TokenNode* rightBrace)
 {
 	m_nodeType = snt_enum;
 	m_keyword = keyword;
@@ -19,8 +19,6 @@ EnumNode::EnumNode(TokenNode* keyword, TokenNode* keyword2, IdentifyNode* name, 
 	m_leftBrace = leftBrace;
 	m_enumeratorList = enumeratorList;
 	m_rightBrace = rightBrace;
-	m_semicolon = 0;
-	m_typeNode = 0;
 }
 
 TypeNode* EnumNode::getTypeNode()
@@ -36,7 +34,7 @@ bool EnumNode::isStronglyTypedEnum()
 void EnumNode::collectTypes(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments)
 {
 	assert(0 == m_typeNode);
-	switch (enclosingTypeNode->m_category)
+	switch (enclosingTypeNode->m_kind)
 	{
 	case tc_namespace:
 		m_typeNode = static_cast<NamespaceTypeNode*>(enclosingTypeNode)->addEnum(this);
@@ -59,16 +57,16 @@ void EnumNode::checkSemantic(TemplateArguments* templateArguments)
 	std::set<EnumeratorNode*, CompareEnumeratorPtr> items;
 	for(size_t i = 0; i < count; ++i)
 	{
-		EnumeratorNode* enumerator = enumeratorNodes[i];
-		auto res = items.insert(enumerator);
+		EnumeratorNode* enum_member = enumeratorNodes[i];
+		auto res = items.insert(enum_member);
 		if(!res.second)
 		{
 			char buf[4096];
-			sprintf_s(buf, "\'%s\' : enumerator already defined at line %d, column %d", enumerator->m_name->m_str.c_str(),
+			sprintf_s(buf, "\'%s\' : enum_member already defined at line %d, column %d", enum_member->m_name->m_str.c_str(),
 				(*res.first)->m_name->m_lineNo, (*res.first)->m_name->m_columnNo);
-			ErrorList_AddItem_CurrentFile(enumerator->m_name->m_lineNo,
-				enumerator->m_name->m_columnNo, semantic_error_enumerator_redefined, buf);
+			ErrorList_AddItem_CurrentFile(enum_member->m_name->m_lineNo,
+				enum_member->m_name->m_columnNo, semantic_error_enumerator_redefined, buf);
 		}
-		enumerator->checkSemantic();
+		enum_member->checkSemantic();
 	}
 }

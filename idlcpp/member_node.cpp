@@ -1,5 +1,5 @@
 #include "member_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "attribute_list_node.h"
 #include "scope_node.h"
 #include "class_node.h"
@@ -12,23 +12,14 @@
 #include <assert.h>
 #include <algorithm>
 
-MemberNode::MemberNode()
+bool MemberNode::isNoCode() const
 {
-	m_attributeList = 0;
-	m_name = 0;
-	m_enclosing = 0;
-	m_filterNode = 0;
-	m_nativeName = 0;
+	return m_noCode;
 }
 
-bool MemberNode::isNoCode()
+bool MemberNode::isNoMeta() const
 {
-	return (m_filterNode && snt_keyword_nocode == m_filterNode->m_nodeType);
-}
-
-bool MemberNode::isNoMeta()
-{
-	return (m_filterNode && snt_keyword_nometa == m_filterNode->m_nodeType);
+	return m_noMeta;
 }
 
 bool MemberNode::canGenerateMetaCode()

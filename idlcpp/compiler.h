@@ -13,7 +13,7 @@ const int import_file_already_import = 1;
 
 
 struct TokenNode;
-struct IdentifyNode;
+struct IdentifierNode;
 struct ScopeNode;
 struct MemberNode;
 struct ClassNode;

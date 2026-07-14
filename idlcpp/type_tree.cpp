@@ -5,7 +5,7 @@
 #include "typedef_node.h"
 #include "type_declaration_node.h"
 #include "template_class_instance_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "template_parameters_node.h"
 #include "scope_name_node.h"
 #include "scope_name_list_node.h"
@@ -27,9 +27,6 @@ void GetPrimitiveTypeName(std::string& typeName, PredefinedType type)
 {
 	switch (type)
 	{
-	case pt_void:
-		typeName = "void";
-		break;
 	case pt_bool:
 		typeName = "bool";
 		break;
@@ -108,7 +105,7 @@ TypeNode* TypeNode::TypeNodeContainer::getTypeNodeByName(const std::string& name
 }
 
 template<typename T>
-T* TypeNode::TypeNodeContainer::addTypeNode(TypeNode* enclosing, const std::string& name, IdentifyNode* identifyNode)
+T* TypeNode::TypeNodeContainer::addTypeNode(TypeNode* enclosing, const std::string& name, IdentifierNode* identifierNode)
 {
 	TypeNode* child = getTypeNodeByName(name);
 	if (0 == child)
@@ -116,7 +113,7 @@ T* TypeNode::TypeNodeContainer::addTypeNode(TypeNode* enclosing, const std::stri
 		T* result = new T;
 		result->m_name = name;
 		result->m_enclosing = enclosing;
-		result->m_identifyNode = identifyNode;
+		result->m_identifierNode = identifierNode;
 		result->m_sourceFile = g_compiler.m_currentSourceFile;
 		this->insert(result);
 		return result;
@@ -126,9 +123,9 @@ T* TypeNode::TypeNodeContainer::addTypeNode(TypeNode* enclosing, const std::stri
 		char buf[4096];
 		sprintf_s(buf, "\'%s\' : already defined in %s(%d,%d)",
 			name.c_str(), child->m_sourceFile->m_fileName.c_str(),
-			child->m_identifyNode->m_lineNo, child->m_identifyNode->m_columnNo);
-		ErrorList_AddItem(getCurrentSourceFileName(), identifyNode->m_lineNo,
-			identifyNode->m_columnNo, semantic_error_type_redefined, buf);
+			child->m_identifierNode->m_lineNo, child->m_identifierNode->m_columnNo);
+		ErrorList_AddItem(getCurrentSourceFileName(), identifierNode->m_lineNo,
+			identifierNode->m_columnNo, semantic_error_type_redefined, buf);
 		return 0;
 	}
 }
@@ -136,7 +133,7 @@ T* TypeNode::TypeNodeContainer::addTypeNode(TypeNode* enclosing, const std::stri
 TypeNode::TypeNode()
 {
 	m_enclosing = 0;
-	m_identifyNode = 0;
+	m_identifierNode = 0;
 	m_sourceFile = 0;
 }
 
@@ -205,7 +202,7 @@ MemberNode* TypeNode::getSyntaxNode()
 	return 0;
 }
 
-TypeCategory TypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind TypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
 	assert(false);
 	return unknown_type;
@@ -234,27 +231,27 @@ void TypeNode::getEnclosings(std::vector<TypeNode*>& enclosings)
 
 bool TypeNode::isNamespace()
 {
-	return tc_namespace == m_category;
+	return tc_namespace == m_kind;
 }
 
 bool TypeNode::isPredefinedType()
 {
-	return tc_predefined_type == m_category;
+	return tc_predefined_type == m_kind;
 }
 
 bool TypeNode::isEnum()
 {
-	return tc_enum_type == m_category;
+	return tc_enum_type == m_kind;
 }
 
 bool TypeNode::isClass()
 {
-	return tc_class_type == m_category;
+	return tc_class_type == m_kind;
 }
 
 bool TypeNode::isTemplateClass()
 {
-	if (tc_class_type == m_category)
+	if (tc_class_type == m_kind)
 	{
 		return static_cast<ClassTypeNode*>(this)->m_classNode->isTemplateClass();
 	}
@@ -277,37 +274,37 @@ bool TypeNode::isUnderTemplateClass()
 
 bool TypeNode::isTemplateParameter()
 {
-	return tc_template_paramter == m_category;
+	return tc_template_paramter == m_kind;
 }
 
 bool TypeNode::isTemplateClassInstance()
 {
-	return tc_template_class_instance == m_category;
+	return tc_template_class_instance == m_kind;
 }
 
 bool TypeNode::isTypedef()
 {
-	return tc_typedef == m_category;
+	return tc_typedef == m_kind;
 }
 
 bool TypeNode::isTypeDeclaration()
 {
-	return tc_type_declaration == m_category;
+	return tc_type_declaration == m_kind;
 }
 
 PredefinedTypeNode::PredefinedTypeNode()
 {
-	m_category = tc_predefined_type;
+	m_kind = tc_predefined_type;
 }
 
-TypeCategory PredefinedTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind PredefinedTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
-	return pt_void == m_type ? void_type : primitive_type;
+	return primitive_type;
 }
 
 EnumTypeNode::EnumTypeNode()
 {
-	m_category = tc_enum_type;
+	m_kind = tc_enum_type;
 }
 
 MemberNode* EnumTypeNode::getSyntaxNode()
@@ -315,14 +312,14 @@ MemberNode* EnumTypeNode::getSyntaxNode()
 	return m_enumNode;
 }
 
-TypeCategory EnumTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind EnumTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
 	return enum_type;
 }
 
 TypedefTypeNode::TypedefTypeNode()
 {
-	m_category = tc_typedef;
+	m_kind = tc_typedef;
 }
 
 void TypedefTypeNode::getActualTypeFullName(std::string& name)
@@ -341,14 +338,14 @@ MemberNode* TypedefTypeNode::getSyntaxNode()
 	return m_typedefNode;
 }
 
-TypeCategory TypedefTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind TypedefTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
-	return m_typedefNode->m_srcTypeNode->getTypeCategory(templateArguments);
+	return m_typedefNode->m_srcTypeNode->getTypeKind(templateArguments);
 }
 
 TypeDeclarationTypeNode::TypeDeclarationTypeNode()
 {
-	m_category = tc_type_declaration;
+	m_kind = tc_type_declaration;
 }
 
 MemberNode* TypeDeclarationTypeNode::getSyntaxNode()
@@ -356,20 +353,20 @@ MemberNode* TypeDeclarationTypeNode::getSyntaxNode()
 	return m_typeDeclarationNode;
 }
 
-TypeCategory TypeDeclarationTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind TypeDeclarationTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
-	return m_typeDeclarationNode->m_typeCategory;
+	return m_typeDeclarationNode->m_typeKind;
 }
 
 TemplateParameterTypeNode::TemplateParameterTypeNode()
 {
-	m_category = tc_template_paramter;
+	m_kind = tc_template_paramter;
 }
 
-TypeCategory TemplateParameterTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind TemplateParameterTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
 	TypeNode* actualTypeNode = templateArguments->findTypeNode(m_name);
-	return actualTypeNode->getTypeCategory(templateArguments);
+	return actualTypeNode->getTypeKind(templateArguments);
 
 }
 
@@ -381,7 +378,7 @@ TypeNode* TemplateParameterTypeNode::getActualTypeNode(TemplateArguments* templa
 
 ClassTypeNode::ClassTypeNode()
 {
-	m_category = tc_class_type;
+	m_kind = tc_class_type;
 }
 
 EnumTypeNode* ClassTypeNode::addEnum(EnumNode* node)
@@ -434,14 +431,14 @@ MemberNode* ClassTypeNode::getSyntaxNode()
 	return m_classNode;
 }
 
-TypeCategory ClassTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind ClassTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
 	return m_classNode->isValueType() ? value_type : rc_object_type;
 }
 
 TemplateClassInstanceTypeNode::TemplateClassInstanceTypeNode()
 {
-	m_category = tc_template_class_instance;
+	m_kind = tc_template_class_instance;
 }
 
 MemberNode* TemplateClassInstanceTypeNode::getSyntaxNode()
@@ -449,9 +446,9 @@ MemberNode* TemplateClassInstanceTypeNode::getSyntaxNode()
 	return m_templateClassInstanceNode;
 }
 
-TypeCategory TemplateClassInstanceTypeNode::getTypeCategory(TemplateArguments* templateArguments)
+TypeKind TemplateClassInstanceTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
-	return m_templateClassInstanceNode->m_classTypeNode->getTypeCategory(templateArguments);
+	return m_templateClassInstanceNode->m_classTypeNode->getTypeKind(templateArguments);
 }
 
 void TemplateClassInstanceTypeNode::getLocalName(std::string& name)
@@ -461,7 +458,7 @@ void TemplateClassInstanceTypeNode::getLocalName(std::string& name)
 
 NamespaceTypeNode::NamespaceTypeNode()
 {
-	m_category = tc_namespace;
+	m_kind = tc_namespace;
 }
 
 NamespaceTypeNode* NamespaceTypeNode::addNamespace(NamespaceNode* node)
@@ -472,7 +469,7 @@ NamespaceTypeNode* NamespaceTypeNode::addNamespace(NamespaceNode* node)
 		NamespaceTypeNode* result = new NamespaceTypeNode;
 		result->m_name = node->m_name->m_str;
 		result->m_enclosing = this;
-		result->m_identifyNode = node->m_name;
+		result->m_identifierNode = node->m_name;
 		result->m_sourceFile = g_compiler.m_currentSourceFile;
 		m_children.insert(result);
 		g_typeTree.m_allNamespaces.push_back(result);
@@ -490,7 +487,7 @@ NamespaceTypeNode* NamespaceTypeNode::addNamespace(NamespaceNode* node)
 		char buf[4096];
 		sprintf_s(buf, "\'%s\' : already defined in %s(%d,%d)",
 			node->m_name->m_str.c_str(), child->m_sourceFile->m_fileName.c_str(),
-			child->m_identifyNode->m_lineNo, child->m_identifyNode->m_columnNo);
+			child->m_identifierNode->m_lineNo, child->m_identifierNode->m_columnNo);
 		ErrorList_AddItem(getCurrentSourceFileName(), node->m_name->m_lineNo,
 			node->m_name->m_columnNo, semantic_error_namespace_redefined, buf);
 		return 0;
@@ -515,16 +512,16 @@ ClassTypeNode* NamespaceTypeNode::addClass(ClassNode* node)
 		res->m_classNode = node;
 		if (node->m_templateParametersNode)
 		{
-			std::vector<IdentifyNode*> templateParameterNodes;
+			std::vector<IdentifierNode*> templateParameterNodes;
 			node->m_templateParametersNode->collectParameterNodes(templateParameterNodes);
 			auto it = templateParameterNodes.begin();
 			auto end = templateParameterNodes.end();
 			for (; it != end; ++it)
 			{
-				IdentifyNode* identifyNode = *it;
+				IdentifierNode* identifierNode = *it;
 				TemplateParameterTypeNode* typeNode = new TemplateParameterTypeNode();
-				typeNode->m_name = identifyNode->m_str;
-				typeNode->m_identifyNode = identifyNode;
+				typeNode->m_name = identifierNode->m_str;
+				typeNode->m_identifierNode = identifierNode;
 				typeNode->m_sourceFile = g_compiler.m_currentSourceFile;
 				res->m_parameterNodes.push_back(typeNode);
 			}
@@ -561,7 +558,7 @@ void CopyChildren(ClassTypeNode* dst, ClassTypeNode* src)
 	for (; it != end; ++it)
 	{
 		TypeNode* srcChild = *it;
-		switch (srcChild->m_category)
+		switch (srcChild->m_kind)
 		{
 		case tc_enum_type:
 			dst->addEnum(static_cast<EnumTypeNode*>(srcChild)->m_enumNode);
@@ -658,7 +655,7 @@ bool TypeTree::checkTypeNameNode(TypeNode*& initialTypeTreeNode, TypeNode*& fina
 	initialTypeTreeNode = 0;
 	finalTypeTreeNode = 0;
 	std::vector<ScopeNameNode*> scopeNameNodes;
-	scopeNameListNode->collectIdentifyNodes(scopeNameNodes);
+	scopeNameListNode->collectIdentifierNodes(scopeNameNodes);
 	assert(!scopeNameNodes.empty());
 
 	if (0 != templateArguments && !scopeNameListNode->isGlobal())
@@ -733,11 +730,11 @@ bool TypeTree::checkTypeNameNode(TypeNode*& initialTypeTreeNode, TypeNode*& fina
 				sprintf_s(buf, "\'%s\' : ambiguous type name could be %s(%d, %d) or %s(%d, %d)",
 					str.c_str(),
 					finalTypeTreeNode->m_sourceFile->m_fileName.c_str(), 
-					finalTypeTreeNode->m_identifyNode->m_lineNo, 
-					finalTypeTreeNode->m_identifyNode->m_columnNo,
+					finalTypeTreeNode->m_identifierNode->m_lineNo, 
+					finalTypeTreeNode->m_identifierNode->m_columnNo,
 					tempFinalTypeTreeNode->m_sourceFile->m_fileName.c_str(), 
-					tempFinalTypeTreeNode->m_identifyNode->m_lineNo,
-					tempFinalTypeTreeNode->m_identifyNode->m_columnNo);
+					tempFinalTypeTreeNode->m_identifierNode->m_lineNo,
+					tempFinalTypeTreeNode->m_identifierNode->m_columnNo);
 				ErrorList_AddItem_CurrentFile(scopeNameNodes.back()->m_name->m_lineNo,
 					scopeNameNodes.back()->m_name->m_columnNo, semantic_error_ambiguous_type_name, buf);
 				return false;

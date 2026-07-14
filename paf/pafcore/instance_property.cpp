@@ -26,7 +26,7 @@ InstanceProperty::InstanceProperty(
 	m_setter = setter;
 	m_candidateCount = candidateCount;
 	m_getCandidate = getCandidate;
-	m_category = simple_property;
+	m_kind = simple_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 
@@ -55,7 +55,7 @@ InstanceProperty::InstanceProperty(
 	m_arrayResizer = resizer;
 	m_arrayGetIterator = getIterator;
 	m_arrayGetValue = getValue;
-	m_category = array_property;
+	m_kind = array_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 
@@ -82,7 +82,7 @@ InstanceProperty::InstanceProperty(
 	m_listGetValue = getValue;
 	m_listInsert = insert;
 	m_listErase = erase;
-	m_category = list_property;
+	m_kind = list_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 
@@ -111,7 +111,7 @@ InstanceProperty::InstanceProperty(
 	m_mapGetIterator = getIterator;
 	m_mapGetKey = getKey;
 	m_mapGetValue = getValue;
-	m_category = map_property;
+	m_kind = map_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 

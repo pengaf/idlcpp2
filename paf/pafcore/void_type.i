@@ -37,6 +37,6 @@ template<>
 struct RuntimeTypeOf<void>
 {
 	typedef ::pafcore::VoidType RuntimeType;
-	enum { type_category = ::pafcore::void_object };
+	enum { type_kind = ::pafcore::void_instance };
 };
 #}

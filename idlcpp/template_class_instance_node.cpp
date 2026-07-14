@@ -2,7 +2,7 @@
 #include "scope_name_list_node.h"
 #include "type_name_node.h"
 #include "type_name_list_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "token_list_node.h"
 #include "class_node.h"
 #include "raise_error.h"
@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <algorithm>
 
-TemplateClassInstanceNode::TemplateClassInstanceNode(IdentifyNode* name, TypeNameListNode* parameterList)
+TemplateClassInstanceNode::TemplateClassInstanceNode(IdentifierNode* name, TypeNameListNode* parameterList)
 {
 	m_nodeType = snt_template_class_instance;
 	m_name = name;
@@ -60,7 +60,7 @@ void TemplateClassInstanceNode::collectTypes(TypeNode* enclosingTypeNode, Templa
 	m_classTypeNode = static_cast<ClassTypeNode*>(childTypeNode);
 
 	ClassNode* classNode = static_cast<ClassNode*>(m_classTypeNode->m_classNode);
-	std::vector<IdentifyNode*> parameterNodes;
+	std::vector<IdentifierNode*> parameterNodes;
 	classNode->m_templateParametersNode->collectParameterNodes(parameterNodes);
 	size_t paramCount = parameterNodes.size();
 	std::vector<TypeNameNode*> argumentNodes;
@@ -119,7 +119,7 @@ void TemplateClassInstanceNode::checkSemantic(TemplateArguments* templateArgumen
 	g_errorList.setTemplateClassInstance(0);
 }
 
-void TemplateClassInstanceNode::getReservedMembers(std::vector<IdentifyNode*>& reservedNames, std::vector<TokenNode*>& reservedOperators)
+void TemplateClassInstanceNode::getReservedMembers(std::vector<IdentifierNode*>& reservedNames, std::vector<TokenNode*>& reservedOperators)
 {
 	reservedNames.clear();
 	reservedOperators.clear();
@@ -130,16 +130,16 @@ void TemplateClassInstanceNode::getReservedMembers(std::vector<IdentifyNode*>& r
 	for (; it != end; ++it)
 	{
 		TokenNode* token = *it;
-		if (snt_identify == token->m_nodeType)
+		if (snt_identifier == token->m_nodeType)
 		{
-			reservedNames.push_back(static_cast<IdentifyNode*>(token));
+			reservedNames.push_back(static_cast<IdentifierNode*>(token));
 		}
 		else
 		{
 			reservedOperators.push_back(token);
 		}
 	}
-	std::sort(reservedNames.begin(), reservedNames.end(), CompareIdentifyPtr());
+	std::sort(reservedNames.begin(), reservedNames.end(), CompareIdentifierPtr());
 	std::sort(reservedOperators.begin(), reservedOperators.end(), CompareTokenPtr());
 
 }

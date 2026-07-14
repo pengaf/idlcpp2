@@ -1,36 +1,27 @@
 #include "property_node.h"
-#include "type_name_node.h"
+#include "compound_type_node.h"
 #include "token_node.h"
-#include "identify_node.h"
-#include "getter_setter_node.h"
+#include "identifier_node.h"
+#include "property_accessor_node.h"
 #include "class_node.h"
 #include "type_tree.h"
 #include "raise_error.h"
 #include "compiler.h"
 #include <assert.h>
 
-PropertyNode::PropertyNode(IdentifyNode* name, PropertyCategory category)
+
+PropertyNode::PropertyNode(CompoundTypeNode* compoundType, IdentifierNode* name, PropertyAccessorListNode* accessorList, PropertyKind propertyKind)
 {
 	m_nodeType = snt_property;
-	m_modifier = 0;
-	m_constant = 0;
-	m_typeName = 0;
-	m_typeCompound = 0;
-	m_byRef = 0;
+	m_compoundType = compoundType;
 	m_name = name;
-	m_get = 0;
-	m_set = 0;
-	m_propertyCategory = category;
-	m_candidate = false;
-	m_keyTypeName = 0;
-	m_keyTypeCompound = 0;
-	m_keyByRef = 0;
-
+	m_accessorList = accessorList;
+	m_propertyKind = propertyKind;
 }
 
-PropertyCategory PropertyNode::getCategory()
+PropertyKind PropertyNode::getKind()
 {
-	return m_propertyCategory;
+	return m_propertyKind;
 }
 
 bool PropertyNode::isStatic()
@@ -40,118 +31,27 @@ bool PropertyNode::isStatic()
 
 bool PropertyNode::isSimple()
 {
-	return simple_property == m_propertyCategory;
+	return simple_property == m_propertyKind;
 }
 
 bool PropertyNode::isFixedArray()
 {
-	return fixed_array_property == m_propertyCategory;
+	return fixed_array_property == m_propertyKind;
 }
 
 bool PropertyNode::isDynamicArray()
 {
-	return dynamic_array_property == m_propertyCategory;
+	return dynamic_array_property == m_propertyKind;
 }
 
 bool PropertyNode::isList()
 {
-	return list_property == m_propertyCategory;
-}
-
-bool PropertyNode::isMap()
-{
-	return map_property == m_propertyCategory;
-}
-
-bool PropertyNode::hasCandidate()
-{
-	return m_candidate;
-}
-
-bool PropertyNode::isKeyByPtr()
-{
-	return isKeyByObserverPtr() || isKeyByUniquePtr() || isKeyBySharedPtr();
-}
-
-bool PropertyNode::isKeyByObserverPtr()
-{
-	return (0 != m_keyTypeCompound && '*' == m_keyTypeCompound->m_nodeType);
-}
-
-bool PropertyNode::isKeyByUniquePtr()
-{
-	return (0 != m_keyTypeCompound && '!' == m_keyTypeCompound->m_nodeType);
-}
-
-bool PropertyNode::isKeyBySharedPtr()
-{
-	return (0 != m_keyTypeCompound && '^' == m_keyTypeCompound->m_nodeType);
-}
-
-bool PropertyNode::isKeyByValue()
-{
-	return 0 == m_keyTypeCompound && 0 == m_keyByRef;
-}
-
-bool PropertyNode::isKeyByRef()
-{
-	return 0 != m_keyByRef;
-}
-
-bool PropertyNode::isByValue()
-{
-	return 0 == m_typeCompound && 0 == m_byRef;
-}
-
-bool PropertyNode::isByObserverPtr()
-{
-	return (0 != m_typeCompound && '*' == m_typeCompound->m_nodeType);
-}
-
-bool PropertyNode::isByUniquePtr()
-{
-	return (0 != m_typeCompound && '!' == m_typeCompound->m_nodeType);
-}
-
-bool PropertyNode::isBySharedPtr()
-{
-	return (0 != m_typeCompound && '^' == m_typeCompound->m_nodeType);
-}
-
-bool PropertyNode::isByPtr()
-{
-	return isByObserverPtr() || isByUniquePtr() || isBySharedPtr();
-}
-
-bool PropertyNode::isByRef()
-{
-	return 0 != m_byRef;
-}
-
-void PropertyNode::setGetter(GetterSetterNode* getter)
-{
-	assert(snt_keyword_get == getter->m_keyword->m_nodeType);
-	m_get = getter;
-}
-
-void PropertyNode::setSetter(GetterSetterNode* setter)
-{
-	assert(snt_keyword_set == setter->m_keyword->m_nodeType);
-	m_set = setter;
-}
-
-void PropertyNode::setCandidate()
-{
-	m_candidate = true;
+	return list_property == m_propertyKind;
 }
 
 void PropertyNode::checkTypeNames(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments)
 {
-	m_typeName->calcTypeNodes(enclosingTypeNode, templateArguments);
-	if (m_keyTypeName)
-	{
-		m_keyTypeName->calcTypeNodes(enclosingTypeNode, templateArguments);
-	}
+	m_compoundType->m_typeName->calcTypeNodes(enclosingTypeNode, templateArguments);
 }
 
 void PropertyNode::checkSemantic(TemplateArguments* templateArguments)
@@ -186,11 +86,11 @@ void PropertyNode::checkSemantic(TemplateArguments* templateArguments)
 	{
 		return;
 	}
-	if (void_type == typeNode->getTypeCategory(templateArguments) && !isByPtr())
+	if (void_type == typeNode->getTypeKind(templateArguments) && !isByPtr())
 	{
 		RaiseError_InvalidPropertyType(this);
 	}
-	if (isByUniquePtr() && rc_object_type == typeNode->getTypeCategory(templateArguments))
+	if (isByUniquePtr() && rc_object_type == typeNode->getTypeKind(templateArguments))
 	{
 		RaiseError_InvalidPropertyType(this);
 	}

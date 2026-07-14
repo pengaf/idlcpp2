@@ -5,7 +5,7 @@
 #include "namespace_node.h"
 #include "token_node.h"
 #include "token_list_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "enumerator_list_node.h"
 #include "enumerator_node.h"
 #include "enum_node.h"
@@ -19,7 +19,7 @@
 #include "type_name_node.h"
 #include "member_list_node.h"
 #include "field_node.h"
-#include "getter_setter_node.h"
+#include "property_accessor_node.h"
 #include "property_node.h"
 #include "method_node.h"
 #include "operator_node.h"
@@ -133,50 +133,35 @@ void MetaSourceFileGenerator::generateCode_Program(FILE* file, SourceFile* sourc
 			writeStringToFile(buf, file);
 			if (typeNode->isTypeDeclaration())
 			{
-				TypeCategory typeCategory = typeNode->getTypeCategory(0);
-				const char* typeCategoryName = "";
-			switch (typeCategory)
-			{
-			case void_type:
-				typeCategoryName = "void_object";
-				break;
+				TypeKind typeKind = typeNode->getTypeKind(0);
+				const char* typeKindName = "";
+				switch (typeKind)
+				{
+				case void_type:
+					typeKindName = "void_instance";
+					break;
 				case primitive_type:
-					typeCategoryName = "primitive_object";
+					typeKindName = "primitive_instance";
 					break;
 				case enum_type:
-					typeCategoryName = "enum_object";
+					typeKindName = "enum_instance";
 					break;
-			case value_type:
-				typeCategoryName = "value_object";
-				break;
-			case rc_object_type:
-			{
-				ClassNode* classNode = 0;
-				if (typeNode->isTemplateClassInstance())
-				{
-					classNode = static_cast<TemplateClassInstanceTypeNode*>(typeNode)->m_classNode;
+				case value_type:
+					typeKindName = "value_instance";
+					break;
+				case object_type:
+					typeKindName = "object_instance";
+					break;
+				case interface_type:
+					typeKindName = "interface_instance";
+					break;
+				default:
+					assert(false);
 				}
-				else
-				{
-					classNode = static_cast<ClassTypeNode*>(typeNode)->m_classNode;
-				}
-				if (classNode->m_category && classNode->m_category->m_str == "atomic_rc_object")
-				{
-					typeCategoryName = "atomic_rc_object";
-				}
-				else
-				{
-					typeCategoryName = "rc_object";
-				}
-				break;
-			}
-			default:
-				assert(false);
-			}
 				std::string typeName;
 				typeNode->getNativeName(typeName);
-				sprintf_s(buf, "static_assert(static_cast<int>(RuntimeTypeOf<%s>::type_category) == static_cast<int>(::pafcore::%s), \"type category error\");\n",
-					typeName.c_str(), typeCategoryName);
+				sprintf_s(buf, "static_assert(static_cast<int>(RuntimeTypeOf<%s>::type_kind) == static_cast<int>(::pafcore::MetadataKind::%s), \"type kind error\");\n",
+					typeName.c_str(), typeKindName);
 				writeStringToFile(buf, file);
 			}
 		}
@@ -254,10 +239,10 @@ void MetaSourceFileGenerator::generateCode_TemplateClassInstance(FILE* file, Tem
 void calcOverrideFunctionName(std::string& res, const char* funcName, const std::vector<MethodNode*>& typeMethodNodes, const std::string& className)
 {
 	assert(res.empty());
-	IdentifyNode tmpIdentifyNode(funcName, 0, 0, 0);
-	MethodNode tmpMethodNode(&tmpIdentifyNode, 0, 0, 0, 0);
+	IdentifierNode tmpIdentifierNode(funcName, 0, 0, 0);
+	MethodNode tmpMethodNode(&tmpIdentifierNode, 0, 0, 0, 0);
 	auto it = std::lower_bound(typeMethodNodes.begin(), typeMethodNodes.end(), &tmpMethodNode, CompareMemberNodeByName());
-	if (typeMethodNodes.end() != it && (*it)->m_name->m_str == tmpIdentifyNode.m_str)
+	if (typeMethodNodes.end() != it && (*it)->m_name->m_str == tmpIdentifierNode.m_str)
 	{
 		MethodNode* methodNode = *it;
 		if (methodNode->m_nativeName)
@@ -444,7 +429,7 @@ void MetaSourceFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 	}
 	TemplateArguments* templateArguments = templateClassInstance ? &templateClassInstance->m_templateArguments : 0;
 
-	std::vector<IdentifyNode*> reservedNames;
+	std::vector<IdentifierNode*> reservedNames;
 	std::vector<TokenNode*> reservedOperators;
 	if (templateClassInstance && templateClassInstance->m_tokenList
 		&& templateClassInstance->m_classTypeNode->m_classNode == classNode)
@@ -474,7 +459,7 @@ void MetaSourceFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 		{
 			if (snt_method == memberNode->m_nodeType || snt_property == memberNode->m_nodeType)
 			{
-				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), memberNode->m_name, CompareIdentifyPtr()))
+				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), memberNode->m_name, CompareIdentifierPtr()))
 				{
 					continue;
 				}
@@ -569,7 +554,7 @@ void MetaSourceFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 			MethodNode* methodNode = *it;
 			if (!reservedNames.empty())
 			{
-				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), methodNode->m_name, CompareIdentifyPtr()))
+				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), methodNode->m_name, CompareIdentifierPtr()))
 				{
 					continue;
 				}
@@ -674,8 +659,8 @@ void writeMetaGetPropertyImpl_Key(ClassNode* classNode, TemplateArguments* templ
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_keyTypeName, templateArguments);
-	switch (typeCategory)
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_keyTypeName, templateArguments);
+	switch (typeKind)
 	{
 	case void_type:
 		sprintf_s(buf, "%s* index;\n", typeName.c_str());
@@ -756,7 +741,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 	writeStringToFile(buf, file);
 	if (propertyNode->isStatic())
 	{
-		switch (propertyNode->getCategory())
+		switch (propertyNode->getKind())
 		{
 		case simple_property:
 			writeStringToFile(g_metaStaticPropertyImplPostfix, sizeof(g_metaStaticPropertyImplPostfix) - 1, file);
@@ -773,7 +758,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 	}
 	else
 	{
-		switch (propertyNode->getCategory())
+		switch (propertyNode->getKind())
 		{
 		case simple_property:
 			writeStringToFile(g_metaPropertyImplPostfix, sizeof(g_metaPropertyImplPostfix) - 1, file);
@@ -789,7 +774,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 		}
 	}
 	writeStringToFile("{\n", file, indentation);
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 
 	if (propertyNode->isMap())
 	{
@@ -811,7 +796,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 
 		if (0 == propertyNode->m_typeCompound && 0 == propertyNode->m_byRef)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = %s%s);\n", typeName.c_str(), strCall, strIndex);
 			}
@@ -872,7 +857,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 		writeStringToFile("}\n", file, indentation + 1);
 		if (0 == propertyNode->m_typeCompound && 0 == propertyNode->m_byRef)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = %s%s);\n", typeName.c_str(), strCall, strIndex);
 			}
@@ -917,7 +902,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 
 	if (0 == propertyNode->m_typeCompound && 0 == propertyNode->m_byRef)
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -972,7 +957,7 @@ void writeMetaGetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 	}
 	else
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "value->assignVoidPtr(res, %s);\n", false ? "true" : "false");
@@ -1034,7 +1019,7 @@ void writeMetaSetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 	writeStringToFile(buf, file);
 	if (propertyNode->isStatic())
 	{
-		switch (propertyNode->getCategory())
+		switch (propertyNode->getKind())
 		{
 		case simple_property:
 			writeStringToFile(g_metaStaticPropertyImplPostfix, sizeof(g_metaStaticPropertyImplPostfix) - 1, file);
@@ -1051,7 +1036,7 @@ void writeMetaSetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 	}
 	else
 	{
-		switch (propertyNode->getCategory())
+		switch (propertyNode->getKind())
 		{
 		case simple_property:
 			writeStringToFile(g_metaPropertyImplPostfix, sizeof(g_metaPropertyImplPostfix) - 1, file);
@@ -1069,7 +1054,7 @@ void writeMetaSetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 	}
 	writeStringToFile("{\n", file, indentation);
 
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 
 	if (!propertyNode->isStatic())
 	{
@@ -1101,7 +1086,7 @@ void writeMetaSetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 		writeMetaGetPropertyImpl_Key(classNode, templateArguments, propertyNode, file, indentation + 1);
 	}
 
-	switch (typeCategory)
+	switch (typeKind)
 	{
 	case void_type:
 		sprintf_s(buf, "%s* arg;\n", typeName.c_str());
@@ -1234,7 +1219,7 @@ void writeMetaSetPropertyImpl(ClassNode* classNode, TemplateArguments* templateA
 		writeStringToFile("index, ", file);
 	}
 
-	if (primitive_type == typeCategory || enum_type == typeCategory)
+	if (primitive_type == typeKind || enum_type == typeKind)
 	{
 		//if(propertyNode->m_set->byRef() && !propertyNode->m_set->isConstant())
 		//{
@@ -1297,7 +1282,7 @@ void writeMetaProperty_GetCandidate_Impl(ClassNode* classNode, TemplateArguments
 	}
 	writeStringToFile("{\n", file, indentation);
 
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 
 	TokenNode* passing = propertyNode->m_typeCompound ? propertyNode->m_typeCompound : propertyNode->m_byRef;
 
@@ -1305,7 +1290,7 @@ void writeMetaProperty_GetCandidate_Impl(ClassNode* classNode, TemplateArguments
 	{
 		if (0 == passing)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = %s::%s_%s(index);\n", typeName.c_str(), className.c_str(), funcPrefix, propertyNode->m_name->m_str.c_str());
 			}
@@ -1350,7 +1335,7 @@ void writeMetaProperty_GetCandidate_Impl(ClassNode* classNode, TemplateArguments
 		writeStringToFile("}\n", file, indentation + 1);
 		if (0 == passing)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = self->%s_%s(index);\n", typeName.c_str(), funcPrefix, propertyNode->m_name->m_str.c_str());
 			}
@@ -1396,7 +1381,7 @@ void writeMetaProperty_GetCandidate_Impl(ClassNode* classNode, TemplateArguments
 
 	if (0 == passing)
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -1451,7 +1436,7 @@ void writeMetaProperty_GetCandidate_Impl(ClassNode* classNode, TemplateArguments
 	}
 	else
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "value->assignVoidPtr(res, %s);\n", false ? "true" : "false");
@@ -1651,7 +1636,7 @@ void writeMetaProperty_PushBack_Impl(ClassNode* classNode, TemplateArguments* te
 	}
 	writeStringToFile("{\n", file, indentation);
 
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 
 	if (!propertyNode->isStatic())
 	{
@@ -1677,7 +1662,7 @@ void writeMetaProperty_PushBack_Impl(ClassNode* classNode, TemplateArguments* te
 		writeStringToFile("}\n", file, indentation + 1);
 	}
 
-	switch (typeCategory)
+	switch (typeKind)
 	{
 	case void_type:
 		sprintf_s(buf, "%s* arg;\n", typeName.c_str());
@@ -1750,7 +1735,7 @@ void writeMetaProperty_PushBack_Impl(ClassNode* classNode, TemplateArguments* te
 	}
 	writeStringToFile(buf, file, indentation + 1);
 
-	if (primitive_type == typeCategory || enum_type == typeCategory)
+	if (primitive_type == typeKind || enum_type == typeKind)
 	{
 		//if (isByRef && !isConstant)
 		//{
@@ -1855,13 +1840,13 @@ void writeMetaPropertyGetKeyImpl(ClassNode* classNode, TemplateArguments* templa
 	}
 	writeStringToFile("{\n", file, indentation);
 
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_keyTypeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_keyTypeName, templateArguments);
 
 	if (propertyNode->isStatic())
 	{
 		if (0 == propertyNode->m_keyTypeCompound && 0 == propertyNode->m_keyByRef)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = %s::getKey_%s(iterator);\n", typeName.c_str(), className.c_str(), propertyNode->m_name->m_str.c_str());
 			}
@@ -1899,7 +1884,7 @@ void writeMetaPropertyGetKeyImpl(ClassNode* classNode, TemplateArguments* templa
 		writeStringToFile("}\n", file, indentation + 1);
 		if (0 == propertyNode->m_keyTypeCompound && 0 == propertyNode->m_keyByRef)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = self->getKey_%s(iterator);\n", typeName.c_str(), propertyNode->m_name->m_str.c_str());
 			}
@@ -1938,7 +1923,7 @@ void writeMetaPropertyGetKeyImpl(ClassNode* classNode, TemplateArguments* templa
 
 	if (0 == propertyNode->m_keyTypeCompound && 0 == propertyNode->m_keyByRef)
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -1977,7 +1962,7 @@ void writeMetaPropertyGetKeyImpl(ClassNode* classNode, TemplateArguments* templa
 	}
 	else
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "value->assignVoidPtr(res, %s);\n", /*propertyNode->isKeyConstant() ? "true" : */"false");
@@ -2036,7 +2021,7 @@ void writeMetaProperty_GetValue_Impl(ClassNode* classNode, TemplateArguments* te
 	}
 	writeStringToFile("{\n", file, indentation);
 
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 
 	TokenNode* passing = propertyNode->m_typeCompound ? propertyNode->m_typeCompound : propertyNode->m_byRef;
 
@@ -2044,7 +2029,7 @@ void writeMetaProperty_GetValue_Impl(ClassNode* classNode, TemplateArguments* te
 	{
 		if (0 == passing)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = %s::%s_%s(iterator);\n", typeName.c_str(), className.c_str(), funcPrefix, propertyNode->m_name->m_str.c_str());
 			}
@@ -2081,7 +2066,7 @@ void writeMetaProperty_GetValue_Impl(ClassNode* classNode, TemplateArguments* te
 		writeStringToFile("}\n", file, indentation + 1);
 		if (0 == passing)
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = self->%s_%s(iterator);\n", typeName.c_str(), funcPrefix, propertyNode->m_name->m_str.c_str());
 			}
@@ -2119,7 +2104,7 @@ void writeMetaProperty_GetValue_Impl(ClassNode* classNode, TemplateArguments* te
 
 	if (0 == passing)
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -2158,7 +2143,7 @@ void writeMetaProperty_GetValue_Impl(ClassNode* classNode, TemplateArguments* te
 	}
 	else
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "value->assignVoidPtr(res, %s);\n", false ? "true" : "false");
@@ -2225,7 +2210,7 @@ void writeMetaProperty_Insert_Impl(ClassNode* classNode, TemplateArguments* temp
 	}
 	writeStringToFile("{\n", file, indentation);
 
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 
 	if (!propertyNode->isStatic())
 	{
@@ -2251,7 +2236,7 @@ void writeMetaProperty_Insert_Impl(ClassNode* classNode, TemplateArguments* temp
 		writeStringToFile("}\n", file, indentation + 1);
 	}
 
-	switch (typeCategory)
+	switch (typeKind)
 	{
 	case void_type:
 		sprintf_s(buf, "%s* arg;\n", typeName.c_str());
@@ -2324,7 +2309,7 @@ void writeMetaProperty_Insert_Impl(ClassNode* classNode, TemplateArguments* temp
 	}
 	writeStringToFile(buf, file, indentation + 1);
 
-	if (primitive_type == typeCategory || enum_type == typeCategory)
+	if (primitive_type == typeKind || enum_type == typeKind)
 	{
 		//if (isByRef && !isConstant)
 		//{
@@ -2530,13 +2515,13 @@ void writeMetaMethodImpl_CastParam(ClassNode* classNode, TemplateArguments* temp
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
 
 	const char* strConstant = (parameterNode->isConstant() || parameterNode->isByValue()) ? "const " : "";
 
 	if (parameterNode->isInput())
 	{
-		if (primitive_type == typeCategory && !parameterNode->isByValue())
+		if (primitive_type == typeKind && !parameterNode->isByValue())
 		{
 			sprintf_s(buf, "if(args[%zu]->isTemporary())\n", argIndex);
 			writeStringToFile(buf, file, indentation);
@@ -2546,7 +2531,7 @@ void writeMetaMethodImpl_CastParam(ClassNode* classNode, TemplateArguments* temp
 			writeStringToFile("}\n", file, indentation);
 		}
 
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			assert(parameterNode->isByPtr());
@@ -2640,7 +2625,7 @@ void writeMetaMethodImpl_CastParam(ClassNode* classNode, TemplateArguments* temp
 		}
 		if (parameterNode->isByObserverPtr())
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory || value_type == typeCategory || rc_object_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind || value_type == typeKind || rc_object_type == typeKind)
 			{
 				sprintf_s(buf, "::pafcore::ObserverPtr<%s%s> a%zu(a%zu_ptr);\n",
 					parameterNode->isConstant() ? "const " : "", typeName.c_str(), paramIndex, paramIndex);
@@ -2649,7 +2634,7 @@ void writeMetaMethodImpl_CastParam(ClassNode* classNode, TemplateArguments* temp
 		}
 		else if (parameterNode->isByUniquePtr())
 		{
-			if (value_type == typeCategory)
+			if (value_type == typeKind)
 			{
 				sprintf_s(buf, "args[%zu]->unhold();\n", argIndex);
 				writeStringToFile(buf, file, indentation);
@@ -2660,7 +2645,7 @@ void writeMetaMethodImpl_CastParam(ClassNode* classNode, TemplateArguments* temp
 		}
 		else if (parameterNode->isBySharedPtr())
 		{
-			if (rc_object_type == typeCategory)
+			if (rc_object_type == typeKind)
 			{
 				sprintf_s(buf, "::pafcore::SharedPtr<%s> a%zu = ::pafcore::SharedPtr<%s>::Retain(a%zu_ptr);\n",
 					typeName.c_str(), paramIndex, typeName.c_str(), paramIndex);
@@ -2679,10 +2664,10 @@ void writeMetaMethodImpl_UseParam(ClassNode* classNode, TemplateArguments* templ
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
 	if (parameterNode->isInput())
 	{
-		if (primitive_type == typeCategory || enum_type == typeCategory)
+		if (primitive_type == typeKind || enum_type == typeKind)
 		{
 			if (parameterNode->isByRef())
 			{
@@ -2743,7 +2728,7 @@ void writeMetaMethodImpl_AssignOutputParam(ClassNode* classNode, TemplateArgumen
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
 
 	if (parameterNode->isArray())
 	{
@@ -2754,7 +2739,7 @@ void writeMetaMethodImpl_AssignOutputParam(ClassNode* classNode, TemplateArgumen
 	{
 		const char* varSemantic = s_variantSemantic_ByPtr;
 
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "args[%zu]->assignVoidPtr(a%zu, %s);\n",
@@ -2783,7 +2768,7 @@ void writeMetaMethodImpl_AssignOutputParam(ClassNode* classNode, TemplateArgumen
 	writeStringToFile(buf, file, indentation);
 }
 
-void writeMetaMethodImpl_AssignResult(const std::string& typeName, TypeCategory typeCategory, MethodNode* methodNode, FILE* file, int indentation)
+void writeMetaMethodImpl_AssignResult(const std::string& typeName, TypeKind typeKind, MethodNode* methodNode, FILE* file, int indentation)
 {
 	char buf[4096];
 	if (methodNode->m_resultArray)
@@ -2817,7 +2802,7 @@ void writeMetaMethodImpl_AssignResult(const std::string& typeName, TypeCategory 
 
 	if (methodNode->byValue() || methodNode->returnsOwning())
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -2840,7 +2825,7 @@ void writeMetaMethodImpl_AssignResult(const std::string& typeName, TypeCategory 
 	}
 	else
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "result->assignVoidPtr(res, %s);\n", methodNode->m_resultConst ? "true" : "false");
@@ -2891,12 +2876,12 @@ void writeMetaMethodImpl_Call(ClassNode* classNode, TemplateArguments* templateA
 	std::string typeName;
 	std::string className;
 	classNode->getNativeName(className, templateArguments);
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, methodNode->m_resultTypeName, templateArguments);
+	TypeKind typeKind = CalcTypeNativeName(typeName, methodNode->m_resultTypeName, templateArguments);
 
-	IdentifyNode* methodNameNode = methodNode->m_nativeName ? methodNode->m_nativeName : methodNode->m_name;
+	IdentifierNode* methodNameNode = methodNode->m_nativeName ? methodNode->m_nativeName : methodNode->m_name;
 
 	size_t paramCount = parameterNodes.size();
-	if (void_type == typeCategory && 0 == methodNode->m_typeCompound && 0 == methodNode->m_byRef)
+	if (void_type == typeKind && 0 == methodNode->m_typeCompound && 0 == methodNode->m_byRef)
 	{
 		writeStringToFile("", 0, file, indentation);
 	}
@@ -2904,7 +2889,7 @@ void writeMetaMethodImpl_Call(ClassNode* classNode, TemplateArguments* templateA
 	{
 		if (methodNode->byValue())
 		{
-			if (primitive_type == typeCategory || enum_type == typeCategory)
+			if (primitive_type == typeKind || enum_type == typeKind)
 			{
 				sprintf_s(buf, "%s res = ", typeName.c_str());
 			}
@@ -3011,7 +2996,7 @@ void writeMetaMethodImpl_Call(ClassNode* classNode, TemplateArguments* templateA
 			}
 		}
 	}
-	if (methodNode->byValue() && (value_type == typeCategory || rc_object_type == typeCategory))
+	if (methodNode->byValue() && (value_type == typeKind || rc_object_type == typeKind))
 	{
 		writeStringToFile(");\n", file, 0);
 	}
@@ -3019,9 +3004,9 @@ void writeMetaMethodImpl_Call(ClassNode* classNode, TemplateArguments* templateA
 	{
 		writeStringToFile(";\n", file, 0);
 	}
-	if (!(void_type == typeCategory && 0 == methodNode->m_typeCompound && 0 == methodNode->m_byRef))
+	if (!(void_type == typeKind && 0 == methodNode->m_typeCompound && 0 == methodNode->m_byRef))
 	{
-		writeMetaMethodImpl_AssignResult(typeName, typeCategory, methodNode, file, indentation);
+		writeMetaMethodImpl_AssignResult(typeName, typeKind, methodNode, file, indentation);
 	}
 }
 
@@ -3450,7 +3435,7 @@ void writeMetaConstructor_Fields(ClassNode* classNode, TemplateArguments* templa
 			strcpy_s(strAttributes, "0");
 		}
 
-		IdentifyNode* fieldNameNode = fieldNode->m_nativeName ? fieldNode->m_nativeName : fieldNode->m_name;
+		IdentifierNode* fieldNameNode = fieldNode->m_nativeName ? fieldNode->m_nativeName : fieldNode->m_name;
 		char arraySize[512];
 		if (fieldNode->isArray() && !fieldNode->isSmartArray())
 		{
@@ -3461,7 +3446,7 @@ void writeMetaConstructor_Fields(ClassNode* classNode, TemplateArguments* templa
 			strcpy_s(arraySize, "0");
 		}
 		std::string typeName;
-		TypeCategory typeCategory = CalcTypeNativeName(typeName, fieldNode->m_typeName, templateArguments);
+		TypeKind typeKind = CalcTypeNativeName(typeName, fieldNode->m_typeName, templateArguments);
 		const char* typeCompound = "::pafcore::Metadata::tc_none";
 		if (fieldNode->isObserverPtr())
 		{
@@ -3558,7 +3543,7 @@ void writeMetaConstructor_Properties(ClassNode* classNode, TemplateArguments* te
 
 		bool isPtr = propertyNode->isByPtr();
 		std::string typeName;
-		TypeCategory typeCategory = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
+		TypeKind typeKind = CalcTypeNativeName(typeName, propertyNode->m_typeName, templateArguments);
 		sprintf_s(valueType, "RuntimeTypeOf<%s>::RuntimeType::GetSingleton()", typeName.c_str());
 
 		if (propertyNode->m_get)
@@ -3652,7 +3637,7 @@ void writeMetaConstructor_Properties(ClassNode* classNode, TemplateArguments* te
 			sprintf_s(getKeyFunc, "%s_getKey_%s", classNode->m_name->m_str.c_str(), propertyNode->m_name->m_str.c_str());
 			sprintf_s(getValueFunc, "%s_getValue_%s", classNode->m_name->m_str.c_str(), propertyNode->m_name->m_str.c_str());
 			std::string keyTypeName;
-			TypeCategory keyTypeCategory = CalcTypeNativeName(keyTypeName, propertyNode->m_keyTypeName, templateArguments);
+			TypeKind keyTypeKind = CalcTypeNativeName(keyTypeName, propertyNode->m_keyTypeName, templateArguments);
 			sprintf_s(keyType, "RuntimeTypeOf<%s>::RuntimeType::GetSingleton()", keyTypeName.c_str());
 			isKeyPtr = propertyNode->isKeyByPtr();
 			if (isStatic)
@@ -3724,7 +3709,7 @@ void writeMetaConstructor_Method_Result(ClassNode* classNode, TemplateArguments*
 	std::string typeName;
 	const char* passing = methodNode->byRef() ? "::pafcore::Metadata::by_ref" : "::pafcore::Metadata::by_value";
 	const char* typeCompound = "::pafcore::Metadata::tc_none";
-	TypeCategory typeCategory = void_type;
+	TypeKind typeKind = void_type;
 	if (0 != methodNode->m_typeCompound)
 	{
 		switch (methodNode->m_typeCompound->m_nodeType)
@@ -3742,7 +3727,7 @@ void writeMetaConstructor_Method_Result(ClassNode* classNode, TemplateArguments*
 	}
 	if (snt_type_name == methodNode->m_resultTypeName->m_nodeType)
 	{
-		typeCategory = CalcTypeNativeName(typeName, (TypeNameNode*)methodNode->m_resultTypeName, templateArguments);
+		typeKind = CalcTypeNativeName(typeName, (TypeNameNode*)methodNode->m_resultTypeName, templateArguments);
 	}
 	else
 	{
@@ -3773,7 +3758,7 @@ void writeMetaConstructor_Method_Result(ClassNode* classNode, TemplateArguments*
 	}
 	else if (methodNode->returnsOwning())
 	{
-		typeCompound = (rc_object_type == typeCategory)
+		typeCompound = (rc_object_type == typeKind)
 			? "::pafcore::Metadata::tc_shared_ptr"
 			: "::pafcore::Metadata::tc_unique_ptr";
 	}
@@ -3835,7 +3820,7 @@ void writeMetaConstructor_Method_Arguments(ClassNode* classNode, TemplateArgumen
 			{
 				out = "'&'";
 			}
-			TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
+			TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, templateArguments);
 			sprintf_s(buf, "::pafcore::Argument(\"%s\", RuntimeTypeOf<%s>::RuntimeType::GetSingleton(), %s, %s, %s, %s),\n",
 				parameterNode->m_name->m_str.c_str(), typeName.c_str(), passing, typeCompound, out,
 				parameterNode->isConstant() ? "true" : "false");
@@ -4046,7 +4031,7 @@ void writeMetaConstructor_Member(
 	size_t propertyCount = propertyNodes.size();
 	size_t methodCount = methodNodes.size();
 
-	enum MemberCategory
+	enum MemberKind
 	{
 		unknown_member,
 		nested_type,
@@ -4078,11 +4063,11 @@ void writeMetaConstructor_Member(
 		while (true)
 		{
 			MemberNode* current = 0;
-			MemberCategory category = unknown_member;
+			MemberKind kind = unknown_member;
 			//if (currentNestedType < nestedTypeCount)
 			//{
 			//	current = nestedTypeNodes[currentNestedType];
-			//	category = nested_type;
+			//	kind = nested_type;
 			//}
 			//if (currentNestedTypeAlias < nestedTypeAliasCount)
 			//{
@@ -4090,7 +4075,7 @@ void writeMetaConstructor_Member(
 			//	if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 			//	{
 			//		current = memberNode;
-			//		category = nested_type_alias;
+			//		kind = nested_type_alias;
 			//	}
 			//}
 			if (currentStaticField < staticFieldCount)
@@ -4099,7 +4084,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = static_field;
+					kind = static_field;
 				}
 			}
 			if (currentStaticProperty < staticPropertyCount)
@@ -4108,7 +4093,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = static_property;
+					kind = static_property;
 				}
 			}
 			if (currentStaticMethod < staticMethodCount)
@@ -4117,7 +4102,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = static_method;
+					kind = static_method;
 				}
 			}
 			if (currentField < fieldCount)
@@ -4126,7 +4111,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = instance_field;
+					kind = instance_field;
 				}
 			}
 			if (currentProperty < propertyCount)
@@ -4135,7 +4120,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = instance_property;
+					kind = instance_property;
 				}
 			}
 			if (currentMethod < methodCount)
@@ -4144,14 +4129,14 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = instance_method;
+					kind = instance_method;
 				}
 			}
-			if (unknown_member == category)
+			if (unknown_member == kind)
 			{
 				break;
 			}
-			switch (category)
+			switch (kind)
 			{
 			//case nested_type:
 			//	sprintf_s(buf, "s_nestedTypes[%zu],\n", currentNestedType);
@@ -4212,11 +4197,11 @@ void writeMetaConstructor_Member(
 		while (true)
 		{
 			MemberNode* current = 0;
-			MemberCategory category = unknown_member;
+			MemberKind kind = unknown_member;
 			if (classCurrentNestedType < nestedTypeCount)
 			{
 				current = nestedTypeNodes[classCurrentNestedType];
-				category = nested_type;
+				kind = nested_type;
 			}
 			if (classCurrentNestedTypeAlias < nestedTypeAliasCount)
 			{
@@ -4224,7 +4209,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = nested_type_alias;
+					kind = nested_type_alias;
 				}
 			}
 			if (classCurrentStaticField < staticFieldCount)
@@ -4233,7 +4218,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = static_field;
+					kind = static_field;
 				}
 			}
 			if (classCurrentStaticProperty < staticPropertyCount)
@@ -4242,7 +4227,7 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = static_property;
+					kind = static_property;
 				}
 			}
 			if (classCurrentStaticMethod < staticMethodCount)
@@ -4251,14 +4236,14 @@ void writeMetaConstructor_Member(
 				if (0 == current || memberNode->m_name->m_str < current->m_name->m_str)
 				{
 					current = memberNode;
-					category = static_method;
+					kind = static_method;
 				}
 			}
-			if (unknown_member == category)
+			if (unknown_member == kind)
 			{
 				break;
 			}
-			switch (category)
+			switch (kind)
 			{
 			case nested_type:
 				sprintf_s(buf, "s_nestedTypes[%zu],\n", classCurrentNestedType);
@@ -4359,7 +4344,7 @@ void writeMetaConstructor_BaseClasses(ClassNode* classNode, TemplateArguments* t
 	{
 		TypeNameNode* typeNameNode = typeNameNodes[i];
 
-		TypeCategory typeCategory = CalcTypeNativeName(typeName, typeNameNode, templateArguments);
+		TypeKind typeKind = CalcTypeNativeName(typeName, typeNameNode, templateArguments);
 			sprintf_s(buf, "{RuntimeTypeOf<%s>::RuntimeType::GetSingleton(), paf_base_offset_of(%s, %s)},\n",
 				typeName.c_str(), className.c_str(), typeName.c_str());
 			writeStringToFile(buf, file, indentation + 1);	
@@ -4402,7 +4387,7 @@ void writeMetaConstructor_ClassTypeIterators(ClassNode* classNode, TemplateArgum
 	for (size_t i = 0; i < count; ++i)
 	{
 		TypeNameNode* typeNameNode = typeNameNodes[i];
-		TypeCategory typeCategory = CalcTypeNativeName(typeName, typeNameNode, templateArguments);
+		TypeKind typeKind = CalcTypeNativeName(typeName, typeNameNode, templateArguments);
 		sprintf_s(buf, "::pafcore::ClassTypeIterator(RuntimeTypeOf<%s>::RuntimeType::GetSingleton()->m_firstDerivedClass, this),\n",
 			typeName.c_str());
 		writeStringToFile(buf, file, indentation + 1);
@@ -4411,7 +4396,7 @@ void writeMetaConstructor_ClassTypeIterators(ClassNode* classNode, TemplateArgum
 	for (size_t i = 0; i < count; ++i)
 	{
 		TypeNameNode* typeNameNode = typeNameNodes[i];
-		TypeCategory typeCategory = CalcTypeNativeName(typeName, typeNameNode, templateArguments);
+		TypeKind typeKind = CalcTypeNativeName(typeName, typeNameNode, templateArguments);
 		sprintf_s(buf, "RuntimeTypeOf<%s>::RuntimeType::GetSingleton()->m_firstDerivedClass = &s_classTypeIterators[%zu];\n",
 			typeName.c_str(), i);
 		writeStringToFile(buf, file, indentation);
@@ -4543,8 +4528,8 @@ void writeMetaConstructor(ClassNode* classNode,
 	sprintf_s(buf, "%s::%s() : ::pafcore::ClassType(\"%s\", ::pafcore::%s, \"%s\")\n",
 		metaClassName.c_str(), metaClassName.c_str(),
 		localClassName.c_str(),
-		classNode->m_category ? classNode->m_category->m_str.c_str() :
-		classNode->isValueType() ? "value_object" : "rc_object",
+		classNode->m_kind ? classNode->m_kind->m_str.c_str() :
+		classNode->isValueType() ? "value_instance" : "object_instance",
 		classNode->getSourceFilePath().c_str());
 
 	writeStringToFile(buf, file, indentation);
@@ -4601,10 +4586,10 @@ void writeEnumMetaConstructor_Enumerators(EnumNode* enumNode, TemplateArguments*
 	writeStringToFile("{\n", file, indentation);
 	for (size_t i = 0; i < count; ++i)
 	{
-		EnumeratorNode* enumerator = enumerators[i];
-		if (enumerator->m_attributeList)
+		EnumeratorNode* enum_member = enumerators[i];
+		if (enum_member->m_attributeList)
 		{
-			auto it = attributesOffsets.find(enumerator);
+			auto it = attributesOffsets.find(enum_member);
 			assert(it != attributesOffsets.end());
 			sprintf_s(strAttributes, "&s_attributeses[%zu]", it->second);
 		}
@@ -4618,14 +4603,14 @@ void writeEnumMetaConstructor_Enumerators(EnumNode* enumNode, TemplateArguments*
 		if (enumNode->isStronglyTypedEnum())
 		{
 			sprintf_s(buf, "::pafcore::Enumerator(\"%s\", %s, %s::GetSingleton(), int(%s::%s::%s)),\n",
-				enumerator->m_name->m_str.c_str(), strAttributes,
-				metaClassName.c_str(), enumScopeName.c_str(), enumNode->m_name->m_str.c_str(), enumerator->m_name->m_str.c_str());
+				enum_member->m_name->m_str.c_str(), strAttributes,
+				metaClassName.c_str(), enumScopeName.c_str(), enumNode->m_name->m_str.c_str(), enum_member->m_name->m_str.c_str());
 		}
 		else
 		{
 			sprintf_s(buf, "::pafcore::Enumerator(\"%s\", %s, %s::GetSingleton(), %s::%s),\n",
-				enumerator->m_name->m_str.c_str(), strAttributes,
-				metaClassName.c_str(), enumScopeName.c_str(), enumerator->m_name->m_str.c_str());
+				enum_member->m_name->m_str.c_str(), strAttributes,
+				metaClassName.c_str(), enumScopeName.c_str(), enum_member->m_name->m_str.c_str());
 		}
 		writeStringToFile(buf, file, indentation + 1);
 	}
@@ -4765,7 +4750,7 @@ void writeInterfaceMethodImpl_SetOutputParamType(ParameterNode* parameterNode, s
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, 0);
 	sprintf_s(buf, "__arguments__[%zu].assignNullPtr(RuntimeTypeOf<%s>::RuntimeType::GetSingleton());\n",
 		argIndex, typeName.c_str());
 	writeStringToFile(buf, file, indentation);
@@ -4775,7 +4760,7 @@ void writeInterfaceMethodImpl_AssignInputParam(ParameterNode* parameterNode, siz
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, 0);
 	const char* varSemantic;
 	if (parameterNode->isByRef())
 	{
@@ -4802,7 +4787,7 @@ void writeInterfaceMethodImpl_AssignInputParam(ParameterNode* parameterNode, siz
 	}
 	if (parameterNode->isByValue())
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -4829,7 +4814,7 @@ void writeInterfaceMethodImpl_AssignInputParam(ParameterNode* parameterNode, siz
 	}
 	else
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "__arguments__[%zu].assignVoidPtr(%s%s, %s);\n",
@@ -4867,11 +4852,11 @@ void writeInterfaceMethodImpl_CastOutputParam(ParameterNode* parameterNode, size
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, parameterNode->m_typeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, parameterNode->m_typeName, 0);
 	assert(parameterNode->isOutput() && parameterNode->isByPtr());
 
 	const char* sign = parameterNode->isOutputPtr() ? "" : "&";
-	switch (typeCategory)
+	switch (typeKind)
 	{
 	case void_type:
 		sprintf_s(buf, "__arguments__[%zu].castToVoidPtr((void**)%s%s);\n",
@@ -4903,11 +4888,11 @@ void writeInterfaceMethodImpl_SetResultType(ClassNode* classNode, MethodNode* me
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, methodNode->m_resultTypeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, methodNode->m_resultTypeName, 0);
 
-	if (methodNode->byValue() && (primitive_type == typeCategory || enum_type == typeCategory))
+	if (methodNode->byValue() && (primitive_type == typeKind || enum_type == typeKind))
 	{
-		if (primitive_type == typeCategory)
+		if (primitive_type == typeKind)
 		{
 			sprintf_s(buf, "__result__.assignNullPrimitive(RuntimeTypeOf<%s>::RuntimeType::GetSingleton());\n", typeName.c_str());
 		}
@@ -4927,7 +4912,7 @@ void writeInterfaceMethodImpl_CastResult(MethodNode* methodNode, FILE* file, int
 {
 	char buf[4096];
 	std::string typeName;
-	TypeCategory typeCategory = CalcTypeNativeName(typeName, methodNode->m_resultTypeName, 0);
+	TypeKind typeKind = CalcTypeNativeName(typeName, methodNode->m_resultTypeName, 0);
 
 	if (methodNode->byUniquePtr())
 	{
@@ -4937,7 +4922,7 @@ void writeInterfaceMethodImpl_CastResult(MethodNode* methodNode, FILE* file, int
 	{
 		sprintf_s(buf, "::pafcore::SharedPtr<%s> __res__;\n", typeName.c_str());
 	}
-	else if (methodNode->byValue() && (primitive_type == typeCategory || enum_type == typeCategory))
+	else if (methodNode->byValue() && (primitive_type == typeKind || enum_type == typeKind))
 	{
 		sprintf_s(buf, "%s __res__;\n", typeName.c_str());
 	}
@@ -4949,7 +4934,7 @@ void writeInterfaceMethodImpl_CastResult(MethodNode* methodNode, FILE* file, int
 
 	if (methodNode->byValue())
 	{
-		switch (typeCategory)
+		switch (typeKind)
 		{
 			//case void_type: impossible
 		case primitive_type:
@@ -4968,7 +4953,7 @@ void writeInterfaceMethodImpl_CastResult(MethodNode* methodNode, FILE* file, int
 			assert(false);
 		}
 		writeStringToFile(buf, file, indentation);
-		if (primitive_type == typeCategory || enum_type == typeCategory)
+		if (primitive_type == typeKind || enum_type == typeKind)
 		{
 			writeStringToFile("return __res__;\n", file, indentation);
 		}
@@ -4983,7 +4968,7 @@ void writeInterfaceMethodImpl_CastResult(MethodNode* methodNode, FILE* file, int
 		{
 			sprintf_s(buf, "%s* __res_ptr__ = 0;\n", typeName.c_str());
 			writeStringToFile(buf, file, indentation);
-			switch (typeCategory)
+			switch (typeKind)
 			{
 			case value_type:
 				sprintf_s(buf, "__result__.castToValuePtr(RuntimeTypeOf<%s>::RuntimeType::GetSingleton(), (void**)&__res_ptr__);\n", typeName.c_str());
@@ -5014,7 +4999,7 @@ void writeInterfaceMethodImpl_CastResult(MethodNode* methodNode, FILE* file, int
 			return;
 		}
 
-		switch (typeCategory)
+		switch (typeKind)
 		{
 		case void_type:
 			sprintf_s(buf, "__result__.castToVoidPtr(&__res__);\n");
@@ -5055,7 +5040,7 @@ void writeInterfaceMethodImpl(ClassNode* classNode, TemplateArguments* templateA
 	char buf[4096];
 	std::string subclassProxyName;
 	GetSubclassProxyFullName(subclassProxyName, classNode, templateArguments);
-	IdentifyNode* methodNameNode = methodNode->m_nativeName ? methodNode->m_nativeName : methodNode->m_name;
+	IdentifierNode* methodNameNode = methodNode->m_nativeName ? methodNode->m_nativeName : methodNode->m_name;
 
 	std::string resultName;
 	if (0 != methodNode->m_resultConst)
@@ -5113,7 +5098,7 @@ void writeInterfaceMethodImpl(ClassNode* classNode, TemplateArguments* templateA
 		writeStringToFile(buf, file, indentation + 1);
 	}
 
-	bool isVoid = (void_type == resultTypeNode->getTypeCategory(templateArguments) && 0 == methodNode->m_typeCompound && 0 == methodNode->m_byRef);
+	bool isVoid = (void_type == resultTypeNode->getTypeKind(templateArguments) && 0 == methodNode->m_typeCompound && 0 == methodNode->m_byRef);
 	if (!isVoid)
 	{
 		writeInterfaceMethodImpl_SetResultType(classNode, methodNode, file, indentation + 1);

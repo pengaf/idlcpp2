@@ -1,6 +1,6 @@
 #include "../../paf/pafcore/class_type.h"
 #include "../../paf/pafcore/enum_type.h"
-#include "../../paf/pafcore/enumerator.h"
+#include "../../paf/pafcore/enum_member.h"
 #include "../../paf/pafcore/metadata.h"
 #include "../../paf/pafcore/name_space.h"
 #include "../../paf/pafcore/primitive_type.h"
@@ -13,24 +13,22 @@
 
 namespace metatest
 {
-const char* CategoryToString(pafcore::Category category)
+const char* KindToString(pafcore::MetadataKind kind)
 {
-    switch (category)
+    switch (kind)
     {
-    case pafcore::void_object:
-        return "void_object";
-    case pafcore::primitive_object:
-        return "primitive_object";
-    case pafcore::enum_object:
-        return "enum_object";
-    case pafcore::value_object:
-        return "value_object";
-    case pafcore::rc_object:
-        return "rc_object";
-    case pafcore::atomic_rc_object:
-        return "atomic_rc_object";
-    case pafcore::enumerator:
-        return "enumerator";
+    case pafcore::void_instance:
+        return "void_instance";
+    case pafcore::primitive_instance:
+        return "primitive_instance";
+    case pafcore::enum_instance:
+        return "enum_instance";
+    case pafcore::value_instance:
+        return "value_instance";
+    case pafcore::object_instance:
+        return "object_instance";
+    case pafcore::enum_member:
+        return "enum_member";
     case pafcore::instance_field:
         return "instance_field";
     case pafcore::static_field:
@@ -140,12 +138,12 @@ void DumpEnum(std::ostream& os, pafcore::EnumType* enumType, int indentLevel)
     os << Indent(indentLevel + 1) << "enumerators:" << std::endl;
     for (size_t i = 0; i < enumeratorCount; ++i)
     {
-        pafcore::Enumerator* enumerator = enumType->_getEnumerator_(i);
+        pafcore::Enumerator* enum_member = enumType->_getEnumerator_(i);
         os << Indent(indentLevel + 2)
            << "- "
-           << SafeName(enumerator->m_name)
+           << SafeName(enum_member->m_name)
            << " = "
-           << enumerator->m_value
+           << enum_member->m_value
            << std::endl;
     }
 }
@@ -175,8 +173,8 @@ void DumpClass(std::ostream& os, pafcore::ClassType* classType, int indentLevel)
 void DumpPrimitive(std::ostream& os, pafcore::PrimitiveType* primitiveType, int indentLevel)
 {
     os << Indent(indentLevel + 1)
-       << "primitive_type_category: "
-       << primitiveType->getPrimitiveTypeCategory()
+       << "primitive_type_kind: "
+       << primitiveType->getPrimitiveTypeKind()
        << std::endl;
 }
 
@@ -206,7 +204,7 @@ void DumpMetadata(std::ostream& os, pafcore::Metadata* metadata, int indentLevel
     }
 
     os << Indent(indentLevel)
-       << CategoryToString(metadata->_category_())
+       << KindToString(metadata->_kind_())
        << ": "
        << GetMetadataName(metadata)
        << std::endl;

@@ -14,7 +14,7 @@ struct ScopeNameListNode : SyntaxNodeImpl
 	bool m_global;
 public:
 	ScopeNameListNode(ScopeNameListNode* scopeNameList, ScopeNameNode* scopeName);
-	void collectIdentifyNodes(std::vector<ScopeNameNode*>& scopeNameNodes);
+	void collectIdentifierNodes(std::vector<ScopeNameNode*>& scopeNameNodes);
 	bool calcTemplateParametersTypeNodes(TypeNode* enclosingTypeTreeNode, TemplateArguments* templateArguments);
 	void getString(std::string& str);
 

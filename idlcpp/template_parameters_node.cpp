@@ -1,11 +1,11 @@
 #include "template_parameters_node.h"
-#include "template_parameter_list_node.h"
-#include "identify_node.h"
+#include "identifier_list_node.h"
+#include "identifier_node.h"
 #include "raise_error.h"
 #include <set>
 #include <algorithm>
 
-TemplateParametersNode::TemplateParametersNode(TokenNode* keyword, TokenNode* leftBracket, TemplateParameterListNode* parameterList, TokenNode* rightBracket)
+TemplateParametersNode::TemplateParametersNode(TokenNode* keyword, TokenNode* leftBracket, IdentifierListNode* parameterList, TokenNode* rightBracket)
 {
 	m_nodeType = snt_template_parameters;
 	m_keyword = keyword;
@@ -14,24 +14,24 @@ TemplateParametersNode::TemplateParametersNode(TokenNode* keyword, TokenNode* le
 	m_rightBracket = rightBracket;
 }
 
-void TemplateParametersNode::collectParameterNodes(std::vector<std::pair<TokenNode*, IdentifyNode*>>& parameterNodes)
+void TemplateParametersNode::collectParameterNodes(std::vector<std::pair<TokenNode*, IdentifierNode*>>& parameterNodes)
 {
-	TemplateParameterListNode* list = m_parameterList;
+	IdentifierListNode* list = m_parameterList;
 	while(0 != list)
 	{
-		parameterNodes.push_back(std::make_pair(list->m_delimiter, list->m_parameter));
-		list = list->m_parameterList;
+		parameterNodes.push_back(std::make_pair(list->m_comma, list->m_identifier));
+		list = list->m_identifierList;
 	}
 	std::reverse(parameterNodes.begin(), parameterNodes.end());
 }
 
-void TemplateParametersNode::collectParameterNodes(std::vector<IdentifyNode*>& parameterNodes)
+void TemplateParametersNode::collectParameterNodes(std::vector<IdentifierNode*>& parameterNodes)
 {
-	TemplateParameterListNode* list = m_parameterList;
+	IdentifierListNode* list = m_parameterList;
 	while (0 != list)
 	{
-		parameterNodes.push_back(list->m_parameter);
-		list = list->m_parameterList;
+		parameterNodes.push_back(list->m_identifier);
+		list = list->m_identifierList;
 	}
 	std::reverse(parameterNodes.begin(), parameterNodes.end());
 }
@@ -39,11 +39,11 @@ void TemplateParametersNode::collectParameterNodes(std::vector<IdentifyNode*>& p
 size_t TemplateParametersNode::getParameterCount()
 {
 	size_t count = 0;
-	TemplateParameterListNode* list = m_parameterList;
+	IdentifierListNode* list = m_parameterList;
 	while (0 != list)
 	{
 		++count;
-		list = list->m_parameterList;
+		list = list->m_identifierList;
 	}
 	return count;
 }
@@ -52,12 +52,12 @@ bool TemplateParametersNode::checkSemantic()
 {
 	bool res = true;
 	std::set<std::string> paramNames;
-	std::vector<IdentifyNode*> parameterNodes;
+	std::vector<IdentifierNode*> parameterNodes;
 	collectParameterNodes(parameterNodes);
 	size_t count = parameterNodes.size();
 	for(size_t i = 0; i < count; ++i)
 	{
-		IdentifyNode* paramNode = parameterNodes[i];
+		IdentifierNode* paramNode = parameterNodes[i];
 		if(!paramNames.insert(paramNode->m_str).second)
 		{
 			RaiseError_TemplateParameterRedefinition(paramNode);

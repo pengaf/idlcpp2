@@ -24,8 +24,8 @@ String Reflection::GetTypeFullName(ObserverPtr<Type> type)
 	while (scope)
 	{
 		Metadata* nextScope = 0;
-		Category category = scope->_category_();
-		if (name_space == category)
+		MetadataKind kind = scope->_kind_();
+		if (name_space == kind)
 		{
 			nextScope = static_cast<NameSpace*>(scope)->m_enclosing;
 			if (NameSpace::GetGlobalNameSpace() == scope)
@@ -35,7 +35,7 @@ String Reflection::GetTypeFullName(ObserverPtr<Type> type)
 		}
 		else
 		{
-			PAF_ASSERT(class_type == category);
+			PAF_ASSERT(class_type == kind);
 			nextScope = static_cast<ClassType*>(scope)->m_enclosing;
 		}
 		const char* scopeName = scope->_name_();
@@ -65,8 +65,8 @@ String Reflection::GetTypeAliasFullName(ObserverPtr<TypeAlias> typeAlias)
 	while (scope)
 	{
 		Metadata* nextScope = 0;
-		Category category = scope->_category_();
-		if (name_space == category)
+		MetadataKind kind = scope->_kind_();
+		if (name_space == kind)
 		{
 			nextScope = static_cast<NameSpace*>(scope)->m_enclosing;
 			if (NameSpace::GetGlobalNameSpace() == scope)
@@ -76,7 +76,7 @@ String Reflection::GetTypeAliasFullName(ObserverPtr<TypeAlias> typeAlias)
 		}
 		else
 		{
-			PAF_ASSERT(class_type == category);
+			PAF_ASSERT(class_type == kind);
 			nextScope = static_cast<ClassType*>(scope)->m_enclosing;
 		}
 		const char* scopeName = scope->_name_();
@@ -113,26 +113,26 @@ ObserverPtr<Type> Reflection::GetTypeFromFullName(ObserverPtr<const char> fullNa
 			name.assign(nameBegin);
 			nameBegin = 0;
 		}
-		Category category = metadata->_category_();
-		if (name_space == category)
+		MetadataKind kind = metadata->_kind_();
+		if (name_space == kind)
 		{
 			metadata = static_cast<NameSpace*>(metadata)->findMember(name.c_str());
 		}
-		else if (class_type == category)
+		else if (class_type == kind)
 		{
 			metadata = static_cast<ClassType*>(metadata)->findNestedType(name.c_str(), true, true);
 		}
 		else
 		{
-			PAF_ASSERT(void_type == category || primitive_type == category || enum_type == category);
+			PAF_ASSERT(void_type == kind || primitive_type == kind || enum_type == kind);
 		}
 	}
 	if (metadata)
 	{
-		Category category = metadata->_category_();
-		if (name_space != category)
+		MetadataKind kind = metadata->_kind_();
+		if (name_space != kind)
 		{
-			PAF_ASSERT(void_type == category || primitive_type == category || enum_type == category || class_type == category);
+			PAF_ASSERT(void_type == kind || primitive_type == kind || enum_type == kind || class_type == kind);
 			return static_cast<Type*>(metadata);
 		}
 	}
@@ -145,7 +145,7 @@ String Reflection::PrimitiveToString(const Variant& value)
 	char buf[64];
 	PAF_ASSERT(value.m_type->isPrimitive());
 	PrimitiveType* primitiveType = static_cast<PrimitiveType*>(value.m_type);
-	switch (primitiveType->m_typeCategory)
+	switch (primitiveType->m_typeKind)
 	{
 	case bool_type:
 		res.assign(*reinterpret_cast<const bool*>(value.m_pointer) ? "true" : "false");
@@ -219,7 +219,7 @@ String Reflection::PrimitiveToString(const Variant& value)
 
 void Reflection::StringToPrimitive(Variant& value, PrimitiveType* primitiveType, const char* str)
 {
-	switch (primitiveType->m_typeCategory)
+	switch (primitiveType->m_typeKind)
 	{
 	case bool_type: {
 		bool val = (0 == strcmp(str, "true")) ? true : false;
@@ -314,20 +314,20 @@ String Reflection::EnumToString(const Variant& value)
 	EnumType* enumType = static_cast<EnumType*>(value.m_type);
 	int enumValue = 0;
 	value.castToEnum(enumType, &enumValue);
-	Enumerator* enumerator = enumType->_getEnumeratorByValue_(enumValue);
-	if (enumerator)
+	Enumerator* enum_member = enumType->_getEnumeratorByValue_(enumValue);
+	if (enum_member)
 	{
-		return String(enumerator->_name_());
+		return String(enum_member->_name_());
 	}
 	return String();
 }
 
 bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* str)
 {
-	Enumerator* enumerator = enumType->findEnumerator(str);
-	if (enumerator)
+	Enumerator* enum_member = enumType->findEnumerator(str);
+	if (enum_member)
 	{
-		value.assignEnum(enumType, &enumerator->m_value);
+		value.assignEnum(enumType, &enum_member->m_value);
 		return true;
 	}
 	else
@@ -423,7 +423,7 @@ bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* st
 //
 //ErrorCode Reflection::StringToInstanceProperty(Variant& that, const char* propertyName, const char* str)
 //{
-//	if (class_type != that.m_type->get__category_())
+//	if (class_type != that.m_type->get__kind_())
 //	{
 //		return e_is_not_class;
 //	}

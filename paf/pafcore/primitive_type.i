@@ -17,7 +17,7 @@
 namespace pafcore
 {
 #{
-	enum PrimitiveTypeCategory
+	enum PrimitiveTypeKind
 	{
 		bool_type,
 		char_type,
@@ -47,7 +47,7 @@ namespace pafcore
 		Metadata* _findMember_(const char* name);
 #{
 	public:
-		PrimitiveType(const char* name) : Type(name, primitive_object, "")
+		PrimitiveType(const char* name) : Type(name, primitive_instance, "")
 		{}
 	public:
 		virtual bool castTo(void* dst, Type* dstType, const void* src) = 0;
@@ -57,16 +57,16 @@ namespace pafcore
 		Metadata* findTypeMember(const char* name);
 		virtual Metadata* findMember(const char* name) override;
 	public:
-		PrimitiveTypeCategory getPrimitiveTypeCategory() const
+		PrimitiveTypeKind getPrimitiveTypeKind() const
 		{
-			return m_typeCategory;
+			return m_typeKind;
 		}
 		bool isString() const
 		{
-			return (string_type == m_typeCategory);
+			return (string_type == m_typeKind);
 		}
 	public:
-		PrimitiveTypeCategory m_typeCategory;
+		PrimitiveTypeKind m_typeKind;
 		Metadata** m_members;
 		size_t m_memberCount;
 		InstanceMethod* m_instanceMethods;
@@ -189,104 +189,104 @@ namespace pafcore
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<bool>
 	{
-		enum { type_category = bool_type };
+		enum { type_kind = bool_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<char>
 	{
-		enum { type_category = char_type };
+		enum { type_kind = char_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<unsigned char>
 	{
-		enum { type_category = unsigned_char_type };
+		enum { type_kind = unsigned_char_type };
 	};
 
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<signed char>
 	{
-		enum { type_category = signed_char_type };
+		enum { type_kind = signed_char_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<wchar_t>
 	{
-		enum { type_category = wchar_type };
+		enum { type_kind = wchar_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<short>
 	{
-		enum { type_category = short_type };
+		enum { type_kind = short_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<unsigned short>
 	{
-		enum { type_category = unsigned_short_type };
+		enum { type_kind = unsigned_short_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<int>
 	{
-		enum { type_category = int_type };
+		enum { type_kind = int_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<unsigned int>
 	{
-		enum { type_category = unsigned_int_type };
+		enum { type_kind = unsigned_int_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<long>
 	{
-		enum { type_category = long_type };
+		enum { type_kind = long_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<unsigned long>
 	{
-		enum { type_category = unsigned_long_type };
+		enum { type_kind = unsigned_long_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<long long>
 	{
-		enum { type_category = long_long_type };
+		enum { type_kind = long_long_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<unsigned long long>
 	{
-		enum { type_category = unsigned_long_long_type };
+		enum { type_kind = unsigned_long_long_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<float>
 	{
-		enum { type_category = float_type };
+		enum { type_kind = float_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<double>
 	{
-		enum { type_category = double_type };
+		enum { type_kind = double_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<long double>
 	{
-		enum { type_category = long_double_type };
+		enum { type_kind = long_double_type };
 	};
 
 	template<>
 	struct PAFCORE_EXPORT PrimitiveTypeTraits<string_t>
 	{
-		enum { type_category = string_type };
+		enum { type_kind = string_type };
 	};
 
 
@@ -296,7 +296,7 @@ namespace pafcore
 	public:
 		PrimitiveTypeImpl(const char* name) : CPPPrimitiveType(name)
 		{
-			m_typeCategory = (PrimitiveTypeCategory)PrimitiveTypeTraits<T>::type_category;
+			m_typeKind = (PrimitiveTypeKind)PrimitiveTypeTraits<T>::type_kind;
 			m_name = name;
 			m_size = sizeof(T);
 
@@ -556,7 +556,7 @@ namespace pafcore
 			{
 				return false;
 			}
-			switch (static_cast<PrimitiveType*>(dstType)->m_typeCategory)
+			switch (static_cast<PrimitiveType*>(dstType)->m_typeKind)
 			{
 			case bool_type:
 				*reinterpret_cast<bool_t*>(dst) = *reinterpret_cast<const T*>(src) != 0;
@@ -902,7 +902,7 @@ namespace pafcore
 	public:
 		StringType(const char* name) : PrimitiveType(name)
 		{
-			m_typeCategory = (PrimitiveTypeCategory)PrimitiveTypeTraits<::string_t>::type_category;
+			m_typeKind = (PrimitiveTypeKind)PrimitiveTypeTraits<::string_t>::type_kind;
 			m_name = name;
 			m_size = sizeof(::string_t);
 
@@ -965,7 +965,7 @@ namespace pafcore
 			{
 				return false;
 			}
-			if (string_type != static_cast<PrimitiveType*>(dstType)->m_typeCategory)
+			if (string_type != static_cast<PrimitiveType*>(dstType)->m_typeKind)
 			{
 				return false;
 			}
@@ -990,126 +990,126 @@ template<>
 struct RuntimeTypeOf<bool>
 {
 	typedef ::pafcore::BoolType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<char>
 {
 	typedef ::pafcore::CharType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<signed char>
 {
 	typedef ::pafcore::SignedCharType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<unsigned char>
 {
 	typedef ::pafcore::UnsignedCharType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<wchar_t>
 {
 	typedef ::pafcore::WcharType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<short>
 {
 	typedef ::pafcore::ShortType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<unsigned short>
 {
 	typedef ::pafcore::UnsignedShortType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<long>
 {
 	typedef ::pafcore::LongType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<unsigned long>
 {
 	typedef ::pafcore::UnsignedLongType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<long long>
 {
 	typedef ::pafcore::LongLongType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<unsigned long long>
 {
 	typedef ::pafcore::UnsignedLongLongType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<int>
 {
 	typedef ::pafcore::IntType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<unsigned int>
 {
 	typedef ::pafcore::UnsignedIntType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<float>
 {
 	typedef ::pafcore::FloatType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<double>
 {
 	typedef ::pafcore::DoubleType RuntimeType;
-	enum {type_category = ::pafcore::primitive_object};
+	enum {type_kind = ::pafcore::primitive_instance};
 };
 
 template<>
 struct RuntimeTypeOf<long double>
 {
 	typedef ::pafcore::LongDoubleType RuntimeType;
-	enum { type_category = ::pafcore::primitive_object };
+	enum { type_kind = ::pafcore::primitive_instance };
 };
 
 template<>
 struct RuntimeTypeOf<string_t>
 {
 	typedef ::pafcore::StringType RuntimeType;
-	enum { type_category = ::pafcore::primitive_object };
+	enum { type_kind = ::pafcore::primitive_instance };
 };
 
 template<typename T>
 struct RuntimeTypeOf<T*>
 {
 	typedef RuntimeTypeOf<size_t>::RuntimeType RuntimeType;
-	enum { type_category = ::pafcore::primitive_object };
+	enum { type_kind = ::pafcore::primitive_instance };
 };
 
 #pragma warning( pop ) 

@@ -54,41 +54,41 @@ char g_primitiveArgumentMatchTable[primitive_type_count][primitive_type_count] =
 	{ nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, em},//string_t
 };
 
-inline ArgumentMatch MatchPrimitive(PrimitiveTypeCategory dst, PrimitiveTypeCategory src)
+inline ArgumentMatch MatchPrimitive(PrimitiveTypeKind dst, PrimitiveTypeKind src)
 {
 	return static_cast<ArgumentMatch>(g_primitiveArgumentMatchTable[dst][src]);
 }
 
 ArgumentMatch MatchArgumentByPassingValue(Type* dstType, Type* srcType)
 {
-	switch (dstType->m_category)
+	switch (dstType->m_kind)
 	{
-	case primitive_object:
-		switch (srcType->m_category)
+	case primitive_instance:
+		switch (srcType->m_kind)
 		{
-		case primitive_object:
-			return MatchPrimitive(static_cast<PrimitiveType*>(dstType)->m_typeCategory, static_cast<PrimitiveType*>(srcType)->m_typeCategory);
-		case enum_object:
-			return int_type == static_cast<PrimitiveType*>(dstType)->m_typeCategory ? type_promotion : type_conversion;
+		case primitive_instance:
+			return MatchPrimitive(static_cast<PrimitiveType*>(dstType)->m_typeKind, static_cast<PrimitiveType*>(srcType)->m_typeKind);
+		case enum_instance:
+			return int_type == static_cast<PrimitiveType*>(dstType)->m_typeKind ? type_promotion : type_conversion;
 		default:
 			return no_match;
 		}
-	case enum_object:
-		switch (srcType->m_category)
+	case enum_instance:
+		switch (srcType->m_kind)
 		{
-		case primitive_object:
+		case primitive_instance:
 			return type_conversion;
-		case enum_object:
+		case enum_instance:
 			return dstType == srcType ? exact_match : no_match;
 		default:
 			return no_match;
 		}
-	case value_object:
+	case value_instance:
 		if (dstType == srcType)
 		{
 			return exact_match;
 		}
-		else if (value_object == srcType->m_category &&
+		else if (value_instance == srcType->m_kind &&
 			static_cast<ClassType*>(srcType)->isType(static_cast<ClassType*>(dstType)))
 		{
 			return type_conversion;
@@ -98,12 +98,12 @@ ArgumentMatch MatchArgumentByPassingValue(Type* dstType, Type* srcType)
 			return no_match;
 		}
 	default:
-		assert(void_object != dstType->m_category);
+		assert(void_instance != dstType->m_kind);
 		if (dstType == srcType)
 		{
 			return exact_match;
 		}
-		else if (dstType->m_category == srcType->m_category &&
+		else if (dstType->m_kind == srcType->m_kind &&
 			static_cast<ClassType*>(srcType)->isType(static_cast<ClassType*>(dstType)))
 		{
 			return type_conversion;
@@ -117,19 +117,19 @@ ArgumentMatch MatchArgumentByPassingValue(Type* dstType, Type* srcType)
 
 ArgumentMatch MatchArgumentByPassingPtr(Type* dstType, Type* srcType)
 {
-	switch (dstType->m_category)
+	switch (dstType->m_kind)
 	{
-	case void_object:
+	case void_instance:
 		return dstType == srcType ? exact_match : type_conversion;
-	case primitive_object:
-	case enum_object:
+	case primitive_instance:
+	case enum_instance:
 		return dstType == srcType ? exact_match : no_match;
-	case value_object:
+	case value_instance:
 		if (dstType == srcType)
 		{
 			return exact_match;
 		}
-		else if(value_object == srcType->m_category &&
+		else if(value_instance == srcType->m_kind &&
 			static_cast<ClassType*>(srcType)->isType(static_cast<ClassType*>(dstType)))
 		{
 			return type_conversion;
@@ -143,7 +143,7 @@ ArgumentMatch MatchArgumentByPassingPtr(Type* dstType, Type* srcType)
 		{
 			return exact_match;
 		}
-		else if (dstType->m_category == srcType->m_category &&
+		else if (dstType->m_kind == srcType->m_kind &&
 			static_cast<ClassType*>(srcType)->isType(static_cast<ClassType*>(dstType)))
 		{
 			return type_conversion;

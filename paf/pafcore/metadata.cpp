@@ -24,10 +24,10 @@ Metadata::Metadata(const char* name, Attributes* attributes)
 	m_attributes = attributes;
 }
 
-Category Metadata::_category_() const
+MetadataKind Metadata::_kind_() const
 {
 	Type* type = const_cast<Metadata*>(this)->getType();
-	return type->m_category;
+	return type->m_kind;
 }
 
 string_t Metadata::_getAttributeName_(size_t index)

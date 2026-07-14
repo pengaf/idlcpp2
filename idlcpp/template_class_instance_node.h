@@ -17,11 +17,11 @@ struct TemplateClassInstanceNode : MemberNode
 	ClassTypeNode* m_classTypeNode;
 	TemplateArguments m_templateArguments;
 public:
-	TemplateClassInstanceNode(IdentifyNode* name, TypeNameListNode* parameterList);
+	TemplateClassInstanceNode(IdentifierNode* name, TypeNameListNode* parameterList);
 	virtual TypeNode* getTypeNode();
 	virtual void getLocalName(std::string& name, TemplateArguments* templateArguments);
 	virtual void collectTypes(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments);
 	virtual void checkSemantic(TemplateArguments* templateArguments);
 	size_t getParameterCount();
-	void getReservedMembers(std::vector<IdentifyNode*>& reservedNames,std::vector<TokenNode*>& reservedOperators);
+	void getReservedMembers(std::vector<IdentifierNode*>& reservedNames,std::vector<TokenNode*>& reservedOperators);
 };

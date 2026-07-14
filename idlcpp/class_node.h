@@ -4,7 +4,7 @@
 #include <vector>
 
 struct TokenNode;
-struct IdentifyListNode;
+struct IdentifierListNode;
 struct TypeNameListNode;
 struct MemberListNode;
 struct MethodNode;
@@ -23,23 +23,21 @@ struct ClassNode : ScopeNode
 	};
 	TokenNode* m_modifier;
 	TokenNode* m_keyword;
-	//IdentifyListNode* m_conceptList;
-	IdentifyNode* m_category;
+	//IdentifierListNode* m_conceptList;
+	IdentifierNode* m_metadataKind;
 	TokenNode* m_colon;
 	TypeNameListNode* m_baseList;
 	TokenNode* m_leftBrace;
 	TokenNode* m_rightBrace;
-	TokenNode* m_semicolon;
 	TemplateParametersNode* m_templateParametersNode;
 	ClassTypeNode* m_typeNode;
 	TemplateArguments m_templateArguments;
 	std::vector<MethodNode*> m_additionalMethods;//New NewArray
-	bool m_isValueType;
 	bool m_override;
 	LazyBool m_abstractFlag;
 	LazyBool m_copyableFlag;
 public:
-	ClassNode(TokenNode* keyword, IdentifyListNode* conceptList, IdentifyNode* name);
+	ClassNode(TokenNode* keyword, IdentifierListNode* conceptList, IdentifierNode* name);
 	void setTemplateParameters(TemplateParametersNode* templateParametersNode);
 	void setMemberList(TokenNode* leftBrace, MemberListNode* memberList, TokenNode* rightBrace);
 	void buildAdditionalMethods();
@@ -47,7 +45,6 @@ public:
 	bool isAbstractClass();
 	bool isCopyableClass(TemplateArguments* templateArguments);
 	bool needSubclassProxy(TemplateArguments* templateArguments);
-	bool isValueType();
 	bool hasOverrideMethod(TemplateArguments* templateArguments);
 	bool derivesFromObject(TemplateArguments* templateArguments);
 	bool hasDirectInterfaceBase(TemplateArguments* templateArguments);

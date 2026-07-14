@@ -5,7 +5,7 @@
 #include "program_node.h"
 #include "namespace_node.h"
 #include "token_node.h"
-#include "identify_node.h"
+#include "identifier_node.h"
 #include "enumerator_list_node.h"
 #include "member_list_node.h"
 #include "enum_node.h"
@@ -99,13 +99,13 @@ const char g_metaStaticPropertyDeclErasePostfix[] = "(::pafcore::Iterator* itera
 
 
 
-void writeMetaPropertyDeclGetSet(const char* funcName, bool isStatic, PropertyCategory category, FILE* file, int indentation)
+void writeMetaPropertyDeclGetSet(const char* funcName, bool isStatic, PropertyKind propertyKind, FILE* file, int indentation)
 {
 	writeStringToFile(g_metaPropertyDeclPrefix, sizeof(g_metaPropertyDeclPrefix) - 1, file, indentation);
 	writeStringToFile(funcName, file);
 	if(isStatic)
 	{
-		switch (category)
+		switch (propertyKind)
 		{
 		case simple_property:
 			writeStringToFile(g_metaStaticPropertyDeclPostfix, sizeof(g_metaStaticPropertyDeclPostfix) - 1, file);
@@ -122,7 +122,7 @@ void writeMetaPropertyDeclGetSet(const char* funcName, bool isStatic, PropertyCa
 	}
 	else
 	{
-		switch (category)
+		switch (propertyKind)
 		{
 		case simple_property:
 			writeStringToFile(g_metaPropertyDeclPostfix, sizeof(g_metaPropertyDeclPostfix) - 1, file);
@@ -145,12 +145,12 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 	if(0 != propertyNode->m_get)
 	{
 		sprintf_s(funcName, "%s_get_%s", classNode->m_name->m_str.c_str(), propertyNode->m_name->m_str.c_str());
-		writeMetaPropertyDeclGetSet(funcName, propertyNode->isStatic(), propertyNode->getCategory(), file, indentation + 1);
+		writeMetaPropertyDeclGetSet(funcName, propertyNode->isStatic(), propertyNode->getKind(), file, indentation + 1);
 	}		
 	if(0 != propertyNode->m_set)
 	{
 		sprintf_s(funcName, "%s_set_%s", classNode->m_name->m_str.c_str(), propertyNode->m_name->m_str.c_str());
-		writeMetaPropertyDeclGetSet(funcName, propertyNode->isStatic(), propertyNode->getCategory(), file, indentation + 1);
+		writeMetaPropertyDeclGetSet(funcName, propertyNode->isStatic(), propertyNode->getKind(), file, indentation + 1);
 	}
 	if (propertyNode->isSimple())
 	{
@@ -399,15 +399,15 @@ void MetaHeaderFileGenerator::generateCode_Program(FILE* file, SourceFile* sourc
 			&& !typeNode->isTypeDeclaration()
 			&& typeNode->getSyntaxNode()->canGenerateMetaCode())
 		{
-			TypeCategory typeCategory = typeNode->getTypeCategory(0);
-			const char* typeCategoryName = "";
-			switch(typeCategory)
+			TypeKind typeKind = typeNode->getTypeKind(0);
+			const char* typeKindName = "";
+			switch(typeKind)
 			{
 			case enum_type:
-				typeCategoryName = "enum_object";
+				typeKindName = "enum_instance";
 				break;
 			case value_type:
-				typeCategoryName = "value_object";
+				typeKindName = "value_instance";
 				break;
 			case rc_object_type:
 			{
@@ -420,13 +420,13 @@ void MetaHeaderFileGenerator::generateCode_Program(FILE* file, SourceFile* sourc
 				{
 					classNode = static_cast<ClassTypeNode*>(typeNode)->m_classNode;
 				}
-				if (classNode->m_category && classNode->m_category->m_str == "atomic_rc_object")
+				if (classNode->m_kind && classNode->m_kind->m_str == "atomic_rc_object")
 				{
-					typeCategoryName = "atomic_rc_object";
+					typeKindName = "atomic_rc_object";
 				}
 				else
 				{
-					typeCategoryName = "rc_object";
+					typeKindName = "object_instance";
 				}
 				break;
 			}
@@ -442,9 +442,9 @@ void MetaHeaderFileGenerator::generateCode_Program(FILE* file, SourceFile* sourc
 				"struct RuntimeTypeOf<%s>\n"
 				"{\n"
 				"\ttypedef ::idlcpp::%s RuntimeType;\n"
-				"\tenum {type_category = ::pafcore::%s};\n"
+				"\tenum {type_kind = ::pafcore::%s};\n"
 				"};\n\n",
-				typeName.c_str(), metaTypeName.c_str(), typeCategoryName);
+				typeName.c_str(), metaTypeName.c_str(), typeKindName);
 			writeStringToFile(buf, file);
 		}
 	}
@@ -540,7 +540,7 @@ void MetaHeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 	}
 	TemplateArguments* templateArguments = templateClassInstance ? &templateClassInstance->m_templateArguments : 0;
 
-	std::vector<IdentifyNode*> reservedNames;
+	std::vector<IdentifierNode*> reservedNames;
 	std::vector<TokenNode*> reservedOperators;
 	if (templateClassInstance && templateClassInstance->m_tokenList
 		&& templateClassInstance->m_classTypeNode->m_classNode == classNode)
@@ -576,7 +576,7 @@ void MetaHeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 		{
 			if (snt_method == memberNode->m_nodeType || snt_property == memberNode->m_nodeType)
 			{
-				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), memberNode->m_name, CompareIdentifyPtr()))
+				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), memberNode->m_name, CompareIdentifierPtr()))
 				{
 					continue;
 				}
@@ -657,7 +657,7 @@ void MetaHeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 			MethodNode* methodNode = *it;
 			if (!reservedNames.empty())
 			{
-				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), methodNode->m_name, CompareIdentifyPtr()))
+				if (!std::binary_search(reservedNames.begin(), reservedNames.end(), methodNode->m_name, CompareIdentifierPtr()))
 				{
 					continue;
 				}
