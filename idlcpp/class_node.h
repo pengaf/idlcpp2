@@ -21,39 +21,40 @@ struct ClassNode : ScopeNode
 		lb_true,
 		lb_unknown,
 	};
-	TokenNode* m_modifier;
-	TokenNode* m_keyword;
-	//IdentifierListNode* m_conceptList;
-	IdentifierNode* m_metadataKind;
-	TokenNode* m_colon;
-	TypeNameListNode* m_baseList;
-	TokenNode* m_leftBrace;
-	TokenNode* m_rightBrace;
-	TemplateParametersNode* m_templateParametersNode;
-	ClassTypeNode* m_typeNode;
-	TemplateArguments m_templateArguments;
+	TokenNode* m_keyword{ nullptr };
+	IdentifierListNode* m_conceptList{ nullptr };
+	IdentifierNode* m_metadataKind{ nullptr };
+	TokenNode* m_colon{ nullptr };
+	TypeNameListNode* m_baseList{ nullptr };
+	TemplateParametersNode* m_templateParametersNode{ nullptr };
+	ClassTypeNode* m_typeNode{ nullptr };
+	TemplateArguments m_templateArguments{};
 	std::vector<MethodNode*> m_additionalMethods;//New NewArray
-	bool m_override;
-	LazyBool m_abstractFlag;
-	LazyBool m_copyableFlag;
+	//LazyBool m_abstractFlag{ lb_unknown };
+	//LazyBool m_copyableFlag{ lb_unknown };
+	mutable LazyBool m_isDerivedFromObject{ lb_unknown };
+	mutable LazyBool m_isDerivedFromInterface{ lb_unknown };
 public:
 	ClassNode(TokenNode* keyword, IdentifierListNode* conceptList, IdentifierNode* name);
 	void setTemplateParameters(TemplateParametersNode* templateParametersNode);
 	void setMemberList(TokenNode* leftBrace, MemberListNode* memberList, TokenNode* rightBrace);
 	void buildAdditionalMethods();
 	void extendInternalCode(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments);
-	bool isAbstractClass();
-	bool isCopyableClass(TemplateArguments* templateArguments);
+	bool isInterface() const;
+	bool isStruct() const;
+	bool isClass() const;
+	bool isDerivedFromObject() const;
+	bool isDerivedFromInterface() const;
+
+	bool hasAdditionalMethods() const;
 	bool needSubclassProxy(TemplateArguments* templateArguments);
+	//bool isCopyableClass(TemplateArguments* templateArguments);
 	bool hasOverrideMethod(TemplateArguments* templateArguments);
-	bool derivesFromObject(TemplateArguments* templateArguments);
-	bool hasDirectInterfaceBase(TemplateArguments* templateArguments);
-	bool needGetAddress(TemplateArguments* templateArguments);
+
 	bool isAdditionalMethod(MethodNode* methodNode);
 	void collectOverrideMethods(std::vector<MethodNode*>& methodNodes, TemplateArguments* templateArguments);
-	void GenerateCreateInstanceMethod(const char* methodName, MethodNode* constructor);
-	void GenerateCreateArrayMethod(const char* methodName, MethodNode* constructor);
-	void GenerateDeleteMethod(const char* methodName, bool isArray);
+	void generateNewMethod(const char* methodName, MethodNode* constructor);
+	void generateNewArrayMethod(const char* methodName, MethodNode* constructor);
 
 	virtual TypeNode* getTypeNode();
 	virtual void getLocalName(std::string& name, TemplateArguments* templateArguments);

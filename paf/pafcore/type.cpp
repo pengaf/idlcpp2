@@ -17,50 +17,43 @@ Type::Type(const char* name, MetadataKind kind, const char* declarationFile) :
 
 Type::~Type()
 {
-	if (m_enclosing && name_space == m_enclosing->_kind_())
+	if (m_enclosing && MetadataKind::name_space == m_enclosing->_kind_())
 	{
 		static_cast<NameSpace*>(m_enclosing)->unregisterMember(this);
 	}
 }
 
-void Type::destroyInstance(void* address)
+void Type::destruct(void* address, size_t count)
 {
 }
 
-void Type::destroyArray(void* address)
+void Type::assign(void* dst, const void* src)
 {
 }
 
-bool Type::assign(void* dst, const void* src)
+size_t Type::_size_() const
 {
-	return false;
+	return m_size;
 }
 
-bool Type::getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound)
+bool Type::isPrimitive() const
 {
-	(void)value;
-	(void)address;
-	(void)constant;
-	(void)typeCompound;
-	return false;
+	return MetadataKind::primitive_instance == m_kind;
 }
 
-bool Type::setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound)
+bool Type::isEnum() const
 {
-	(void)address;
-	(void)value;
-	(void)typeCompound;
-	return false;
+	return MetadataKind::enum_instance == m_kind;
 }
 
-//Metadata* Type::findMember(const char* name)
-//{
-//	return 0;
-//}
+bool Type::isClass() const
+{
+	return MetadataKind::class_instance == m_kind;
+}
 
-//Metadata* Type::findTypeMember(const char* name)
-//{
-//	return 0;
-//}
+const char* Type::getDeclarationFile() const
+{
+	return m_declarationFile;
+}
 
 END_PAFCORE

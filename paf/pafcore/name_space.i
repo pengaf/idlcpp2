@@ -2,12 +2,14 @@
 
 #{
 #include "std_unordered_set.h"
+#include "std_vector.h"
+#include "memory.h"
 #}
 
 namespace pafcore
 {
 
-	abstract class(name_space)#PAFCORE_EXPORT NameSpace : Metadata
+	class(name_space)#PAFCORE_EXPORT NameSpace : Metadata
 	{
 		size_t _getMemberCount_();
 		Metadata* _getMember_(size_t index);
@@ -25,6 +27,8 @@ namespace pafcore
 	public:
 		NameSpace(const char* name);
 		~NameSpace();
+		NameSpace(const NameSpace&) = delete;
+		NameSpace& operator=(const NameSpace&) = delete;
 	public:
 		NameSpace* getNameSpace(const char* name);
 		ErrorCode registerMember(Metadata* metadata);
@@ -32,6 +36,7 @@ namespace pafcore
 		void unregisterMember(Metadata* metadata);
 	public:	
 		typedef pafcore::unordered_set<Metadata*, Hash_Metadata, Equal_Metadata> MetadataContainer;
+		pafcore::vector<UniquePtr<NameSpace>> m_nameSpaces;
 		MetadataContainer m_members;
 		Metadata* m_enclosing;
 	public:

@@ -5,44 +5,33 @@
 
 BEGIN_PAFCORE
 
-StaticField::StaticField(const char* name, Attributes* attributes, Type* type, size_t offset, size_t arraySize, bool constant, TypeCompound tc)
+StaticField::StaticField(const char* name, Attributes* attributes, Type* type, size_t offset, size_t arraySize, TypeCompound typeCompound)
 : Metadata(name, attributes)
 {
 	m_type = type;
 	m_address = offset;
 	m_arraySize = arraySize;
-	m_constant = constant;
-	m_typeCompound = tc;
+	m_typeCompound = typeCompound;
 }
 
-ObserverPtr<Type> StaticField::type() const
+Type* StaticField::type() const
 {
 	return m_type;
 }
 
+TypeCompound StaticField::typeCompound() const
+{
+	return m_typeCompound;
+}
+
 bool StaticField::isArray() const
 {
-	return tc_observer_array == m_typeCompound
-		|| tc_unique_array == m_typeCompound
-		|| tc_shared_array == m_typeCompound;
-}
-
-bool StaticField::isPointer() const
-{
-	return tc_observer_ptr == m_typeCompound
-		|| tc_unique_ptr == m_typeCompound
-		|| tc_shared_ptr == m_typeCompound;
-}
-
-bool StaticField::isConstant() const
-{
-	return m_constant;
+	return m_arraySize > 0;
 }
 
 size_t StaticField::address() const
 {
 	return m_address;
 }
-
 
 END_PAFCORE

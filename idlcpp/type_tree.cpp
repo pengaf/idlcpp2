@@ -433,7 +433,7 @@ MemberNode* ClassTypeNode::getSyntaxNode()
 
 TypeKind ClassTypeNode::getTypeKind(TemplateArguments* templateArguments)
 {
-	return m_classNode->isValueType() ? value_type : rc_object_type;
+	return class_type;// m_classNode->isValueType() ? value_type : rc_object_type;
 }
 
 TemplateClassInstanceTypeNode::TemplateClassInstanceTypeNode()

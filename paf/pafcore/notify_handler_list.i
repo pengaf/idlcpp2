@@ -93,9 +93,9 @@ namespace pafcore
 
 	class(value_instance) #PAFCORE_EXPORT NotifyHandlerList
 	{
-		void addNotifyHandler(NotifyHandler* handler) const;
-		void removeNotifyHandler(NotifyHandler* handler) const;
-		bool findNotifyHandler(NotifyHandler* handler) const;
+		void addNotifyHandler(NotifyHandler* handler) #const;
+		void removeNotifyHandler(NotifyHandler* handler) #const;
+		bool findNotifyHandler(NotifyHandler* handler) #const;
 #{
 	public:
 		NotifyHandlerList();
@@ -107,9 +107,9 @@ namespace pafcore
 
 	class #PAFCORE_EXPORT PropertyChangedNotifySource : DynamicObject
 	{
-		void addNotifyHandler(PropertyChangedNotifyHandler* handler) const;
-		void removeNotifyHandler(PropertyChangedNotifyHandler* handler) const;
-		bool findNotifyHandler(PropertyChangedNotifyHandler* handler) const;
+		void addNotifyHandler(PropertyChangedNotifyHandler* handler) #const;
+		void removeNotifyHandler(PropertyChangedNotifyHandler* handler) #const;
+		bool findNotifyHandler(PropertyChangedNotifyHandler* handler) #const;
 #{
 	public:
 		void notifyPropertyChanged(string_t propertyName, PropertyChangedFlag flag = PropertyChangedFlag::update, Iterator* iterator = 0);

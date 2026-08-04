@@ -3,18 +3,22 @@
 int yylex(void);
 %}
 
+%union
+{
+	struct SyntaxNode* sn;
+}
 
 %token <sn> ',' ':' ';' '(' ')' '[' ']' '{' '}' '<' '>' '*' '&' '^' '=' '?'
-%token <sn> BOOL CHAR WCHAR_T SHORT LONG INT FLOAT DOUBLE SIGNED UNSIGNED STRING_T
-%token <sn> NAMESPACE ENUM CLASS STRUCT STATIC VIRTUAL TYPEDEF TYPENAME
-%token <sn> GET SET NOMETA NOCODE EXPORT SCOPE IDENTIFIER STRING U8STRING TEMPLATE
+%token <sn> NOMETA NOCODE VOID SCOPE BOOL CHAR WCHAR_T SHORT LONG INT FLOAT DOUBLE SIGNED UNSIGNED STRING_T
+%token <sn> NAMESPACE ENUM CLASS STRUCT INTERFACE STATIC VIRTUAL TYPEDEF TYPENAME TEMPLATE EXPORT
+%token <sn> GET SET IDENTIFIER STRING U8STRING
 %type <sn> identifier_list enumerator_0 enumerator enumerator_list_0 enumerator_list enum compound_type variable variable_list
 %type <sn> property_accessor_0 property_accessor property_accessor_list_0 property_accessor_list
 %type <sn> field_0 field property_0 property method_0 method class_member_0 class_member_1 class_member
 %type <sn> primitive scope_name scope_name_list_0 scope_name_list type_name base_type_name base_type_name_list type_name_list class_member_list
 %type <sn> template_params template_class_instance_0 template_class_instance
 %type <sn> class_0 class_1 class_2 class namespace_member_0 namespace_member_1 namespace_member_2 namespace_member namespace_member_list namespace program
-%type <sn> type_declaration attribute attribute_list_0 attribute_list attribute_list_opt native_name_opt typedef by_ref_opt allow_null_opt struct_or_class
+%type <sn> type_declaration attribute attribute_list_0 attribute_list attribute_list_opt native_name_opt typedef by_ref_opt allow_null_opt class_struct_interface
 
 %start program
 
@@ -54,8 +58,9 @@ primitive					: BOOL															{$$ = newPrimitiveType($1, pt_bool);}
 							| STRING_T														{$$ = newPrimitiveType($1, pt_string_t);}
 ;
 
-struct_or_class				: STRUCT														{$$ = $1;}
-							| CLASS															{$$ = $1;}
+class_struct_interface		: CLASS															{$$ = $1;}
+							| STRUCT														{$$ = $1;}
+							| INTERFACE														{$$ = $1;}
 ;
 
 attribute					: IDENTIFIER													{$$ = newAttribute($1, NULL, 0);}
@@ -122,10 +127,11 @@ base_type_name_list			: base_type_name												{$$ = newTypeNameList(NULL, NU
 ;
 
 compound_type				: type_name														{$$ = newCompoundType($1, tc_none);}
-							| type_name '*'													{$$ = newCompoundType($1, tc_observer_ptr);}
+							| type_name '*'													{$$ = newCompoundType($1, tc_raw_ptr);}
 							| type_name '^'													{$$ = newCompoundType($1, tc_shared_ptr);}
-							| type_name '[' ']' '*'											{$$ = newCompoundType($1, tc_observer_array);}
+							| type_name ':'													{$$ = newCompoundType($1, tc_observer_ptr);}
 							| type_name '[' ']' '^'											{$$ = newCompoundType($1, tc_shared_array);}
+							| type_name '[' ']' ':'											{$$ = newCompoundType($1, tc_observer_array);}
 ;
 
 typedef						: TYPEDEF type_name IDENTIFIER									{$$ = newTypedef($1, $2, $3);}
@@ -133,7 +139,7 @@ typedef						: TYPEDEF type_name IDENTIFIER									{$$ = newTypedef($1, $2, $3)
 
 type_declaration			: TYPENAME IDENTIFIER											{$$ = newTypeDeclaration($2, primitive_type);}
 							| ENUM IDENTIFIER												{$$ = newTypeDeclaration($2, enum_type);}
-							| struct_or_class IDENTIFIER									{$$ = newTypeDeclaration($2, value_type);}
+							| class_struct_interface IDENTIFIER								{$$ = newTypeDeclaration($2, class_type);}
 //							| CLASS IDENTIFIER												{$$ = newTypeDeclaration($2, rc_object_type);}
 ;
 
@@ -173,8 +179,8 @@ property_accessor_0			: GET															{$$ = $1;}
 property_accessor			: property_accessor_0 by_ref_opt native_name_opt				{$$ = newPropertyAccessor($1, $2, $3);}
 ;
 
-property_accessor_list_0	: property_accessor												{$$ = newPropertyAccessorList(NULL, NULL, $1);}
-							| property_accessor_list_0 property_accessor					{$$ = newPropertyAccessorList($1, NULL, $2);}
+property_accessor_list_0	: property_accessor												{$$ = newPropertyAccessorList(NULL, $1);}
+							| property_accessor_list_0 property_accessor					{$$ = newPropertyAccessorList($1, $2);}
 ;
 
 property_accessor_list		: '{' property_accessor_list_0 '}'								{$$ = $2;}
@@ -199,10 +205,15 @@ variable_list 				: variable														{$$ = newVariableList(NULL, NULL, $1);
 ;
 
 method_0					: '(' variable_list ')' IDENTIFIER '(' variable_list ')'		{$$ = newMethod($2, $4, $5, $6, $7);}
+							| IDENTIFIER '(' variable_list ')'								{$$ = newMethod(NULL, $1, $2, $3, $4);}
+							| VOID IDENTIFIER '(' variable_list ')'							{$$ = newMethod(NULL, $2, $3, $4, $5);}
+							| compound_type IDENTIFIER '(' variable_list ')'				{$$ = newMethod2($1, NULL, $2, $3, $4, $5);}
+							| compound_type '&' IDENTIFIER '(' variable_list ')'			{$$ = newMethod2($1, $2, $3, $4, $5, $6);}
 ;
 
 method						: method_0														{$$ = $1;}
 							| VIRTUAL method_0												{$$ = $2; setMethodModifier($$, $1);}
+//							| VIRTUAL method_0 '=' '0'										{$$ = $2; setMethodModifier($$, $1); setPureVirtual($$);}
 							| STATIC method_0												{$$ = $2; setMethodModifier($$, $1);}
 ;
 
@@ -216,8 +227,8 @@ class_member_0				: field															{$$ = $1;}
 ;
 
 class_member_1				: class_member_0												{$$ = $1;}		
-							| NOCODE class_member_1											{$$ = $2; setMemberNoCode($$);}
-							| NOMETA class_member_1											{$$ = $2; setMemberNoMeta($$);}
+							| NOCODE class_member_0											{$$ = $2; setMemberFilter($$, $1);}
+							| NOMETA class_member_0											{$$ = $2; setMemberFilter($$, $1);}
 ;
 			
 class_member				: attribute_list_opt class_member_1 native_name_opt ';'			{$$ = $2; setEntityAttributeListOpt($$, $1); setMemberNativeNameOpt($$, $3); setMemberSemicolon($$, $4);}
@@ -233,8 +244,8 @@ class_member_list			: class_member													{$$ = newMemberList(NULL, $1);}
 template_params				: TEMPLATE '<' identifier_list '>'								{$$ = newTemplateParameters($1, $2, $3, $4);}
 ;
 
-class_0						: struct_or_class IDENTIFIER									{$$ = newClass($1, NULL, $2);}
-							| struct_or_class '(' identifier_list ')' IDENTIFIER 			{$$ = newClass($1, $3, $5);}
+class_0						: class_struct_interface IDENTIFIER								{$$ = newClass($1, NULL, $2);}
+							| class_struct_interface '(' identifier_list ')' IDENTIFIER 	{$$ = newClass($1, $3, $5);}
 //							| STRUCT IDENTIFIER												{$$ = newClass($1, NULL, $2);}
 //							| STRUCT '(' identifier_list ')' IDENTIFIER 					{$$ = newClass($1, $3, $5);}
 ;
@@ -248,9 +259,7 @@ class_2						: class_1 '{' '}'												{$$ = $1; setClassMemberList($$, $2, N
 ;
 
 class						: class_2														{$$ = $1;}
-							| VIRTUAL class_2												{$$ = $2; setClassOverride($$);}
 							| template_params class_2										{$$ = $2; setClassTemplateParameters($$, $1);}
-							| template_params VIRTUAL class_2								{$$ = $3; setClassOverride($$); setClassTemplateParameters($$, $1);}
 ;
 
 
@@ -259,8 +268,8 @@ template_class_instance_0	: EXPORT IDENTIFIER '<' type_name_list '>'						{$$ = 
 							
 template_class_instance		: template_class_instance_0										{$$ = $1;}
 							| template_class_instance_0 '{' '}'								{$$ = $1;}
-							| template_class_instance_0 '{' identifier_list '}'				{$$ = $1; setTemplateClassInstanceTokenList($1, $3);}
-							| template_class_instance_0 '{' identifier_list ',' '}'			{$$ = $1; setTemplateClassInstanceTokenList($1, $3);}
+							| template_class_instance_0 '{' identifier_list '}'				{$$ = $1; setTemplateClassInstanceReservedMemberList($1, $3);}
+							| template_class_instance_0 '{' identifier_list ',' '}'			{$$ = $1; setTemplateClassInstanceReservedMemberList($1, $3);}
 ;
 
 namespace_member_0			: class															{$$ = $1;}
@@ -269,21 +278,22 @@ namespace_member_0			: class															{$$ = $1;}
 							| typedef														{$$ = $1;}
 							| type_declaration												{$$ = $1;}
 
-namespace_member_1			: namespace_member_0 native_name_opt ';'						{$$ = $1;}
+namespace_member_1			: namespace_member_0 native_name_opt ';'						{$$ = $1; setMemberNativeNameOpt($$, $2); setMemberSemicolon($$, $3);}
 							| namespace														{$$ = $1;}
 ;
 
 namespace_member_2			: namespace_member_1											{$$ = $1;}		
-							| NOCODE namespace_member_2										{$$ = $2; setMemberNoCode($$);}
-							| NOMETA namespace_member_2										{$$ = $2; setMemberNoMeta($$);}
+							| NOCODE namespace_member_1										{$$ = $2; setMemberFilter($$, $1);}
+							| NOMETA namespace_member_1										{$$ = $2; setMemberFilter($$, $1);}
 ;
 
 namespace_member			: attribute_list_opt namespace_member_2							{$$ = $2; setEntityAttributeListOpt($$, $1);}
-							| ';'															{$$ = NULL;}
 ;
 
-namespace_member_list		: namespace_member												{$$ = newNamespaceMemberList(NULL, $1);}
-							| namespace_member_list namespace_member						{$$ = newNamespaceMemberList($1, $2);}
+namespace_member_list		: namespace_member												{$$ = newMemberList(NULL, $1);}
+							| ';'															{$$ = NULL;}
+							| namespace_member_list namespace_member						{$$ = newMemberList($1, $2);}
+							| namespace_member_list ';'										{$$ = $1;}
 ;
 
 namespace					: NAMESPACE	IDENTIFIER '{' '}'									{$$ = newNamespace($1, $2, $3, NULL, $4);}

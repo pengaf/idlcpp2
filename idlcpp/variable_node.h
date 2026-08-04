@@ -5,6 +5,7 @@
 struct CompoundTypeNode;
 struct IdentifierNode;
 struct TokenNode;
+struct TemplateArguments;
 
 struct VariableNode : EntityNode
 {
@@ -15,4 +16,5 @@ public:
 	VariableNode(CompoundTypeNode* compoundType, TokenNode* byRef, IdentifierNode* name, bool allowNull);
 	bool isByRef() const;
 	bool isAllowNull() const;
+	void checkSemantic(TemplateArguments* templateArguments);
 };

@@ -934,7 +934,7 @@ int Variant_Len(lua_State *L)
 	}
 }
 
-int GetEnumerator(lua_State *L, pafcore::Enumerator* enum_member)
+int GetEnumerator(lua_State *L, pafcore::EnumMember* enum_member)
 {
 	pafcore::Variant value;
 	value.assignEnum(enum_member->m_type, &enum_member->m_value);
@@ -1340,7 +1340,7 @@ pafcore::ErrorCode Variant_Index_Identifier(lua_State *L, pafcore::Variant* vari
 	case pafcore::enum_type:
 		{
 			pafcore::EnumType* et = (pafcore::EnumType*)variant->m_pointer;
-			pafcore::Enumerator* enum_member = et->findEnumerator(name);
+			pafcore::EnumMember* enum_member = et->findEnumerator(name);
 			if(0 != enum_member)
 			{
 				pafcore::Variant value;

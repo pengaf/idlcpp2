@@ -10,9 +10,10 @@ struct CompoundTypeNode : SyntaxNodeImpl
 	TypeCompound m_typeCompound { tc_none };
 public:
 	CompoundTypeNode(TypeNameNode* typeName, TypeCompound typeCompound);
-	bool isObserverPtr() const;
+	bool isNotPtr() const;
+	bool isRawPtr() const;
 	bool isSharedPtr() const;
-	bool isObserverArray() const;
+	bool isObserverPtr() const;
 	bool isSharedArray() const;
-	bool isSmartPtr() const;
+	bool isObserverArray() const;
 };

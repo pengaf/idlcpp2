@@ -16,14 +16,14 @@ TypeAlias::TypeAlias(const char* name, Type* type, const char* declarationFile) 
 
 TypeAlias::~TypeAlias()
 {
-	if (m_enclosing && name_space == m_enclosing->_kind_())
+	if (m_enclosing && MetadataKind::name_space == m_enclosing->_kind_())
 	{
 		static_cast<NameSpace*>(m_enclosing)->unregisterMember(this);
 	}
 }
 
 
-ObserverPtr<Type> TypeAlias::type() const
+Type* TypeAlias::type() const
 {
 	return m_type;
 }

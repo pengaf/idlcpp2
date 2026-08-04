@@ -3,7 +3,8 @@
 #import "instance_field.i"
 
 #{
-	#include "flat_set.h"
+#include "memory.h"
+#include "flat_set.h"
 #}
 
 namespace pafcore
@@ -16,12 +17,12 @@ namespace pafcore
 	class StaticProperty;
 	class StaticArrayProperty;
 	class StaticMethod;
-	class Enumerator;
+	class EnumMember;
 	class TypeAlias;
 	class SubclassInvoker;
 	class Variant;
 #}
-	abstract struct #PAFCORE_EXPORT ClassTypeIterator
+	struct #PAFCORE_EXPORT ClassTypeIterator
 	{
 		nocode ClassTypeIterator* next();
 		nocode ClassType* value();
@@ -46,11 +47,11 @@ namespace pafcore
 #}
 	};
 
-	abstract class(class_type)#PAFCORE_EXPORT ClassType : Type
+	class(class_type)#PAFCORE_EXPORT ClassType : Type
 	{
 		size_t _getMemberCount_(bool includeBaseClasses);
 		Metadata* _getMember_(size_t index, bool includeBaseClasses);
-		Metadata* _findMember_(const char* name, bool includeBaseClasses);
+		Metadata* _findMember_(string_t name, bool includeBaseClasses);
 		size_t _getBaseClassCount_();
 		Metadata* _getBaseClass_(size_t index);
 		ClassTypeIterator* _getFirstDerivedClass_();
@@ -74,10 +75,7 @@ namespace pafcore
 		ClassType(const char* name, MetadataKind kind, const char* declarationFile);
 	public:
 		virtual Metadata* findMember(const char* name) override;
-		virtual bool getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound) override;
-		virtual bool setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound) override;
-		virtual void* createSubclassProxy(SubclassInvoker* subclassInvoker);
-		virtual void destroySubclassProxy(void* subclassProxy);
+		virtual SharedPtr<RCObject> createSubclassProxy(SubclassInvoker* subclassInvoker);
 		Metadata* findMember(const char* name, bool includeBaseClasses);
 		Metadata* findClassMember(const char* name, bool includeBaseClasses, bool typeAliasToType);
 	public:

@@ -5,7 +5,7 @@
 
 BEGIN_PAFCORE
 
-bool Iterator::isEnd() const
+bool Iterator::isEnd()
 {
 	return true;
 }
@@ -18,7 +18,7 @@ void Iterator::reset()
 {
 }
 
-bool Iterator::equal(ObserverPtr<Iterator> other) const
+bool Iterator::equal(Iterator* other)
 {
 	return false;
 }

@@ -98,12 +98,9 @@ namespace pafcore
 #}
 	enum class MetadataKind ##: uint8_t
 	{
-		void_instance,
 		primitive_instance,
 		enum_instance,
-		value_instance,
-		object_instance,
-		interface_instance,
+		class_instance,
 		enum_member,
 		instance_field,
 		static_field,
@@ -111,9 +108,8 @@ namespace pafcore
 		static_property,
 		instance_method,
 		static_method,
-		function_argument,
+		function_parameter,
 		function_result,
-		void_type,
 		primitive_type,
 		enum_type,
 		class_type,
@@ -123,31 +119,26 @@ namespace pafcore
 		dummy_metadata,
 		dummy_type,
 	};
-#{
-	enum class TypeCompound : uint8_t
+
+	enum class TypeCompound ## : uint8_t
 	{
 		none,
-		observer_ptr,
+		raw_ptr,
 		shared_ptr,
-		observer_array,
+		observer_ptr,
 		shared_array,
+		observer_array,
 	};
 
-	enum class Passing : uint8_t
-	{
-		by_value,
-		by_ref,
-	};
-
-	enum class PropertyKind
+	enum class PropertyKind ## : uint8_t
 	{
 		simple_property,
-		array_property,
+		fixed_array_property,
+		dynamic_array_property,
 		list_property,
-		map_property,
 	};
-#}
-	abstract class(dummy_metadata) #PAFCORE_EXPORT Metadata : Object
+
+	class(dummy_metadata) #PAFCORE_EXPORT Metadata : Object
 	{
 		string_t _name_ { get };
 		MetadataKind _kind_ { get };

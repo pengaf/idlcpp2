@@ -9,163 +9,115 @@ StaticProperty::StaticProperty(
 	const char* name,
 	Attributes* attributes,
 	Type* type,
-	bool isPtr,
-	StaticPropertyGetter getter,
-	StaticPropertySetter setter,
-	StaticPropertyCandidateCount candidateCount,
-	StaticPropertyGetCandidate getCandidate)
+	TypeCompound typeCompound,
+	StaticPropertyEnumerate enumerate, 
+	StaticPropertyGet get,
+	StaticPropertySet set)
 	: Metadata(name, attributes)
 {
 	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = 0;
-	m_isKeyPtr = false;
-	m_getter = getter;
-	m_setter = setter;
-	m_candidateCount = candidateCount;
-	m_getCandidate = getCandidate;
-	m_kind = simple_property;
+	m_typeCompound = typeCompound;
+	m_enumerate = enumerate;
+	m_get = get;
+	m_set = set;
+	m_kind = PropertyKind::simple_property;
 }
 
 StaticProperty::StaticProperty(
 	const char* name,
 	Attributes* attributes,
 	Type* type,
-	bool isPtr,
-	ArrayStaticPropertyGetter getter,
-	ArrayStaticPropertySetter setter,
-	ArrayStaticPropertySizer sizer,
-	ArrayStaticPropertyResizer resizer,
-	ArrayStaticPropertyGetIterator getIterator,
-	ArrayStaticPropertyGetValue getValue)
+	TypeCompound typeCompound,
+	StaticPropertyEnumerate enumerate, 
+	StaticPropertyArrayGet arrayGet,
+	StaticPropertyArraySet arraySet,
+	StaticPropertyArraySize arraySize,
+	StaticPropertyArrayResize arrayResize)
 	: Metadata(name, attributes)
 {
 	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = 0;
-	m_isKeyPtr = false;
-	m_arrayGetter = getter;
-	m_arraySetter = setter;
-	m_arraySizer = sizer;
-	m_arrayResizer = resizer;
-	m_arrayGetIterator = getIterator;
-	m_arrayGetValue = getValue;
-	m_kind = array_property;
+	m_typeCompound = typeCompound;
+	m_enumerate = enumerate;
+	m_arrayGet = arrayGet;
+	m_arraySet = arraySet;
+	m_arraySize = arraySize;
+	m_arrayResize = arrayResize;
+	m_kind = arrayResize ? PropertyKind::dynamic_array_property : PropertyKind::fixed_array_property;
 }
 
 StaticProperty::StaticProperty(
 	const char* name,
 	Attributes* attributes,
 	Type* type,
-	bool isPtr,
-	ListStaticPropertyPushBack pushBack,
-	ListStaticPropertyGetIterator getIterator,
-	ListStaticPropertyGetValue getValue,
-	ListStaticPropertyInsert insert,
-	ListStaticPropertyErase erase)
+	TypeCompound typeCompound,
+	StaticPropertyEnumerate enumerate,
+	StaticPropertyListGet listGet,
+	StaticPropertyListSet listSet,
+	StaticPropertyListIterate listIterate,
+	StaticPropertyListInsert listInsert,
+	StaticPropertyListErase listErase)
 	: Metadata(name, attributes)
 {
 	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = 0;
-	m_isKeyPtr = false;
-	m_listPushBack = pushBack;
-	m_listGetIterator = getIterator;
-	m_listGetValue = getValue;
-	m_listInsert = insert;
-	m_listErase = erase;
-	m_kind = list_property;
+	m_typeCompound = typeCompound;
+	m_enumerate = enumerate;
+	m_listGet = listGet;
+	m_listSet = listSet;
+	m_listIterate = listIterate;
+	m_listInsert = listInsert;
+	m_listErase = listErase;
+	m_kind = PropertyKind::list_property;
 }
 
-StaticProperty::StaticProperty(
-	const char* name,
-	Attributes* attributes,
-	Type* type,
-	bool isPtr,
-	Type* keyType,
-	bool isKeyPtr,
-	MapStaticPropertyGetter getter,
-	MapStaticPropertySetter setter,
-	MapStaticPropertyGetIterator getIterator,
-	MapStaticPropertyGetKey getKey,
-	MapStaticPropertyGetValue getValue)
-	: Metadata(name, attributes)
-{
-	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = keyType;
-	m_isKeyPtr = isKeyPtr;
-	m_mapGetter = getter;
-	m_mapSetter = setter;
-	m_mapGetIterator = getIterator;
-	m_mapGetKey = getKey;
-	m_mapGetValue = getValue;
-	m_kind = map_property;
-}
 
 bool StaticProperty::isSimple() const
 {
-	return simple_property == m_kind;
+	return PropertyKind::simple_property == m_kind;
 }
 
-bool StaticProperty::isArray() const
+bool StaticProperty::isFixedArray() const
 {
-	return array_property == m_kind;
+	return PropertyKind::fixed_array_property == m_kind;
+}
+
+bool StaticProperty::isDynamicArray() const
+{
+	return PropertyKind::dynamic_array_property == m_kind;
 }
 
 bool StaticProperty::isList() const
 {
-	return list_property == m_kind;
+	return PropertyKind::list_property == m_kind;
 }
 
-bool StaticProperty::isMap() const
+bool StaticProperty::hasEnumerate() const
 {
-	return map_property == m_kind;
+	return (0 != m_enumerate);
 }
 
-bool StaticProperty::hasGetter() const
+bool StaticProperty::hasGet() const
 {
-	return (0 != m_getter);
+	return (0 != m_get);
 }
 
-bool StaticProperty::hasSetter() const
+bool StaticProperty::hasSet() const
 {
-	return (0 != m_setter);
+	return (0 != m_set);
 }
 
-bool StaticProperty::hasSizer() const
-{
-	return (0 != m_arraySizer);
-}
-
-bool StaticProperty::hasResizer() const
-{
-	return (0 != m_arrayResizer);
-}
-
-bool StaticProperty::hasCandidate() const
-{
-	return isSimple() && m_candidateCount && m_getCandidate;
-}
-
-ObserverPtr<Type> StaticProperty::type() const
+Type* StaticProperty::type() const
 {
 	return m_type;
 }
 
-bool StaticProperty::isPtr() const
+TypeCompound StaticProperty::typeCompound() const
 {
-	return m_isPtr;
+	return m_typeCompound;
 }
 
-ObserverPtr<Type> StaticProperty::keyType() const
-{
-	return m_keyType;
-}
-
-bool StaticProperty::isKeyPtr() const
-{
-	return m_isKeyPtr;
-}
+//bool StaticProperty::serializable() const
+//{
+//	return m_serializable;
+//}
 
 END_PAFCORE

@@ -38,15 +38,12 @@ typedef enum PredefinedType PredefinedType;
 enum TypeKind
 {
 	unknown_type,
-	type_not_found,
-	void_type,
+	//type_not_found,
 	primitive_type,
 	enum_type,
-	value_type,
-	object_type,
-	interface_type,
-	class_template,
-	template_parameter,
+	class_type,
+	//class_template,
+	//template_parameter,
 };
 typedef enum TypeKind TypeKind;
 
@@ -54,6 +51,7 @@ typedef enum TypeKind TypeKind;
 enum TypeCompound
 {
 	tc_none,
+	tc_raw_ptr,
 	tc_observer_ptr,
 	tc_shared_ptr,
 	tc_observer_array,
@@ -66,9 +64,9 @@ enum SyntaxNodeType
 {
 	snt_keyword_nometa = 258,
 	snt_keyword_nocode,
-
-	snt_keyword_begin_primitive,
-	snt_keyword_bool,
+	snt_keyword_void,
+	snt_keyword_scope, snt_begin_output = snt_keyword_scope,
+	snt_keyword_bool, snt_keyword_begin_primitive = snt_keyword_bool,
 	snt_keyword_char,
 	snt_keyword_wchar_t,
 	snt_keyword_short,
@@ -78,28 +76,20 @@ enum SyntaxNodeType
 	snt_keyword_unsigned,
 	snt_keyword_float,
 	snt_keyword_double,
-	snt_keyword_string_t,
-	snt_keyword_end_primitive,
-
-	snt_begin_output,
-
-	snt_operator_scope,
-
+	snt_keyword_string_t, snt_keyword_end_primitive = snt_keyword_string_t,
 	snt_keyword_namespace,
 	snt_keyword_enum,
 	snt_keyword_class,
 	snt_keyword_struct,
+	snt_keyword_interface,
 	snt_keyword_template,
 	snt_keyword_virtual,
 	snt_keyword_static,
 	snt_keyword_get,
 	snt_keyword_set,
 	snt_keyword_typedef,
-
-	snt_end_output,
-
 	snt_keyword_typename,
-	snt_keyword_export,
+	snt_keyword_export, snt_end_output = snt_keyword_export,
 
 	snt_identifier,
 	snt_identifier_list,
@@ -182,10 +172,10 @@ void setPropertyModifier(SyntaxNode* syntaxNode, SyntaxNode* modifier);
 SyntaxNode* newVariable(SyntaxNode* compoundType, SyntaxNode* byRef, SyntaxNode* name, SyntaxNode* allowNull);
 SyntaxNode* newVariableList(SyntaxNode* variableList, SyntaxNode* comma, SyntaxNode* variable);
 SyntaxNode* newMethod(SyntaxNode* resultList, SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis);
+SyntaxNode* newMethod2(SyntaxNode* compoundType, SyntaxNode* byRefOpt, SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis);
 void setMethodModifier(SyntaxNode* syntaxNode, SyntaxNode* modifier);
 
-void setMemberNoCode(SyntaxNode* syntaxNode);
-void setMemberNoMeta(SyntaxNode* syntaxNode);
+void setMemberFilter(SyntaxNode* syntaxNode, SyntaxNode* filter);
 void setMemberNativeNameOpt(SyntaxNode* member, SyntaxNode* nativeName);
 void setMemberSemicolon(SyntaxNode* member, SyntaxNode* semicolon);
 SyntaxNode* newMemberList(SyntaxNode* memberList, SyntaxNode* member);
@@ -195,18 +185,11 @@ SyntaxNode* newClass(SyntaxNode* keyword, SyntaxNode* conceptList, SyntaxNode* n
 
 void setClassBaseList(SyntaxNode* cls, SyntaxNode* colon, SyntaxNode* baseList);
 void setClassMemberList(SyntaxNode* cls, SyntaxNode* leftBrace, SyntaxNode* memberList, SyntaxNode* rightBrace);
-void setClassModifier(SyntaxNode* cls, SyntaxNode* modifier);
-void setClassOverride(SyntaxNode* cls);
 void setClassTemplateParameters(SyntaxNode* cls, SyntaxNode* parameters);
-void setClassSemicolon(SyntaxNode* cls, SyntaxNode* semicolon);
-
 
 SyntaxNode* newTemplateClassInstance(SyntaxNode* name, SyntaxNode* typeNameList);
+void setTemplateClassInstanceReservedMemberList(SyntaxNode* tci, SyntaxNode* identifierList);
 
-SyntaxNode* newTokenList(SyntaxNode* tokenList, SyntaxNode* token);
-void setTemplateClassInstanceTokenList(SyntaxNode* tci, SyntaxNode* enumeratorList);
-
-SyntaxNode* newNamespaceMemberList(SyntaxNode* memberList, SyntaxNode* member);
 SyntaxNode* newNamespace(SyntaxNode* keyword, SyntaxNode* name, SyntaxNode* leftBrace, SyntaxNode* memberList, SyntaxNode* rightBrace);
 SyntaxNode* newProgram(SyntaxNode* memberList);
 

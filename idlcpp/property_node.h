@@ -4,6 +4,7 @@
 
 struct CompoundTypeNode;
 struct PropertyAccessorListNode;
+struct PropertyAccessorNode;
 
 struct PropertyNode : MemberNode
 {
@@ -11,6 +12,9 @@ struct PropertyNode : MemberNode
 	CompoundTypeNode* m_compoundType{ nullptr };
 	PropertyAccessorListNode* m_accessorList{ nullptr };
 	PropertyKind m_propertyKind{ simple_property };
+	PropertyAccessorNode* m_get{ nullptr };
+	PropertyAccessorNode* m_set{ nullptr };
+	PropertyAccessorNode* m_enumerate{ nullptr };
 public:
 	PropertyNode(CompoundTypeNode* compoundType, IdentifierNode* name, PropertyAccessorListNode* accessorList, PropertyKind propertyKind);
 	PropertyKind getKind();

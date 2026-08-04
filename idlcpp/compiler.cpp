@@ -271,7 +271,6 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 				{
 					fileName.erase(dotPos);
 				}
-				ConvertFileBaseNameToSnakeCase(fileName);
 				fileName += ".h";
 				FormatPathForInclude(fileName);
 				writeStringToFile("#include \"", file);
@@ -322,7 +321,6 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 		{
 			fileName.erase(dotPos);
 		}
-		ConvertFileBaseNameToSnakeCase(fileName);
 		fileName += ".h";
 		writeStringToFile("#include \"", file);
 		FormatPathForInclude(fileName);
@@ -368,15 +366,18 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 			}
 			std::vector<TemplateParameterTypeNode*> m_parameterNodes;
 
-			sprintf_s(buf, "template<%s>%s%s;", paramNames.c_str(), 
-				g_keywordTokens[classNode->m_keyword->m_nodeType - snt_begin_output - 1], typeNode->m_name.c_str());
+			sprintf_s(buf, "template<%s>%s%s;", 
+				paramNames.c_str(), 
+				KeywardTokenToString(classNode->m_keyword));
 		}
 		else if (typeNode->isClass())
 		{
 			ClassNode* classNode = static_cast<ClassTypeNode*>(typeNode)->m_classNode;
 			if (0 == classNode->m_nativeName)
 			{
-				sprintf_s(buf, "%s%s;", g_keywordTokens[classNode->m_keyword->m_nodeType - snt_begin_output - 1], typeNode->m_name.c_str());
+				sprintf_s(buf, "%s %s;", 
+					KeywardTokenToString(classNode->m_keyword), 
+					typeNode->m_name.c_str());
 			}
 		}
 		else if (typeNode->isEnum())
@@ -384,7 +385,10 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 			EnumNode* enumNode = static_cast<EnumTypeNode*>(typeNode)->m_enumNode;
 			if (0 == enumNode->m_nativeName)
 			{
-				sprintf_s(buf, "%s%s;", g_keywordTokens[snt_keyword_enum - snt_begin_output - 1], typeNode->m_name.c_str());
+				sprintf_s(buf, "%s%s%s;", 
+					KeywardTokenToString(enumNode->m_keyword), 
+					enumNode->m_keyword2 ? KeywardTokenToString(enumNode->m_keyword2) : "",
+					typeNode->m_name.c_str());
 			}
 		}
 		writeStringToFile(buf, file, indentation);
@@ -516,7 +520,6 @@ bool Compiler::generateCode(const char* fileName)
 		m_outputLineDirective = g_options.m_outputLineDirective;
 
 		std::string headerFileName = fileName;
-		ConvertFileBaseNameToSnakeCase(headerFileName);
 		headerFileName += ".h";
 		bool res = generateHeaderFile(headerFileName.c_str());
 

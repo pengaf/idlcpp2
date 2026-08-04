@@ -3,7 +3,7 @@
 #include "type_name_node.h"
 #include "type_name_list_node.h"
 #include "identifier_node.h"
-#include "token_list_node.h"
+#include "identifier_list_node.h"
 #include "class_node.h"
 #include "raise_error.h"
 #include "template_parameters_node.h"
@@ -18,11 +18,7 @@ TemplateClassInstanceNode::TemplateClassInstanceNode(IdentifierNode* name, TypeN
 	m_nodeType = snt_template_class_instance;
 	m_name = name;
 	m_parameterList = parameterList;
-	m_tokenList = 0;
-	m_typeNode = 0;
-	m_classTypeNode = 0;
 }
-
 
 size_t TemplateClassInstanceNode::getParameterCount()
 {
@@ -119,27 +115,9 @@ void TemplateClassInstanceNode::checkSemantic(TemplateArguments* templateArgumen
 	g_errorList.setTemplateClassInstance(0);
 }
 
-void TemplateClassInstanceNode::getReservedMembers(std::vector<IdentifierNode*>& reservedNames, std::vector<TokenNode*>& reservedOperators)
+void TemplateClassInstanceNode::getReservedMembers(std::vector<IdentifierNode*>& reservedMembers)
 {
-	reservedNames.clear();
-	reservedOperators.clear();
-	std::vector<TokenNode*> reservedMembers;
-	m_tokenList->collectTokenNodes(reservedMembers);
-	auto it = reservedMembers.begin();
-	auto end = reservedMembers.end();
-	for (; it != end; ++it)
-	{
-		TokenNode* token = *it;
-		if (snt_identifier == token->m_nodeType)
-		{
-			reservedNames.push_back(static_cast<IdentifierNode*>(token));
-		}
-		else
-		{
-			reservedOperators.push_back(token);
-		}
-	}
-	std::sort(reservedNames.begin(), reservedNames.end(), CompareIdentifierPtr());
-	std::sort(reservedOperators.begin(), reservedOperators.end(), CompareTokenPtr());
-
+	reservedMembers.clear();
+	m_reservedMemberList->collectIdentifierNodes(reservedMembers);
+	std::sort(reservedMembers.begin(), reservedMembers.end(), CompareIdentifierPtr());
 }

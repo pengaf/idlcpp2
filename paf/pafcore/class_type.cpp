@@ -117,7 +117,7 @@ TypeAlias* ClassType::findNestedTypeAlias(const char* name, bool includeBaseClas
 InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && instance_field == member->_kind_())
+	if (member && MetadataKind::instance_field == member->_kind_())
 	{
 		return static_cast<InstanceField*>(member);
 	}
@@ -127,7 +127,7 @@ InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseCl
 StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && static_field == member->_kind_())
+	if (member && MetadataKind::static_field == member->_kind_())
 	{
 		return static_cast<StaticField*>(member);
 	}
@@ -157,7 +157,7 @@ StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasse
 InstanceProperty* ClassType::findInstanceProperty(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && instance_property == member->_kind_())
+	if (member && MetadataKind::instance_property == member->_kind_())
 	{
 		return static_cast<InstanceProperty*>(member);
 	}
@@ -187,7 +187,7 @@ InstanceProperty* ClassType::findInstanceProperty(const char* name, bool include
 StaticProperty* ClassType::findStaticProperty(const char* name, bool includeBaseClasses)
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
-	if (member && static_property == member->_kind_())
+	if (member && MetadataKind::static_property == member->_kind_())
 	{
 		return static_cast<StaticProperty*>(member);
 	}
@@ -258,7 +258,7 @@ StaticMethod* ClassType::findStaticMethod(const char* name, bool includeBaseClas
 	return 0;
 }
 
-ObserverPtr<Metadata> ClassType::_findMember_(ObserverPtr<const char> name, bool includeBaseClasses)
+Metadata* ClassType::_findMember_(string_t name, bool includeBaseClasses)
 {
 	Metadata* member = FindMetadataByName(m_members, m_memberCount, name);
 	if (nullptr != member)
@@ -303,7 +303,7 @@ Metadata* ClassType::findClassMember(const char* name, bool includeBaseClasses, 
 	Metadata* member = FindMetadataByName(m_classMembers, m_classMemberCount, name);
 	if (nullptr != member)
 	{
-		if (typeAliasToType && type_alias == member->_kind_())
+		if (typeAliasToType && MetadataKind::type_alias == member->_kind_())
 		{
 			member = static_cast<TypeAlias*>(member)->m_type;
 		}
@@ -327,127 +327,9 @@ Metadata* ClassType::findMember(const char* name)
 	return findMember(name, true);
 }
 
-void* ClassType::createSubclassProxy(SubclassInvoker* subclassInvoker)
+SharedPtr<RCObject> ClassType::createSubclassProxy(SubclassInvoker* subclassInvoker)
 {
-	return 0;
-}
-
-void ClassType::destroySubclassProxy(void* subclassProxy)
-{}
-
-bool ClassType::getSmartPointer(Variant& value, const void* address, bool constant, Metadata::TypeCompound typeCompound)
-{
-	switch (typeCompound)
-	{
-	case tc_observer_ptr:
-		if (isRcObject())
-		{
-			const void* ptr = *reinterpret_cast<const void* const*>(address);
-			value.assignRcPtr(const_cast<ClassType*>(this), ptr, constant, Variant::by_ptr);
-			return true;
-		}
-		else if (isValue())
-		{
-			const void* ptr = *reinterpret_cast<const void* const*>(address);
-			value.assignValuePtr(this, ptr, constant, Variant::by_ptr);
-			return true;
-		}
-		break;
-	case tc_unique_ptr:
-		if (isValue())
-		{
-			const void* ptr = *reinterpret_cast<const void* const*>(address);
-			value.assignValuePtr(this, ptr, constant, Variant::by_ptr);
-			return true;
-		}
-		break;
-	case tc_shared_ptr:
-		if (isRcObject())
-		{
-			const void* ptr = *reinterpret_cast<const void* const*>(address);
-			value.assignRcPtr(const_cast<ClassType*>(this), ptr, constant, Variant::by_ptr);
-			return true;
-		}
-		break;
-	default:
-		break;
-	}
-	return false;
-}
-
-bool ClassType::setSmartPointer(void* address, Variant& value, Metadata::TypeCompound typeCompound)
-{
-	switch (typeCompound)
-	{
-	case tc_observer_ptr:
-		if (isRcObject())
-		{
-			void* ptr = 0;
-			if (!value.castToRcPtr(this, &ptr))
-			{
-				return false;
-			}
-			*reinterpret_cast<void**>(address) = ptr;
-			return true;
-		}
-		if (isValue())
-		{
-			void* ptr = 0;
-			if (!value.castToValuePtr(this, &ptr))
-			{
-				return false;
-			}
-			*reinterpret_cast<void**>(address) = ptr;
-			return true;
-		}
-		break;
-	case tc_unique_ptr:
-		if (isValue())
-		{
-			void* ptr = 0;
-			if (!value.castToValuePtr(this, &ptr))
-			{
-				return false;
-			}
-			value.unhold();
-			void** slot = reinterpret_cast<void**>(address);
-			if (0 != *slot)
-			{
-				destroyInstance(*slot);
-			}
-			*slot = ptr;
-			return true;
-		}
-		break;
-	case tc_shared_ptr:
-		if (isRcObject())
-		{
-			void* ptr = 0;
-			if (!value.castToRcPtr(this, &ptr))
-			{
-				return false;
-			}
-			void** slot = reinterpret_cast<void**>(address);
-			if (ptr == *slot)
-			{
-				return true;
-			}
-			if (0 != ptr)
-			{
-				IncSharedInterfaceStrong(ptr);
-			}
-			if (0 != *slot)
-			{
-				ReleaseSharedInterfaceStrong(*slot);
-			}
-			*slot = ptr;
-			return true;
-		}
-		break;
-	default:
-		break;
-	}
-	return false;
+	return SharedPtr<RCObject>();
 }
 
 size_t ClassType::_getMemberCount_(bool includeBaseClasses)
@@ -463,7 +345,7 @@ size_t ClassType::_getMemberCount_(bool includeBaseClasses)
 	return count;
 }
 	
-ObserverPtr<Metadata> ClassType::_getMember_(size_t index, bool includeBaseClasses)
+Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses)
 {
 	if(includeBaseClasses)
 	{
@@ -501,7 +383,7 @@ size_t ClassType::_getBaseClassCount_()
 	return m_baseClassCount;
 }
 
-ObserverPtr<Metadata> ClassType::_getBaseClass_(size_t index)
+Metadata* ClassType::_getBaseClass_(size_t index)
 {
 	if(index < m_baseClassCount)
 	{
@@ -534,7 +416,7 @@ bool ClassType::getClassOffset(size_t& offset, ClassType* otherType)
 	return getClassOffset_(offset, otherType);
 }
 
-ObserverPtr<ClassTypeIterator> ClassType::_getFirstDerivedClass_()
+ClassTypeIterator* ClassType::_getFirstDerivedClass_()
 {
 	return m_firstDerivedClass;
 }
@@ -552,7 +434,7 @@ size_t ClassType::_getInstancePropertyCount_(bool includeBaseClasses)
 	return count;
 }
 
-ObserverPtr<InstanceProperty> ClassType::_getInstanceProperty_(size_t index, bool includeBaseClasses)
+InstanceProperty* ClassType::_getInstanceProperty_(size_t index, bool includeBaseClasses)
 {
 	if (includeBaseClasses)
 	{
@@ -618,7 +500,7 @@ size_t ClassType::_getInstanceFieldCount_(bool includeBaseClasses)
 	return count;
 }
 
-ObserverPtr<InstanceField> ClassType::_getInstanceField_(size_t index, bool includeBaseClasses)
+InstanceField* ClassType::_getInstanceField_(size_t index, bool includeBaseClasses)
 {
 	if (includeBaseClasses)
 	{

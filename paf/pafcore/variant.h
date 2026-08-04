@@ -6,32 +6,36 @@
 
 BEGIN_PAFCORE
 
-class Type;
-class Object;
-class Value;
-
 const size_t max_embedded_value_size = 64;
 const size_t max_primitive_type_size = max_embedded_value_size;
-const size_t unknown_array_size = ((size_t)-1) >> 1;
+
+template <typename T>
+constexpr bool is_primitive_v = std::is_arithmetic_v<T> || std::is_same_v<T, string_t>;
+
+template <typename T>
+constexpr bool is_class_v = std::is_class_v<T> && !is_primitive_v<T>;
+
+template <typename T>
+constexpr bool is_enum_v = std::is_enum_v<T>;
+
+class Type;
 
 class PAFCORE_EXPORT Variant
 {
 public:
-	Variant();
 	~Variant();
-private:
-	Variant(const Variant& var) = delete;
-	Variant& operator = (const Variant& var) = delete;
-private:
-	bool destroyStorage();
+	Variant(Variant&& other);
+	Variant& operator = (Variant&& other);
+	Variant(const Variant&) = delete;
+	Variant& operator = (const Variant&) = delete;
 public:
+	TypeCompound typeCompound() const;
+	Type* type() const;
 	bool isNull();
 	bool byValue();
 	bool byRef();
 	//bool isArray();
-	bool isConstant();
 	void clear();
-	bool unhold();
 	void move(Variant& var);
 	bool subscript(Variant& var, size_t index);
 
@@ -39,109 +43,360 @@ public:
 	void assignEnum(Type* type, const void* pointer);
 	void assignClass(Type* type, const void* pointer);
 
-	
-	//void assignVoidPtr(const void* pointer);
-	void copyObserverPtr(Type* type, const GenericSmartPtr& pointer);
-	void copyObserverArray(Type* type, const GenericSmartPtr& pointer);
-	void copySharedPtr(Type* type, const GenericSmartPtr& pointer);
-	void copySharedArray(Type* type, const GenericSmartPtr& pointer);
-	void moveSharedPtr(Type* type, const GenericSmartPtr& pointer);
-	void moveSharedArray(Type* type, const GenericSmartPtr& pointer);
+	template<typename T>
+	void assignPrimitive(const T& src)
+	{
+		static_assert(is_primitive_v<T>);
+		assignPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &src);
+	}
 
-	void assignNullPrimitive(Type* type);
-	void assignNullEnum(Type* type);
-	void assignNullPtr();
-	void assignNullPtr(Type* type);
-	
-	void assignPtr(Type* type, const void* pointer, bool constant, Semantic semantic);
-	void assignArray(Type* type, const void* pointer, size_t arraySize, bool constant, Semantic semantic);
-	void assignOwningArray(Type* type, const void* pointer, size_t arraySize, bool constant);
+	template<typename T>
+	void assignEnum(const T& src)
+	{
+		static_assert(is_enum_v<T>);
+		assignEnum(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &src);
+	}
+
+	template<typename T>
+	void assignClass(const T& src)
+	{
+		static_assert(is_class_v<T>);
+		assignClass(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &src);
+	}
+
+	template<typename T>
+	void assignValue(const T& src)
+	{
+		if constexpr (is_primitive_v<T>)
+		{
+			assignPrimitive(src);
+		}
+		else if constexpr (is_enum_v<T>)
+		{
+			assignEnum(src);
+		}
+		else if constexpr (is_class_v<T>)
+		{
+			assignClass(src);
+		}
+		else
+		{
+			static_assert(false, "Unsupported type for assignValue.");
+		}
+	}
+
+	//template<typename T>
+	//void assignRawPtr(const T*& dst)
+	//{
+	//	assignRawPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void*)dst);
+	//}
+
+	template<typename T>
+	void assignRawPtr(T*& dst)
+	{
+		assignRawPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void*)dst);
+	}
+
+	template<typename T>
+	void assignSharedPtr(const SharedPtr<T>& dst)
+	{
+		dst.incStrongRefCount();
+		assignSharedPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+	}
+
+	template<typename T>
+	void assignSharedPtr(SharedPtr<T>&& dst)
+	{
+		assignSharedPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+		dst.m_ptr = nullptr;
+	}
+
+	template<typename T>
+	void assignObserverPtr(const ObserverPtr<T>& dst)
+	{
+		assignObserverPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+	}
+
+	template<typename T>
+	void assignSharedArray(const SharedArray<T>& dst)
+	{
+		dst.incStrongRefCount();
+		assignSharedArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+	}
+
+	template<typename T>
+	void assignSharedArray(SharedArray<T>&& dst)
+	{
+		assignSharedArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+		dst.m_ptr = nullptr;
+	}
+
+	template<typename T>
+	void assignObserverArray(const ObserverArray<T>& dst)
+	{
+		assignObserverArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+	}
 
 	bool castToPrimitive(Type* dstType, void* dst) const;
 	bool castToEnum(Type* dstType, void* dst) const;
-	bool castToValue(Type* dstType, void* dst) const;
-	bool castToRcObject(Type* dstType, void* dst) const;
+	bool castToClass(Type* dstType, void* dst) const;
 
-	bool castToVoidPtr(void** dst) const;
+	template<typename T>
+	bool castToPrimitive(T& dst) const
+	{
+		static_assert(is_primitive_v<T>);
+		return castToPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
+	
+	template<typename T>
+	bool castToEnum(T& dst) const
+	{
+		static_assert(is_enum_v<T>);
+		return castToPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
+
+	template<typename T>
+	bool castToClass(T& dst) const
+	{
+		static_assert(is_class_v<T>);
+		return castToClass(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
+	
 	bool castToPrimitivePtr(Type* dstType, void** dst) const;
 	bool castToEnumPtr(Type* dstType, void** dst) const;
-	bool castToValuePtr(Type* dstType, void** dst) const;
-	bool castToRcPtr(Type* dstType, void** dst) const;
+	bool castToClassPtr(Type* dstType, void** dst) const;
+	bool castToClassPtrStrict(Type* dstType, void** dst) const;
 
-	bool castToVoidPtrAllowNull(void** dst) const;
-	bool castToPrimitivePtrAllowNull(Type* dstType, void** dst) const;
-	bool castToEnumPtrAllowNull(Type* dstType, void** dst) const;
-	bool castToValuePtrAllowNull(Type* dstType, void** dst) const;
-	bool castToRcPtrAllowNull(Type* dstType, void** dst) const;
+	template<typename T>
+	bool castToPrimitivePtr(T*& dst) const
+	{
+		static_assert(is_primitive_v<T>);
+		return castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
 
-	bool castToObjectPtr(Type* dstType, void** dst) const;
-	bool castToObject(Type* dstType, void* dst) const;
+	template<typename T>
+	bool castToEnumPtr(T*& dst) const
+	{
+		static_assert(is_enum_v<T>);
+		return castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
 
-	void reinterpretCastToPtr(Variant& var, Type* dstType) const;
+	template<typename T>
+	bool castToClassPtr(T*& dst) const
+	{
+		static_assert(is_class_v<T>);
+		return castToClassPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
+
+	template<typename T>
+	bool castToClassPtrStrict(T*& dst) const
+	{
+		static_assert(is_class_v<T>);
+		return castToClassPtrStrict(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+	}
+
+	//bool castToPrimitivePtr(Type* dstType, void** dst) const;
+	//bool castToEnumPtr(Type* dstType, void** dst) const;
+	//bool castToClassPtr(Type* dstType, void** dst) const;
+
+
+	//bool castToVoidPtrAllowNull(void** dst) const;
+	//bool castToPrimitivePtrAllowNull(Type* dstType, void** dst) const;
+	//bool castToEnumPtrAllowNull(Type* dstType, void** dst) const;
+	//bool castToValuePtrAllowNull(Type* dstType, void** dst) const;
+	//bool castToRcPtrAllowNull(Type* dstType, void** dst) const;
+
+	//bool castToObjectPtr(Type* dstType, void** dst) const;
+	//bool castToObject(Type* dstType, void* dst) const;
+
+	//void reinterpretCastToPtr(Variant& var, Type* dstType) const;
 
 	//void setTemporary();
 	//bool isTemporary() const;
 
 	//void setSubClassProxy();
 	//bool isSubClassProxy() const;
+	template<typename T>
+	bool castToRawPtr(T*& ptr)
+	{
+		if constexpr (is_primitive_v<T>)
+		{
+			return castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr);
+		}
+		else if constexpr (is_enum_v<T>)
+		{
+			return castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr);
+		}
+		else if constexpr (is_class_v<T>)
+		{
+			return castToClassPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr);	
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	template<typename T>
+	bool castToSharedPtr(SharedPtr<T>& dst)
+	{
+		if (TypeCompound::observer_ptr != m_typeCompound && TypeCompound::shared_ptr != m_typeCompound)
+		{
+			return false;
+		}
+		T* ptr;
+		if constexpr (is_primitive_v<T>)
+		{
+			if (castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_enum_v<T>)
+		{
+			if (castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_class_v<T>)
+		{
+			if (castToClassPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	template<typename T>
+	bool castToObserverPtr(ObserverPtr<T>& dst)
+	{
+		if (TypeCompound::none == m_typeCompound)
+		{
+			return false;
+		}
+		T* ptr;
+		if constexpr (is_primitive_v<T>)
+		{
+			if (castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_enum_v<T>)
+		{
+			if (castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_class_v<T>)
+		{
+			if (castToClassPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	template<typename T>
+	bool castToSharedArray(SharedPtr<T>& dst)
+	{
+		if (TypeCompound::observer_array != m_typeCompound && TypeCompound::shared_array != m_typeCompound)
+		{
+			return false;
+		}
+		T* ptr;
+		if constexpr (is_primitive_v<T>)
+		{
+			if (castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_enum_v<T>)
+		{
+			if (castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_class_v<T>)
+		{
+			if (castToClassPtrStrict(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	template<typename T>
+	bool castToObserverArray(ObserverPtr<T>& dst)
+	{
+		if (TypeCompound::observer_array != m_typeCompound && TypeCompound::shared_array != m_typeCompound)
+		{
+			return false;
+		}
+		T* ptr;
+		if constexpr (is_primitive_v<T>)
+		{
+			if (castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_enum_v<T>)
+		{
+			if (castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		else if constexpr (is_class_v<T>)
+		{
+			if (castToClassPtrStrict(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&ptr))
+			{
+				dst.assign(ptr);
+				return true;
+			}
+		}
+		return false;
+	}
+private:
+	void assignRawPtr(Type* type, void* src);
+	void assignObserverPtr(Type* type, void* src);
+	void assignObserverArray(Type* type, void* src);
+	void assignSharedPtr(Type* type, void* src);
+	void assignSharedArray(Type* type, void* src);
+private:
+	bool destroyStorage();
 public:
 	Type* m_type = nullptr;
-	GenericSmartPtr m_pointer;
+	void* m_pointer = nullptr;
 	byte_t m_embeddedValue[max_embedded_value_size];
 	TypeCompound m_typeCompound = TypeCompound::none;
-	//uint32_t m_arraySize = 0;
-	//bool m_constant;
-	//byte_t m_passing;
-	//byte_t m_typeCompound;
-	//byte_t m_storageKind;
-	//bool m_temporary;
-	//bool m_subClassProxy;
 };
 
 //------------------------------------------------------------------------------
+
 inline bool Variant::isNull()
 {
-	return 0 == m_pointer;
-}
-
-inline bool Variant::byValue()
-{
-	return (by_value == getSemantic());
-}
-
-inline bool Variant::byRef()
-{
-	return (by_ref == getSemantic());
-}
-//
-inline bool Variant::isConstant()
-{
-	return m_constant;
-}
-
-inline Variant::Semantic Variant::getSemantic()
-{
-	return StateToSemantic(static_cast<Metadata::Passing>(m_passing), static_cast<Metadata::TypeCompound>(m_typeCompound));
-}
-
-inline void Variant::setTemporary()
-{
-	m_temporary = true;
-}
-
-inline bool Variant::isTemporary() const
-{
-	return m_temporary;
-}
-
-inline void Variant::setSubClassProxy()
-{
-	m_subClassProxy = true;
-}
-
-inline bool Variant::isSubClassProxy() const
-{
-	return m_subClassProxy;
+	return nullptr == m_pointer;
 }
 
 END_PAFCORE

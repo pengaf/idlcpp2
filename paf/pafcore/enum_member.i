@@ -3,7 +3,7 @@
 namespace pafcore
 {
 
-	abstract class(enum_member)#PAFCORE_EXPORT Enumerator : Metadata
+	class(enum_member)#PAFCORE_EXPORT EnumMember : Metadata
 	{
 		Type* _type_ { get };
 		int _value_ { get };
@@ -12,7 +12,7 @@ namespace pafcore
 		Type* m_type;
 		int m_value;
 	public:
-		Enumerator(const char* name, Attributes* attributes, Type* type, int value);
+		EnumMember(const char* name, Attributes* attributes, Type* type, int value);
 #}
 	};
 

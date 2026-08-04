@@ -7,17 +7,16 @@ namespace pafcore
 	struct Attributes;
 #}
 
-	abstract class(instance_field)#PAFCORE_EXPORT InstanceField : Metadata
+	class(instance_field)#PAFCORE_EXPORT InstanceField : Metadata
 	{
-		Type* type { get };
 		ClassType* objectType { get };
+		Type* type { get };
+		TypeCompound typeCompound{ get };
+		bool isArray{ get };
 		size_t offset { get };
-		bool isArray { get };
-		bool isPointer { get };
-		bool isConstant { get };
 #{
 	public:
-		InstanceField(const char* name, Attributes* attributes, ClassType* objectType, Type* type, size_t offset, size_t arraySize, bool constant, TypeCompound tc);
+		InstanceField(const char* name, Attributes* attributes, ClassType* objectType, Type* type, size_t offset, size_t arraySize, TypeCompound typeCompound);
 	public:
 		size_t getArraySize() const
 		{
@@ -28,8 +27,7 @@ namespace pafcore
 		ClassType* m_objectType;
 		size_t m_offset;
 		size_t m_arraySize;
-		bool m_constant;
-		byte_t m_typeCompound;
+		TypeCompound m_typeCompound;
 #}
 	};
 

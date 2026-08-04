@@ -4,393 +4,34 @@
 #include "program_node.h"
 #include "namespace_node.h"
 #include "token_node.h"
+#include "compound_type_node.h"
 #include "identifier_node.h"
 #include "enumerator_list_node.h"
 #include "scope_name_list_node.h"
 #include "scope_name_node.h"
 #include "member_list_node.h"
+#include "variable_list_node.h"
+#include "variable_node.h"
+#include "compound_type_node.h"
+
 #include "enumerator_node.h"
 #include "enum_node.h"
 #include "class_node.h"
-#include "delegate_node.h"
 #include "template_parameters_node.h"
-#include "template_parameter_list_node.h"
 #include "type_name_list_node.h"
 #include "type_name_node.h"
 #include "field_node.h"
 #include "property_accessor_node.h"
+#include "property_accessor_list_node.h"
 #include "property_node.h"
 #include "method_node.h"
-#include "parameter_node.h"
-#include "parameter_list_node.h"
-#include "operator_node.h"
 #include "typedef_node.h"
 #include "compiler.h"
 #include "options.h"
 #include "template_class_instance_node.h"
 #include "type_tree.h"
 #include <assert.h>
-
-namespace
-{
-	void CollectClassNodes(std::vector<ClassNode*>& classNodes, MemberListNode* memberListNode)
-	{
-		if (0 == memberListNode)
-		{
-			return;
-		}
-
-		std::vector<MemberNode*> memberNodes;
-		memberListNode->collectMemberNodes(memberNodes);
-		for (MemberNode* memberNode : memberNodes)
-		{
-			if (snt_class == memberNode->m_nodeType)
-			{
-				ClassNode* classNode = static_cast<ClassNode*>(memberNode);
-				classNodes.push_back(classNode);
-				CollectClassNodes(classNodes, classNode->m_memberList);
-			}
-			else if (snt_namespace == memberNode->m_nodeType)
-			{
-				CollectClassNodes(classNodes, static_cast<NamespaceNode*>(memberNode)->m_memberList);
-			}
-		}
-	}
-
-	//bool ClassHasAtomicObjectBase(ClassNode* classNode, TemplateArguments* templateArguments)
-	//{
-	//	if (classNode->m_kind && classNode->m_kind->m_str == "atomic_rc_object")
-	//	{
-	//		return true;
-	//	}
-	//	if (0 == classNode->m_baseList)
-	//	{
-	//		return false;
-	//	}
-
-	//	std::vector<TypeNameNode*> baseTypeNameNodes;
-	//	classNode->m_baseList->collectTypeNameNodes(baseTypeNameNodes);
-	//	for (TypeNameNode* baseTypeNameNode : baseTypeNameNodes)
-	//	{
-	//		TypeNode* baseTypeNode = baseTypeNameNode->getActualTypeNode(templateArguments);
-	//		ClassNode* baseClassNode = 0;
-	//		TemplateArguments* baseTemplateArguments = 0;
-	//		if (baseTypeNode && baseTypeNode->isTemplateClassInstance())
-	//		{
-	//			TemplateClassInstanceTypeNode* templateClassInstanceTypeNode = static_cast<TemplateClassInstanceTypeNode*>(baseTypeNode);
-	//			baseClassNode = templateClassInstanceTypeNode->m_classNode;
-	//			baseTemplateArguments = &templateClassInstanceTypeNode->m_templateClassInstanceNode->m_templateArguments;
-	//		}
-	//		else if (baseTypeNode && baseTypeNode->isClass() && !baseTypeNode->isTemplateClass())
-	//		{
-	//			baseClassNode = static_cast<ClassTypeNode*>(baseTypeNode)->m_classNode;
-	//		}
-	//		if (baseClassNode && ClassHasAtomicObjectBase(baseClassNode, baseTemplateArguments))
-	//		{
-	//			return true;
-	//		}
-	//	}
-	//	return false;
-	//}
-
-	//void generateCode_Traits(FILE* file, SourceFile* sourceFile)
-	//{
-	//	std::vector<ClassNode*> classNodes;
-	//	CollectClassNodes(classNodes, sourceFile->m_syntaxTree->m_memberList);
-	//	for (ClassNode* classNode : classNodes)
-	//	{
-	//		if (classNode->isNoCode())
-	//		{
-	//			continue;
-	//		}
-
-	//		std::string typeName;
-	//		classNode->getFullName(typeName, 0);
-	//		if (ClassHasAtomicObjectBase(classNode, 0))
-	//		{
-	//			writeStringToFile("namespace pafcore\n{\n", file);
-	//			writeStringToFile("template<>\n", file);
-	//			writeStringToFile("struct is_atomic_object<", file);
-	//			writeStringToFile(typeName.c_str(), typeName.length(), file);
-	//			writeStringToFile("> : std::true_type\n{\n};\n", file);
-	//			writeStringToFile("}\n", file);
-	//		}
-	//	}
-	//}
-
-	void GetClassName(std::string& className, ClassNode* classNode)
-	{
-		className = classNode->m_name->m_str;
-		if (classNode->m_templateParametersNode)
-		{
-			std::vector<IdentifierNode*> templateParameterNodes;
-			classNode->m_templateParametersNode->collectParameterNodes(templateParameterNodes);
-			className += "<";
-			size_t count = templateParameterNodes.size();
-			for (size_t i = 0; i < count; ++i)
-			{
-				if (0 != i)
-				{
-					className += ", ";
-				}
-				className += templateParameterNodes[i]->m_str;
-			}
-			className += ">";
-		}
-	}
-}
-
-void generateCode_Token(FILE* file, TokenNode* tokenNode, int indentation)
-{
-	g_compiler.outputEmbededCodes(file, tokenNode);
-
-	if(indentation > 0)
-	{
-		writeStringToFile("", 0, file, indentation);
-	}
-	if(tokenNode->m_nodeType < 256)
-	{
-		char ch = tokenNode->m_nodeType;
-		writeStringToFile(&ch, 1, file);
-	}
-	else
-	{
-		assert(snt_begin_output < tokenNode->m_nodeType && tokenNode->m_nodeType < snt_end_output);
-		const char* str = g_keywordTokens[tokenNode->m_nodeType - snt_begin_output - 1];
-		if (isNumAlpha_(GetLastWrittenChar()))
-		{
-			writeSpaceToFile(file);
-		}
-		writeStringToFile(str, file);
-	}
-}
-
-void generateCode_TokenForOperator(FILE* file, TokenNode* tokenNode, int indentation)
-{
-	g_compiler.outputEmbededCodes(file, tokenNode);
-
-	if (indentation > 0)
-	{
-		writeStringToFile("", 0, file, indentation);
-	}
-	if (tokenNode->m_nodeType < 256)
-	{
-		char ch = tokenNode->m_nodeType;
-		writeStringToFile(&ch, 1, file);
-	}
-	else
-	{
-		assert(snt_begin_output < tokenNode->m_nodeType && tokenNode->m_nodeType < snt_end_output);
-		const char* str = g_keywordTokens[tokenNode->m_nodeType - snt_begin_output - 1];
-		if (isNumAlpha_(GetLastWrittenChar()))
-		{
-			writeSpaceToFile(file);
-		}
-		writeStringToFile(str, file);
-	}
-}
-
-
-void generateCode_Identifier(FILE* file, IdentifierNode* identifierNode, int indentation, bool addSpace = true)
-{
-	g_compiler.outputEmbededCodes(file, identifierNode);
-	if(indentation > 0)
-	{
-		writeStringToFile("", 0, file, indentation);
-	}
-	if(addSpace && isNumAlpha_(GetLastWrittenChar()))
-	{
-		writeSpaceToFile(file);
-	}
-	writeStringToFile(identifierNode->m_str.c_str(), identifierNode->m_str.length(), file);
-};
-
-//void generateCode_Name(FILE* file, IdentifierNode* name, IdentifierNode* nativeName, int indentation)
-//{
-//	char lastChar = g_compiler.outputEmbededCodes(file, name);
-//	if (indentation > 0)
-//	{
-//		writeStringToFile("", 0, file, indentation);
-//	}
-//	else if (isNumAlpha_(lastChar))
-//	{
-//		writeSpaceToFile(file);
-//	}
-//	if (nativeName)
-//	{
-//		writeStringToFile(nativeName->m_str.c_str(), nativeName->m_str.length(), file);
-//	}
-//	else
-//	{
-//		writeStringToFile(name->m_str.c_str(), name->m_str.length(), file);
-//	}
-//}
-
-
-void generateCode_TypeName(FILE* file, TypeNameNode* typeNameNode, ScopeNode* scopeNode, bool addKeyword, int indentation)
-{
-	if(typeNameNode->m_keyword)
-	{
-		//internal primitive
-		typeNameNode->m_keyword->outputEmbededCodes(file, 0 == indentation);
-	}
-	if(typeNameNode->m_scopeNameList)
-	{
-		typeNameNode->m_scopeNameList->m_scopeName->m_name->outputEmbededCodes(file, 0 == indentation);
-	}
-	if (addKeyword && typeNameNode->underTemplateParameter())
-	{
-		writeStringToFile("typename ", file, indentation);
-		indentation = 0;
-	}
-	std::string typeName;
-	typeNameNode->getRelativeName(typeName, scopeNode);
-	writeStringToFile(typeName.c_str(), file, indentation);
-}
-
-void generateCode_FieldSmartType(FILE* file, FieldNode* fieldNode, ScopeNode* scopeNode, int indentation)
-{
-	const char* wrapperName = 0;
-	if (fieldNode->isObserverPtr())
-	{
-		wrapperName = "::pafcore::ObserverPtr";
-	}
-	else if (fieldNode->isUniquePtr())
-	{
-		wrapperName = "::pafcore::UniquePtr";
-	}
-	else if (fieldNode->isSharedPtr())
-	{
-		wrapperName = "::pafcore::SharedPtr";
-	}
-	else if (fieldNode->isObserverArray())
-	{
-		wrapperName = "::pafcore::ObserverArray";
-	}
-	else if (fieldNode->isUniqueArray())
-	{
-		wrapperName = "::pafcore::UniqueArray";
-	}
-	else if (fieldNode->isSharedArray())
-	{
-		wrapperName = "::pafcore::SharedArray";
-	}
-
-	if (wrapperName)
-	{
-		writeStringToFile(wrapperName, file, indentation);
-		writeStringToFile("<", file);
-		generateCode_TypeName(file, fieldNode->m_typeName, scopeNode, true, 0);
-		writeStringToFile("> ", file);
-		return;
-	}
-
-	generateCode_TypeName(file, fieldNode->m_typeName, scopeNode, true, indentation);
-}
-
-void generateCode_SmartType(FILE* file, const char* wrapperName, TypeNameNode* typeNameNode, ScopeNode* scopeNode, bool constant, int indentation)
-{
-	writeStringToFile(wrapperName, file, indentation);
-	writeStringToFile("<", file);
-	if (constant)
-	{
-		writeStringToFile("const ", file);
-	}
-	generateCode_TypeName(file, typeNameNode, scopeNode, true, 0);
-	writeStringToFile("> ", file);
-}
-
-void generateCode_ResultType(FILE* file, TypeNameNode* typeNameNode, ScopeNode* scopeNode, bool constant, TokenNode* typeCompound, TokenNode* byRef, bool returnsOwning, int indentation)
-{
-	if (0 != typeCompound && '^' == typeCompound->m_nodeType)
-	{
-		generateCode_SmartType(file, "::pafcore::SharedPtr", typeNameNode, scopeNode, constant, indentation);
-		return;
-	}
-
-	if (0 != typeCompound && '!' == typeCompound->m_nodeType)
-	{
-		generateCode_SmartType(file, "::pafcore::UniquePtr", typeNameNode, scopeNode, constant, indentation);
-		return;
-	}
-
-	if (0 != typeCompound && '*' == typeCompound->m_nodeType)
-	{
-		generateCode_SmartType(file, "::pafcore::ObserverPtr", typeNameNode, scopeNode, constant, indentation);
-		return;
-	}
-
-	if (constant)
-	{
-		writeStringToFile("const ", file, indentation);
-		indentation = 0;
-	}
-	generateCode_TypeName(file, typeNameNode, scopeNode, true, indentation);
-	if (0 != byRef)
-	{
-		writeStringToFile("&", file);
-	}
-	else if (returnsOwning)
-	{
-		writeStringToFile("*", file);
-	}
-	writeSpaceToFile(file);
-}
-
-void generateCode_Parameter(FILE* file, ParameterNode* parameterNode, ScopeNode* scopeNode)
-{
-	if (parameterNode->isInput() && parameterNode->isByObserverPtr())
-	{
-		generateCode_SmartType(file, "::pafcore::ObserverPtr", parameterNode->m_typeName, scopeNode, parameterNode->isConstant(), 0);
-	}
-	else if (parameterNode->isInput() && parameterNode->isByUniquePtr())
-	{
-		generateCode_SmartType(file, "::pafcore::UniquePtr", parameterNode->m_typeName, scopeNode, parameterNode->isConstant(), 0);
-	}
-	else if (parameterNode->isInput() && parameterNode->isBySharedPtr())
-	{
-		generateCode_SmartType(file, "::pafcore::SharedPtr", parameterNode->m_typeName, scopeNode, parameterNode->isConstant(), 0);
-	}
-	else
-	{
-		if(parameterNode->m_constant)
-		{
-			generateCode_Token(file, parameterNode->m_constant, 0);
-		}
-		generateCode_TypeName(file, parameterNode->m_typeName, scopeNode, true, 0);
-		if(0 != parameterNode->m_typeCompound)
-		{
-			generateCode_Token(file, parameterNode->m_typeCompound, 0);
-		}
-		if(0 != parameterNode->m_byRef)
-		{
-			generateCode_Token(file, parameterNode->m_byRef, 0);
-		}
-		if(0 != parameterNode->m_out)
-		{
-			generateCode_Token(file, parameterNode->m_out, 0);
-		}
-	}
-	writeSpaceToFile(file);
-	generateCode_Identifier(file, parameterNode->m_name, 0);
-};
-
-void generateCode_ParameterList(FILE* file, ParameterListNode* parameterListNode, ScopeNode* scopeNode)
-{
-	std::vector<std::pair<TokenNode*, ParameterNode*>> parameterNodes;
-	parameterListNode->collectParameterNodes(parameterNodes);
-	size_t parameterCount = parameterNodes.size();
-	for (size_t i = 0; i < parameterCount; ++i)
-	{
-		if (parameterNodes[i].first)
-		{
-			generateCode_Token(file, parameterNodes[i].first, 0);
-		}
-		generateCode_Parameter(file, parameterNodes[i].second, scopeNode);
-	}
-}
-
-
+#include "code_generator.h"
 
 void HeaderFileGenerator::generateCode(FILE* dstFile, SourceFile* sourceFile)
 {
@@ -400,30 +41,14 @@ void HeaderFileGenerator::generateCode(FILE* dstFile, SourceFile* sourceFile)
 void HeaderFileGenerator::generateCode_Program(FILE* file, SourceFile* sourceFile)
 {
 	writeStringToFile("#pragma once\n\n", file);
-	std::vector<ClassNode*> classNodes;
-	CollectClassNodes(classNodes, sourceFile->m_syntaxTree->m_memberList);
-	for (ClassNode* classNode : classNodes)
-	{
-		if (!classNode->isValueType() && !classNode->isNoCode())
-		{
-			sourceFile->m_useMemoryHeader = true;
-			break;
-		}
-	}
-
 	g_compiler.outputUsedTypes(file, sourceFile);
-	if (sourceFile->m_useMemoryHeader)
-	{
-		g_compiler.outputMemoryHeader(file);
-	}
 	writeStringToFile("namespace pafcore{ class ClassType; }\n", file);
-	if (sourceFile->m_hasArrayProperty || sourceFile->m_hasListProperty || sourceFile->m_hasMapProperty)
+	if (sourceFile->m_hasListProperty)
 	{
 		writeStringToFile("namespace pafcore{ class Iterator; }\n", file);
 	}
 
 	generateCode_Namespace(file, sourceFile->m_syntaxTree, -1);
-	//generateCode_Traits(file, sourceFile);
 
 	g_compiler.outputEmbededCodes(file, 0);
 }
@@ -432,15 +57,15 @@ void HeaderFileGenerator::generateCode_Namespace(FILE* file, NamespaceNode* name
 {
 	if (namespaceNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, namespaceNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, namespaceNode->m_filter);
 		file = 0;
 	}
 
 	if(!namespaceNode->isGlobalNamespace())
 	{
-		generateCode_Token(file, namespaceNode->m_keyword, indentation);
-		generateCode_Identifier(file, namespaceNode->m_name, 0);
-		generateCode_Token(file, namespaceNode->m_leftBrace, indentation);
+		generateCode_Token(file, namespaceNode->m_keyword, indentation, true);
+		generateCode_Identifier(file, namespaceNode->m_name, 0, true);
+		generateCode_Token(file, namespaceNode->m_leftBrace, indentation, true);
 	}
 	std::vector<MemberNode*> memberNodes;
 	namespaceNode->m_memberList->collectMemberNodes(memberNodes);
@@ -455,9 +80,6 @@ void HeaderFileGenerator::generateCode_Namespace(FILE* file, NamespaceNode* name
 			break;
 		case snt_class:
 			generateCode_Class(file, static_cast<ClassNode*>(memberNode), indentation + 1);
-			break;
-		case snt_delegate:
-			generateCode_Delegate(file, static_cast<DelegateNode*>(memberNode), indentation + 1);
 			break;
 		case snt_template_class_instance:
 			break;
@@ -476,7 +98,7 @@ void HeaderFileGenerator::generateCode_Namespace(FILE* file, NamespaceNode* name
 
 	if(!namespaceNode->isGlobalNamespace())
 	{
-		generateCode_Token(file, namespaceNode->m_rightBrace, indentation);
+		generateCode_Token(file, namespaceNode->m_rightBrace, indentation, true);
 	}
 }
 
@@ -485,16 +107,16 @@ void HeaderFileGenerator::generateCode_Typedef(FILE* file, TypedefNode* typedefN
 {
 	if (typedefNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, typedefNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, typedefNode->m_filter);
 		file = 0;
 	}
 	if(0 != typedefNode->m_typeName)
 	{
-		generateCode_Token(file, typedefNode->m_keyword, indentation);	
-		generateCode_TypeName(file, typedefNode->m_typeName, typedefNode->m_enclosing, true, 0);
+		generateCode_Token(file, typedefNode->m_keyword, indentation, true);
+		generateCode_TypeName(file, typedefNode->m_typeName, typedefNode->m_enclosing, true, 0, true);
 		writeSpaceToFile(file);
-		generateCode_Identifier(file, typedefNode->m_name, 0);
-		writeStringToFile(";", 1, file);
+		generateCode_Identifier(file, typedefNode->m_name, 0, true);
+		generateCode_Token(file, typedefNode->m_semicolon, 0, true);
 	}
 }
 
@@ -502,7 +124,7 @@ void HeaderFileGenerator::generateCode_Enum(FILE* file, EnumNode* enumNode, int 
 {
 	if (enumNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, enumNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, enumNode->m_filter);
 		file = 0;
 	}
 	else if (enumNode->m_nativeName)
@@ -511,34 +133,38 @@ void HeaderFileGenerator::generateCode_Enum(FILE* file, EnumNode* enumNode, int 
 		file = 0;
 	}
 
-	generateCode_Token(file, enumNode->m_keyword, indentation);
+	generateCode_Token(file, enumNode->m_keyword, indentation, true);
 	if (enumNode->m_keyword2)
 	{
-		generateCode_Token(file, enumNode->m_keyword2, 0);
+		generateCode_Token(file, enumNode->m_keyword2, 0, true);
 	}
-	generateCode_Identifier(file, enumNode->m_name, 0);
-	generateCode_Token(file, enumNode->m_leftBrace, indentation);
+	generateCode_Identifier(file, enumNode->m_name, 0, true);
+	generateCode_Token(file, enumNode->m_leftBrace, indentation, true);
 
 	std::vector<std::pair<TokenNode*, EnumeratorNode*>> enumeratorNodes;
 	enumNode->m_enumeratorList->collectEnumeratorNodes(enumeratorNodes);
-	size_t itemCount = enumeratorNodes.size();
-	for(size_t i = 0; i < itemCount; ++i)
+	//size_t itemCount = enumeratorNodes.size();
+	for(auto item: enumeratorNodes)
 	{
-		if(0 != enumeratorNodes[i].first)
+		if(item.first)
 		{
-			generateCode_Token(file, enumeratorNodes[i].first, 0);
+			generateCode_Token(file, item.first, 0, true);
 		}
-		generateCode_Identifier(file, enumeratorNodes[i].second->m_name, indentation + 1);
+		generateCode_Identifier(file, item.second->m_name, indentation + 1, true);
+		if (item.second->m_equalSign)
+		{
+			generateCode_Token(file, item.second->m_equalSign, 0, true);
+		}
 	}
-	generateCode_Token(file, enumNode->m_rightBrace, indentation);
-	generateCode_Token(file, enumNode->m_semicolon, 0);
+	generateCode_Token(file, enumNode->m_rightBrace, indentation, true);
+	generateCode_Token(file, enumNode->m_semicolon, 0, true);
 }
 
 void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, int indentation)
 {
 	if (classNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, classNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, classNode->m_filter);
 		file = 0;
 	}
 	else if (classNode->m_nativeName)
@@ -549,8 +175,8 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 
 	if(classNode->m_templateParametersNode)
 	{
-		generateCode_Token(file, classNode->m_templateParametersNode->m_keyword, indentation);
-		generateCode_Token(file, classNode->m_templateParametersNode->m_leftBracket, 0);
+		generateCode_Token(file, classNode->m_templateParametersNode->m_keyword, indentation, true);
+		generateCode_Token(file, classNode->m_templateParametersNode->m_leftBracket, 0, true);
 		std::vector<std::pair<TokenNode*, IdentifierNode*>> parameterNodes;
 		classNode->m_templateParametersNode->collectParameterNodes(parameterNodes);
 
@@ -559,16 +185,16 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 		{
 			if(parameterNodes[i].first)
 			{
-				generateCode_Token(file, parameterNodes[i].first, 0);
+				generateCode_Token(file, parameterNodes[i].first, 0, true);
 			}
 			writeStringToFile("typename ", file);
-			generateCode_Identifier(file, parameterNodes[i].second, 0);
+			generateCode_Identifier(file, parameterNodes[i].second, 0, true);
 		}
-		generateCode_Token(file, classNode->m_templateParametersNode->m_rightBracket, 0);
+		generateCode_Token(file, classNode->m_templateParametersNode->m_rightBracket, 0, true);
 	}
 
-	generateCode_Token(file, classNode->m_keyword, indentation);
-	generateCode_Identifier(file, classNode->m_name, 0);
+	generateCode_Token(file, classNode->m_keyword, indentation, true);
+	generateCode_Identifier(file, classNode->m_name, 0, true);
 
 
 	if(classNode->m_baseList)
@@ -580,21 +206,21 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 		{
 			assert(0 != classNode->m_colon);
 			writeSpaceToFile(file);
-			generateCode_Token(file, classNode->m_colon, 0);
+			generateCode_Token(file, classNode->m_colon, 0, true);
 			writeSpaceToFile(file);
 			for(size_t i = 0; i < baseCount; ++i)
 			{
 				if(typeNameNodes[i].first && 0 != i)
 				{
-					generateCode_Token(file, typeNameNodes[i].first, 0);
+					generateCode_Token(file, typeNameNodes[i].first, 0, true);
 				}
 				writeStringToFile("public ", file);
-				generateCode_TypeName(file, typeNameNodes[i].second, classNode->m_enclosing, false, 0);
+				generateCode_TypeName(file, typeNameNodes[i].second, classNode->m_enclosing, false, 0, true);
 			}
 		}
 	}
 
-	generateCode_Token(file, classNode->m_leftBrace, indentation);
+	generateCode_Token(file, classNode->m_leftBrace, indentation, true);
 	writeStringToFile("\n", file);
 	writeStringToFile("public:\n", file, indentation);
 
@@ -624,7 +250,7 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 			ClassNode* nestedClassNode = static_cast<ClassNode*>(memberNode);
 			if (0 == nestedClassNode->m_nativeName)
 			{
-				sprintf_s(buf, "%s%s;\n", g_keywordTokens[nestedClassNode->m_keyword->m_nodeType - snt_begin_output - 1],
+				sprintf_s(buf, "%s%s;\n", KeywardTokenToString(nestedClassNode->m_keyword),
 					nestedClassNode->m_name->m_str.c_str());
 				writeStringToFile(buf, file, indentation + 1);
 			}
@@ -635,7 +261,7 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 			EnumNode* nestedEnumNode = static_cast<EnumNode*>(memberNode);
 			if (0 == nestedEnumNode->m_nativeName)
 			{
-				sprintf_s(buf, "%s%s%s;\n", g_keywordTokens[nestedEnumNode->m_keyword->m_nodeType - snt_begin_output - 1],
+				sprintf_s(buf, "%s%s%s;\n", KeywardTokenToString(nestedEnumNode->m_keyword),
 					nestedEnumNode->m_keyword2 ? "class " : "",
 					nestedEnumNode->m_name->m_str.c_str());
 				writeStringToFile(buf, file, indentation + 1);
@@ -647,10 +273,10 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 	if (!classNode->isNoMeta())
 	{
 		writeStringToFile("static ::pafcore::ClassType* GetType();\n", file, indentation + 1);
-		if (!classNode->isValueType())
+		if (classNode->isDerivedFromObject())
 		{
 			writeStringToFile("virtual ::pafcore::ClassType* getType();\n", file, indentation + 1);
-			if (classNode->needGetAddress(0))
+			if (classNode->isDerivedFromInterface())
 			{
 				writeStringToFile("virtual size_t getAddress();\n", file, indentation + 1);
 			}
@@ -670,14 +296,8 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 		case snt_method:
 			generateCode_Method(file, static_cast<MethodNode*>(memberNode), indentation + 1);
 			break;
-		case snt_operator:
-			generateCode_Operator(file, static_cast<OperatorNode*>(memberNode), indentation + 1);
-			break;
 		case snt_class:
 			generateCode_Class(file, static_cast<ClassNode*>(memberNode), indentation + 1);
-			break;
-		case snt_delegate:
-			generateCode_Delegate(file, static_cast<DelegateNode*>(memberNode), indentation + 1);
 			break;
 		case snt_enum:
 			generateCode_Enum(file, static_cast<EnumNode*>(memberNode), indentation + 1);
@@ -692,134 +312,69 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 		}
 	}
 
-	generateCode_Token(file, classNode->m_rightBrace, indentation);
-	generateCode_Token(file, classNode->m_semicolon, 0);
+	generateCode_Token(file, classNode->m_rightBrace, indentation, true);
+	generateCode_Token(file, classNode->m_semicolon, 0, true);
 	writeStringToFile("\n", file);
-	if (!classNode->isValueType() && classNode->derivesFromObject(0))
-	{
-		std::string typeName;
-		GetClassName(typeName, classNode);
-		if (typeName != "Object")
-		{
-			writeStringToFile("static_assert(std::is_base_of_v<::pafcore::Object, ", file, indentation);
-			writeStringToFile(typeName.c_str(), file);
-			writeStringToFile(">, \"Type must derive from pafcore::Object.\");\n", file);
-		}
-	}
-}
-
-void HeaderFileGenerator::generateCode_Delegate(FILE* file, DelegateNode* delegateNode, int indentation)
-{
-	if (delegateNode->isNoCode())
-	{
-		g_compiler.outputEmbededCodes(file, delegateNode->m_filterNode);
-		file = 0;
-	}
-	generateCode_Token(file, delegateNode->m_keyword, indentation);
-	generateCode_Identifier(file, delegateNode->m_name, 0);
-	
-	writeStringToFile(" : public ::pafcore::Delegate\n", file);
-	writeStringToFile("{\n", file, indentation);
-	writeStringToFile("public:\n", file, indentation);
-	
-	int methodIndentation = indentation + 1;
-
-	generateCode_Identifier(file, delegateNode->m_name, methodIndentation);
-	writeStringToFile("() = default;\n", file, 0);
-	generateCode_Identifier(file, delegateNode->m_name, methodIndentation);
-	writeStringToFile("(const ", file, 0);
-	generateCode_Identifier(file, delegateNode->m_name, 0);
-	writeStringToFile("&) = delete;\n", file, 0);
-
-	if (0 != delegateNode->m_resultConst)
-	{
-	}
-	if (0 != delegateNode->m_resultTypeName)
-	{
-		generateCode_ResultType(file, delegateNode->m_resultTypeName, delegateNode->m_enclosing,
-			0 != delegateNode->m_resultConst, delegateNode->m_typeCompound, delegateNode->m_byRef, delegateNode->returnsOwning(), methodIndentation);
-		methodIndentation = 0;
-	}
-	writeStringToFile("invoke", file, methodIndentation);
-	generateCode_Token(file, delegateNode->m_leftParenthesis, 0);
-	generateCode_ParameterList(file, delegateNode->m_parameterList, delegateNode->m_enclosing);
-	generateCode_Token(file, delegateNode->m_rightParenthesis, 0);
-	generateCode_Token(file, delegateNode->m_semicolon, 0);
-	writeStringToFile("\n", file);
-
-	writeStringToFile("typedef ", file, indentation + 1);
-	if (0 != delegateNode->m_resultTypeName)
-	{
-		generateCode_ResultType(file, delegateNode->m_resultTypeName, delegateNode->m_enclosing,
-			0 != delegateNode->m_resultConst, delegateNode->m_typeCompound, delegateNode->m_byRef, delegateNode->returnsOwning(), 0);
-	}
-	writeStringToFile("(*CallBackFunction)(void* userData, ", file, 0);
-	generateCode_ParameterList(file, delegateNode->m_parameterList, delegateNode->m_enclosing);
-	writeStringToFile(");\n", file);
-	writeStringToFile("::pafcore::FunctionCallBack* addFunction(CallBackFunction function, void* userData)\n", file, indentation + 1);
-	writeStringToFile("{return Delegate::addFunction(reinterpret_cast<void*>(reinterpret_cast<size_t>(function)), userData);}\n", file, indentation + 1);
-	writeStringToFile("};\n", file, indentation);
+	//if (!classNode->isValueType() && classNode->derivesFromObject(0))
+	//{
+	//	std::string typeName;
+	//	GetClassName(typeName, classNode);
+	//	if (typeName != "Object")
+	//	{
+	//		writeStringToFile("static_assert(std::is_base_of_v<::pafcore::Object, ", file, indentation);
+	//		writeStringToFile(typeName.c_str(), file);
+	//		writeStringToFile(">, \"Type must derive from pafcore::Object.\");\n", file);
+	//	}
+	//}
 }
 
 void HeaderFileGenerator::generateCode_Field(FILE* file, FieldNode* fieldNode, int indentation)
 {
 	if (fieldNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, fieldNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, fieldNode->m_filter);
 		file = 0;
 	}
 	else if (fieldNode->m_nativeName)
 	{
 		TokenNode* firstToken;
-		if (0 != fieldNode->m_static)
+		if (0 != fieldNode->m_modifier)
 		{
-			firstToken = fieldNode->m_static;
-		}
-		else if (0 != fieldNode->m_constant)
-		{
-			firstToken = fieldNode->m_constant;
+			firstToken = fieldNode->m_modifier;
 		}
 		else
 		{
-			if (fieldNode->m_typeName->m_keyword)
+			if (fieldNode->m_compoundType->m_typeName->m_keyword)
 			{
-				firstToken = fieldNode->m_typeName->m_keyword;
+				firstToken = fieldNode->m_compoundType->m_typeName->m_keyword;
 			}
 			else
 			{
-				firstToken = fieldNode->m_typeName->m_scopeNameList->m_scopeName->m_name;
+				firstToken = fieldNode->m_compoundType->m_typeName->m_scopeNameList->m_scopeName->m_name;
 			}
 		}
 		g_compiler.outputEmbededCodes(file, firstToken);
 		file = 0;
 	}
 	ClassNode* classNode = static_cast<ClassNode*>(fieldNode->m_enclosing);
-	if(fieldNode->m_static)
+	if(fieldNode->m_modifier)
 	{
-		generateCode_Token(file, fieldNode->m_static, indentation);
+		generateCode_Token(file, fieldNode->m_modifier, indentation, true);
 		indentation = 0;
 	}
-	if(fieldNode->m_constant)
+	generateCode_CompoundType(file, fieldNode->m_compoundType, fieldNode->m_enclosing, indentation, true);
+
+	writeSpaceToFile(file);
+	generateCode_Identifier(file, fieldNode->m_name, 0, true);
+	if(fieldNode->m_leftBracket)
 	{
-		generateCode_Token(file, fieldNode->m_constant, indentation);
-		indentation = 0;
+		generateCode_Token(file, fieldNode->m_leftBracket, 0, true);
 	}
-	generateCode_FieldSmartType(file, fieldNode, fieldNode->m_enclosing, indentation);
-	if (!fieldNode->isPointer() && !fieldNode->isSmartArray() || 0 == fieldNode->m_typeCompound)
+	if(fieldNode->m_rightBracket)
 	{
-		writeSpaceToFile(file);
+		generateCode_Token(file, fieldNode->m_rightBracket, 0, true);
 	}
-	//generateCode_Name(file, fieldNode->m_name, fieldNode->m_nativeName, 0);
-	generateCode_Identifier(file, fieldNode->m_name, 0);
-	if(fieldNode->m_leftBracket && !fieldNode->isSmartArray())
-	{
-		generateCode_Token(file, fieldNode->m_leftBracket, 0);
-	}
-	if(fieldNode->m_rightBracket && !fieldNode->isSmartArray())
-	{
-		generateCode_Token(file, fieldNode->m_rightBracket, 0);
-	}
-	generateCode_Token(file, fieldNode->m_semicolon, 0);
+	generateCode_Token(file, fieldNode->m_semicolon, 0, true);
 }
 
 void HeaderFileGenerator::generateCode_Property_Get(FILE* file, PropertyNode* propertyNode, int indentation)
@@ -833,13 +388,13 @@ void HeaderFileGenerator::generateCode_Property_Get(FILE* file, PropertyNode* pr
 		}
 		else
 		{
-			if (propertyNode->m_typeName->m_keyword)
+			if (propertyNode->m_compoundType->m_typeName->m_keyword)
 			{
-				firstToken = propertyNode->m_typeName->m_keyword;
+				firstToken = propertyNode->m_compoundType->m_typeName->m_keyword;
 			}
 			else
 			{
-				firstToken = propertyNode->m_typeName->m_scopeNameList->m_scopeName->m_name;
+				firstToken = propertyNode->m_compoundType->m_typeName->m_scopeNameList->m_scopeName->m_name;
 			}
 		}
 		g_compiler.outputEmbededCodes(file, firstToken);
@@ -849,21 +404,21 @@ void HeaderFileGenerator::generateCode_Property_Get(FILE* file, PropertyNode* pr
 	ClassNode* classNode = static_cast<ClassNode*>(propertyNode->m_enclosing);
 	if(propertyNode->m_modifier)
 	{
-		generateCode_Token(file, propertyNode->m_modifier, indentation);
+		generateCode_Token(file, propertyNode->m_modifier, indentation, true);
 		indentation = 0;
 	}
-	generateCode_ResultType(file, propertyNode->m_typeName, propertyNode->m_enclosing, 0 != propertyNode->m_constant, propertyNode->m_typeCompound, propertyNode->m_byRef, false, indentation);
-	generateCode_Identifier(file, propertyNode->m_name, 0, false);
+	generateCode_ResultType(file, propertyNode->m_compoundType, propertyNode->m_get->m_byRef, propertyNode->m_enclosing, true, indentation, true);
+	generateCode_Identifier(file, propertyNode->m_name, 0, true);
 
 	writeStringToFile("(", file);
 
-	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray() || propertyNode->isList())
+	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
 	{
 		writeStringToFile("size_t", file);
 	}
-	else if (propertyNode->isMap())
+	else if (propertyNode->isList())
 	{
-		generateCode_ResultType(file, propertyNode->m_keyTypeName, propertyNode->m_enclosing, false, propertyNode->m_keyTypeCompound, propertyNode->m_keyByRef, false, 0);
+		writeStringToFile("::pafcore::Iterator", file);
 	}
 	if (propertyNode->isStatic())
 	{
@@ -886,13 +441,13 @@ void HeaderFileGenerator::generateCode_Property_Set(FILE* file, PropertyNode* pr
 		}
 		else
 		{
-			if (propertyNode->m_typeName->m_keyword)
+			if (propertyNode->m_compoundType->m_typeName->m_keyword)
 			{
-				firstToken = propertyNode->m_typeName->m_keyword;
+				firstToken = propertyNode->m_compoundType->m_typeName->m_keyword;
 			}
 			else
 			{
-				firstToken = propertyNode->m_typeName->m_scopeNameList->m_scopeName->m_name;
+				firstToken = propertyNode->m_compoundType->m_typeName->m_scopeNameList->m_scopeName->m_name;
 			}
 		}
 		g_compiler.outputEmbededCodes(file, firstToken);
@@ -903,43 +458,67 @@ void HeaderFileGenerator::generateCode_Property_Set(FILE* file, PropertyNode* pr
 
 	if(propertyNode->m_modifier)
 	{
-		generateCode_Token(file, propertyNode->m_modifier, indentation);
+		generateCode_Token(file, propertyNode->m_modifier, indentation, true);
 		indentation = 0;
 	}
 	if (propertyNode->isStatic())
 	{
-		writeStringToFile("void ", file, indentation);
+		generateCode_Identifier(file, "void ", indentation);
 	}
 	else
 	{
-		generateCode_Identifier(file, classNode->m_name, indentation);
+		generateCode_Identifier(file, classNode->m_name, indentation, true);
 		writeStringToFile("& ", file);
 	}
-	generateCode_Identifier(file, propertyNode->m_name, 0, false);
+	generateCode_Identifier(file, propertyNode->m_name, 0, true);
 	
 	writeStringToFile("(", file);
 	
-	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray() || propertyNode->isList())
+	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
 	{
 		writeStringToFile("size_t, ", file);
 	}
-	else if (propertyNode->isMap())
+	else if (propertyNode->isList())
 	{
-		generateCode_ResultType(file, propertyNode->m_keyTypeName, propertyNode->m_enclosing, false, propertyNode->m_keyTypeCompound, propertyNode->m_keyByRef, false, 0);
-		writeStringToFile(", ", file);
+		writeStringToFile("::pafcore::Iterator, ", file);
 	}
-	generateCode_ResultType(file, propertyNode->m_typeName, propertyNode->m_enclosing, 0 != propertyNode->m_constant, propertyNode->m_typeCompound, propertyNode->m_byRef, false, 0);
+	generateCode_ResultType(file, propertyNode->m_compoundType, propertyNode->m_set->m_byRef, propertyNode->m_enclosing, true, 0, true);
 	writeStringToFile(");", file);	
 }
 
-void HeaderFileGenerator::generateCode_Property_CandidateCount(FILE* file, PropertyNode* propertyNode, int indentation)
+void HeaderFileGenerator::generateCode_Property_Enum(FILE* file, PropertyNode* propertyNode, int indentation)
 {
+	if (propertyNode->m_set->m_nativeName)
+	{
+		TokenNode* firstToken;
+		if (0 != propertyNode->m_modifier)
+		{
+			firstToken = propertyNode->m_modifier;
+		}
+		else
+		{
+			if (propertyNode->m_compoundType->m_typeName->m_keyword)
+			{
+				firstToken = propertyNode->m_compoundType->m_typeName->m_keyword;
+			}
+			else
+			{
+				firstToken = propertyNode->m_compoundType->m_typeName->m_scopeNameList->m_scopeName->m_name;
+			}
+		}
+		g_compiler.outputEmbededCodes(file, firstToken);
+		file = 0;
+	}
+
 	if (propertyNode->isStatic())
 	{
 		writeStringToFile("static ", file, indentation);
 		indentation = 0;
 	}
-	writeStringToFile("size_t candidateCount_", file, indentation);
+	CompoundTypeNode* enumResultType = (CompoundTypeNode*)newCompoundType(propertyNode->m_compoundType->m_typeName, tc_shared_array);
+
+	generateCode_ResultType(file, enumResultType, nullptr, propertyNode->m_enclosing, false, indentation, true);
+	writeStringToFile("enum_", file, 0);
 	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
 	if (propertyNode->isStatic())
 	{
@@ -948,30 +527,6 @@ void HeaderFileGenerator::generateCode_Property_CandidateCount(FILE* file, Prope
 	else
 	{
 		writeStringToFile("() const;", file);
-	}
-}
-
-void HeaderFileGenerator::generateCode_Property_GetCandidate(FILE* file, PropertyNode* propertyNode, int indentation)
-{
-	if (propertyNode->isStatic())
-	{
-		writeStringToFile("static ", file, indentation);
-		indentation = 0;
-	}
-	TokenNode* typeCompound = propertyNode->m_typeCompound;
-	TokenNode* byRef = propertyNode->m_byRef;
-	TypeNameNode* typeName = propertyNode->m_typeName;
-
-	generateCode_ResultType(file, typeName, propertyNode->m_enclosing, 0 != propertyNode->m_constant, typeCompound, byRef, false, indentation);
-	writeStringToFile("getCandidate_", file, 0);
-	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
-	if (propertyNode->isStatic())
-	{
-		writeStringToFile("(size_t);", file);
-	}
-	else
-	{
-		writeStringToFile("(size_t) const;", file);
 	}
 }
 
@@ -1006,74 +561,17 @@ void HeaderFileGenerator::generateCode_Property_Resize(FILE* file, PropertyNode*
 	writeStringToFile("(size_t);", file);
 }
 
-void HeaderFileGenerator::generateCode_Property_PushBack(FILE* file, PropertyNode* propertyNode, int indentation)
+void HeaderFileGenerator::generateCode_Property_Iterate(FILE* file, PropertyNode* propertyNode, int indentation)
 {
 	if (propertyNode->isStatic())
 	{
 		writeStringToFile("static ", file, indentation);
 		indentation = 0;
 	}
-	TokenNode* typeCompound = propertyNode->m_typeCompound;
-	TokenNode* byRef = propertyNode->m_byRef;
-	TypeNameNode* typeName = propertyNode->m_typeName;
-
-	writeStringToFile("void pushBack_", file, indentation);
-	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
-	writeStringToFile("(", file);
-	generateCode_TypeName(file, typeName, propertyNode->m_enclosing, true, 0);
-	if (0 != typeCompound)
-	{
-		generateCode_Token(file, typeCompound, 0);
-	}
-	if (0 != byRef)
-	{
-		generateCode_Token(file, byRef, 0);
-	}
-	writeStringToFile(");", file);
-}
-
-void HeaderFileGenerator::generateCode_Property_GetIterator(FILE* file, PropertyNode* propertyNode, int indentation)
-{
-	if (propertyNode->isStatic())
-	{
-		writeStringToFile("static ", file, indentation);
-		indentation = 0;
-	}
-	writeStringToFile("::pafcore::Iterator* getIterator_", file, indentation);
+	writeStringToFile("::pafcore::SharedPtr<::pafcore::Iterator*> iterate_", file, indentation);
 	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
 	writeStringToFile("();", file);
 }
-
-void HeaderFileGenerator::generateCode_Property_GetKey(FILE* file, PropertyNode* propertyNode, int indentation)
-{
-	if (propertyNode->isStatic())
-	{
-		writeStringToFile("static ", file, indentation);
-		indentation = 0;
-	}
-	generateCode_ResultType(file, propertyNode->m_keyTypeName, propertyNode->m_enclosing, false, propertyNode->m_keyTypeCompound, propertyNode->m_keyByRef, false, indentation);
-	writeStringToFile("getKey_", file);
-	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
-	writeStringToFile("(::pafcore::Iterator*);", file);
-}
-
-void HeaderFileGenerator::generateCode_Property_GetValue(FILE* file, PropertyNode* propertyNode, int indentation)
-{
-	if (propertyNode->isStatic())
-	{
-		writeStringToFile("static ", file, indentation);
-		indentation = 0;
-	}
-	TokenNode* typeCompound = propertyNode->m_typeCompound;
-	TokenNode* byRef = propertyNode->m_byRef;
-	TypeNameNode* typeName = propertyNode->m_typeName;
-
-	generateCode_ResultType(file, typeName, propertyNode->m_enclosing, 0 != propertyNode->m_constant, typeCompound, byRef, false, indentation);
-	writeStringToFile("getValue_", file);
-	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
-	writeStringToFile("(::pafcore::Iterator*);", file);
-}
-
 
 void HeaderFileGenerator::generateCode_Property_Insert(FILE* file, PropertyNode* propertyNode, int indentation)
 {
@@ -1082,17 +580,14 @@ void HeaderFileGenerator::generateCode_Property_Insert(FILE* file, PropertyNode*
 		writeStringToFile("static ", file, indentation);
 		indentation = 0;
 	}
-	TokenNode* typeCompound = propertyNode->m_typeCompound;
-	TokenNode* byRef = propertyNode->m_byRef;
-	TypeNameNode* typeName = propertyNode->m_typeName;
+	TokenNode* byRef = (TokenNode*)newToken('&');
 
 	writeStringToFile("void insert_", file, indentation);
 	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
 	writeStringToFile("(::pafcore::Iterator*, ", file);
-	generateCode_ResultType(file, typeName, propertyNode->m_enclosing, 0 != propertyNode->m_constant, typeCompound, byRef, false, 0);
+	generateCode_ResultType(file, propertyNode->m_compoundType, byRef, propertyNode->m_enclosing, true, 0, true);
 	writeStringToFile(");", file);
 }
-
 
 void HeaderFileGenerator::generateCode_Property_Erase(FILE* file, PropertyNode* propertyNode, int indentation)
 {
@@ -1110,107 +605,83 @@ void HeaderFileGenerator::generateCode_Property(FILE* file, PropertyNode* proper
 {
 	if (propertyNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, propertyNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, propertyNode->m_filter);
 		file = 0;
 	}
-	if(0 != propertyNode->m_get && 0 != propertyNode->m_set && propertyNode->m_get->m_keyword->m_tokenNo > propertyNode->m_set->m_keyword->m_tokenNo)
+	g_compiler.outputEmbededCodes(file, propertyNode->m_name);
+
+	std::vector<PropertyAccessorNode*> propertyAccessors;
+	propertyNode->m_accessorList->collectPropertyAccessors(propertyAccessors);
+	for (PropertyAccessorNode* accessor : propertyAccessors)
 	{
-		generateCode_Property_Set(file, propertyNode, indentation);
-		writeStringToFile("\n", file);	
-		generateCode_Property_Get(file, propertyNode, indentation);
-	}
-	else
-	{
-		if(0 != propertyNode->m_get)
+		if (accessor == propertyNode->m_get)
 		{
 			generateCode_Property_Get(file, propertyNode, indentation);
-			if(0 != propertyNode->m_set)
-			{
-				writeStringToFile("\n", file);
-			}
+			writeStringToFile("\n", file);
 		}
-		if(0 != propertyNode->m_set)
+		if (accessor == propertyNode->m_set)
 		{
 			generateCode_Property_Set(file, propertyNode, indentation);
+			writeStringToFile("\n", file);
 		}
-		g_compiler.outputEmbededCodes(file, propertyNode->m_name); //��?
-
-	}
-	if (propertyNode->isSimple())
-	{
-		if (propertyNode->hasCandidate())
+		if (accessor == propertyNode->m_enumerate)
 		{
+			generateCode_Property_Enum(file, propertyNode, indentation);
 			writeStringToFile("\n", file);
-			generateCode_Property_CandidateCount(file, propertyNode, indentation);
-			writeStringToFile("\n", file);
-			generateCode_Property_GetCandidate(file, propertyNode, indentation);
 		}
 	}
-	else if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
+	
+	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
 	{
-		writeStringToFile("\n", file);
 		generateCode_Property_Size(file, propertyNode, indentation);
+		writeStringToFile("\n", file);
 		if (propertyNode->isDynamicArray())
 		{
-			writeStringToFile("\n", file);
 			generateCode_Property_Resize(file, propertyNode, indentation);
+			writeStringToFile("\n", file);
 		}
-		writeStringToFile("\n", file);
-		generateCode_Property_GetIterator(file, propertyNode, indentation);
-		writeStringToFile("\n", file);
-		generateCode_Property_GetValue(file, propertyNode, indentation);
 	}
 	else if (propertyNode->isList())
 	{
-		writeStringToFile("\n", file);
-		generateCode_Property_PushBack(file, propertyNode, indentation);
-		writeStringToFile("\n", file);
-		generateCode_Property_GetIterator(file, propertyNode, indentation);
-		writeStringToFile("\n", file);
-		generateCode_Property_GetValue(file, propertyNode, indentation);
+		generateCode_Property_Iterate(file, propertyNode, indentation);
 		writeStringToFile("\n", file);
 		generateCode_Property_Insert(file, propertyNode, indentation);
 		writeStringToFile("\n", file);
 		generateCode_Property_Erase(file, propertyNode, indentation);
+		writeStringToFile("\n", file);
 	}
-	else if(propertyNode->isMap())
-	{
-		writeStringToFile("\n", file);
-		generateCode_Property_GetIterator(file, propertyNode, indentation);
-		writeStringToFile("\n", file);
-		generateCode_Property_GetKey(file, propertyNode, indentation);
-		writeStringToFile("\n", file);
-		generateCode_Property_GetValue(file, propertyNode, indentation);
-	}
+
 };
 
 void HeaderFileGenerator::generateCode_Method(FILE* file, MethodNode* methodNode, int indentation)
 {
+	std::vector<VariableNode*> resultNodes;
+	if (methodNode->m_resultList)
+	{
+		methodNode->m_resultList->collectVariableNodes(resultNodes);
+	}
 	if (methodNode->isNoCode())
 	{
-		g_compiler.outputEmbededCodes(file, methodNode->m_filterNode);
+		g_compiler.outputEmbededCodes(file, methodNode->m_filter);
 		file = 0;
 	}
 	else if (methodNode->m_nativeName)
 	{
 		TokenNode* firstToken;
-		if (0 != methodNode->m_modifier)
+		if (methodNode->m_modifier)
 		{
 			firstToken = methodNode->m_modifier;
 		}
-		else if (0 != methodNode->m_resultConst)
+		else if (methodNode->m_resultList)
 		{
-			firstToken = methodNode->m_resultConst;
-		}
-		else if (0 != methodNode->m_resultTypeName)
-		{
-			if (methodNode->m_resultTypeName->m_keyword)
+			TypeNameNode* resultTypeName = resultNodes.front()->m_compoundType->m_typeName;
+			if (resultTypeName->m_keyword)
 			{
-				firstToken = methodNode->m_resultTypeName->m_keyword;
+				firstToken = resultTypeName->m_keyword;
 			}
 			else
 			{
-				firstToken = methodNode->m_resultTypeName->m_scopeNameList->m_scopeName->m_name;
+				firstToken = resultTypeName->m_scopeNameList->m_scopeName->m_name;
 			}
 		}
 		else
@@ -1226,109 +697,56 @@ void HeaderFileGenerator::generateCode_Method(FILE* file, MethodNode* methodNode
 	{
 		writeStringToFile("\n", file);
 	}
-	if(0 != methodNode->m_modifier)
+	if(methodNode->m_modifier)
 	{
-		generateCode_Token(file, methodNode->m_modifier, indentation);
+		generateCode_Token(file, methodNode->m_modifier, indentation, true);
 		indentation = 0;
 	}
-	if(0 != methodNode->m_resultTypeName)
+	if(methodNode->m_resultList)
 	{
-		generateCode_ResultType(file, methodNode->m_resultTypeName, methodNode->m_enclosing,
-			0 != methodNode->m_resultConst, methodNode->m_typeCompound, methodNode->m_byRef, methodNode->returnsOwning(), indentation);
+		generateCode_ResultType(file, resultNodes.front()->m_compoundType,
+			resultNodes.front()->m_byRef, methodNode->m_enclosing, true, indentation, true);
 		indentation = 0;
 	}
-	//generateCode_Name(file, methodNode->m_name, methodNode->m_nativeName, indentation);
-	generateCode_Identifier(file, methodNode->m_name, indentation);
-	generateCode_Token(file, methodNode->m_leftParenthesis, 0);
-	std::vector<std::pair<TokenNode*, ParameterNode*>> parameterNodes;
-	methodNode->m_parameterList->collectParameterNodes(parameterNodes);
-	size_t parameterCount = parameterNodes.size();
-	for(size_t i = 0; i < parameterCount; ++i)
+	else
 	{
-		if(parameterNodes[i].first)
+		if (methodNode->m_name->m_str != methodNode->m_enclosing->m_name->m_str)
 		{
-			generateCode_Token(file, parameterNodes[i].first, 0);
+			generateCode_outputEmbededCodes(file, methodNode->m_name);
+			generateCode_Identifier(file, "void ", indentation);
+			indentation = 0;
 		}
-		if (methodNode->isStatic()
-			&& (methodNode->m_name->m_str == "Delete" || methodNode->m_name->m_str == "DeleteArray")
-			&& 0 == i)
-		{
-			generateCode_TypeName(file, parameterNodes[i].second->m_typeName, classNode, true, 0);
-			writeStringToFile("* ", file);
-			generateCode_Identifier(file, parameterNodes[i].second->m_name, 0);
-		}
-		else
-		{
-			generateCode_Parameter(file, parameterNodes[i].second, classNode);
-		}
-	}
-	generateCode_Token(file, methodNode->m_rightParenthesis, 0);
-	if(methodNode->m_constant)
-	{
-		generateCode_Token(file, methodNode->m_constant, 0);
-	}
-	if(methodNode->isAbstract())
-	{
-		writeStringToFile(" = 0 ", file);
-	}
-	generateCode_Token(file, methodNode->m_semicolon, 0);
-}
-
-void HeaderFileGenerator::generateCode_Operator(FILE* file, OperatorNode* operatorNode, int indentation)
-{
-	if (operatorNode->isNoCode())
-	{
-		g_compiler.outputEmbededCodes(file, operatorNode->m_filterNode);
-		file = 0;
 	}
 
-	ClassNode* classNode = static_cast<ClassNode*>(operatorNode->m_enclosing);
-	if (operatorNode->m_modifier)
+	generateCode_Identifier(file, methodNode->m_name, indentation, true);
+	generateCode_Token(file, methodNode->m_leftParenthesis, 0, true);
+	if (resultNodes.size() > 1)
 	{
-		generateCode_Token(file, operatorNode->m_modifier, indentation);
-		indentation = 0;
-	}
-	if (0 != operatorNode->m_resultTypeName)
-	{
-		generateCode_ResultType(file, operatorNode->m_resultTypeName, operatorNode->m_enclosing,
-			0 != operatorNode->m_resultConst, operatorNode->m_typeCompound, operatorNode->m_byRef, operatorNode->returnsOwning(), indentation);
-		indentation = 0;
-	}
-	generateCode_Token(file, operatorNode->m_keyword, 0);
-	generateCode_TokenForOperator(file, operatorNode->m_sign, 0);
-	if ('(' == operatorNode->m_sign->m_nodeType)
-	{
-		writeStringToFile(")", file);
-	}
-	else if ('[' == operatorNode->m_sign->m_nodeType)
-	{
-		writeStringToFile("]", file);
-	}
-	generateCode_Token(file, operatorNode->m_leftParenthesis, 0);
-	std::vector<std::pair<TokenNode*, ParameterNode*>> parameterNodes;
-	operatorNode->m_parameterList->collectParameterNodes(parameterNodes);
-	size_t parameterCount = parameterNodes.size();
-	for (size_t i = 0; i < parameterCount; ++i)
-	{
-		if (parameterNodes[i].first)
+		for (size_t i = 1; i < resultNodes.size(); ++i)
 		{
-			generateCode_Token(file, parameterNodes[i].first, 0);
+			generateCode_Parameter(file, resultNodes[i], true, methodNode->m_enclosing, true);
+			if (i + 1 < resultNodes.size() || methodNode->m_parameterList)
+			{
+				writeStringToFile(",", file);
+			}
 		}
-		generateCode_Parameter(file, parameterNodes[i].second, classNode);
 	}
-	if (snt_operator_post_inc == operatorNode->m_sign->m_nodeType
-		|| snt_operator_post_inc == operatorNode->m_sign->m_nodeType)
+
+	if (methodNode->m_parameterList)
 	{
-		writeStringToFile("int", file);
+		std::vector<std::pair<TokenNode*, VariableNode*>> parameterNodes;
+		methodNode->m_parameterList->collectVariableNodes(parameterNodes);
+		size_t parameterCount = parameterNodes.size();
+		for (size_t i = 0; i < parameterCount; ++i)
+		{
+			if (parameterNodes[i].first)
+			{
+				generateCode_Token(file, parameterNodes[i].first, 0, true);
+			}
+			generateCode_Parameter(file, parameterNodes[i].second, false, methodNode->m_enclosing, true);
+		}
 	}
-	generateCode_Token(file, operatorNode->m_rightParenthesis, 0);
-	if (operatorNode->m_constant)
-	{
-		generateCode_Token(file, operatorNode->m_constant, 0);
-	}
-	if (operatorNode->isAbstract())
-	{
-		writeStringToFile(" = 0 ", file);
-	}
-	generateCode_Token(file, operatorNode->m_semicolon, 0);
+	generateCode_Token(file, methodNode->m_rightParenthesis, 0, true);
+	generateCode_Token(file, methodNode->m_semicolon, 0, true);
 }
+

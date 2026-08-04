@@ -33,8 +33,7 @@ struct MemberNode : EntityNode
 	IdentifierNode* m_nativeName{ nullptr };
 	TokenNode* m_semicolon{ nullptr };
 	int m_orderIndex;//for field & property syntax order
-	bool m_noCode{ false };
-	bool m_noMeta{ false };
+	TokenNode* m_filter{ nullptr };
 public:
 	bool isNoCode() const;
 	bool isNoMeta() const;

@@ -8,9 +8,14 @@ CompoundTypeNode::CompoundTypeNode(TypeNameNode* typeName, TypeCompound typeComp
 	m_typeCompound = typeCompound;
 }
 
-bool CompoundTypeNode::isObserverPtr() const
+bool CompoundTypeNode::isNotPtr() const
 {
-	return tc_observer_ptr == m_typeCompound;
+	return tc_none == m_typeCompound;
+}
+
+bool CompoundTypeNode::isRawPtr() const
+{
+	return tc_raw_ptr == m_typeCompound;
 }
 
 bool CompoundTypeNode::isSharedPtr() const
@@ -18,9 +23,9 @@ bool CompoundTypeNode::isSharedPtr() const
 	return tc_shared_ptr == m_typeCompound;
 }
 
-bool CompoundTypeNode::isObserverArray() const
+bool CompoundTypeNode::isObserverPtr() const
 {
-	return tc_observer_array == m_typeCompound;
+	return tc_observer_ptr == m_typeCompound;
 }
 
 bool CompoundTypeNode::isSharedArray() const
@@ -28,7 +33,7 @@ bool CompoundTypeNode::isSharedArray() const
 	return tc_shared_array == m_typeCompound;
 }
 
-bool CompoundTypeNode::isSmartPtr() const
+bool CompoundTypeNode::isObserverArray() const
 {
-	return tc_none != m_typeCompound;
+	return tc_observer_array == m_typeCompound;
 }

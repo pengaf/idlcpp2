@@ -1,4 +1,7 @@
 #import "class_type.i"
+#{
+#include "memory.h"
+#}
 
 namespace pafcore
 {
@@ -9,77 +12,64 @@ namespace pafcore
 	class Iterator;
 	class Variant;
 	
-	typedef ErrorCode(*InstancePropertyGetter)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
-	typedef ErrorCode(*InstancePropertySetter)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
-	typedef ErrorCode(*InstancePropertyCandidateCount)(InstanceProperty* instanceProperty, Variant* that, Variant* size);
-	typedef ErrorCode(*InstancePropertyGetCandidate)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
+	typedef ErrorCode(*InstancePropertyEnumerate)(InstanceProperty* instanceProperty, Variant* that, Variant* candidates);
+	
+	typedef ErrorCode(*InstancePropertyGet)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
+	typedef ErrorCode(*InstancePropertySet)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
 
-	typedef ErrorCode(*ArrayInstancePropertyGetter)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
-	typedef ErrorCode(*ArrayInstancePropertySetter)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
-	typedef ErrorCode(*ArrayInstancePropertySizer)(InstanceProperty* instanceProperty, Variant* that, Variant* size);
-	typedef ErrorCode(*ArrayInstancePropertyResizer)(InstanceProperty* instanceProperty, Variant* that, Variant* size);
-	typedef ErrorCode(*ArrayInstancePropertyGetIterator)(InstanceProperty* instanceProperty, Variant* that, Variant* iterator);
-	typedef ErrorCode(*ArrayInstancePropertyGetValue)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
+	typedef ErrorCode(*InstancePropertyArrayGet)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
+	typedef ErrorCode(*InstancePropertyArraySet)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
+	typedef ErrorCode(*InstancePropertyArraySize)(InstanceProperty* instanceProperty, Variant* that, size_t& size);
+	typedef ErrorCode(*InstancePropertyArrayResize)(InstanceProperty* instanceProperty, Variant* that, size_t size);
 
-	typedef ErrorCode(*ListInstancePropertyPushBack)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
-	typedef ErrorCode(*ListInstancePropertyGetIterator)(InstanceProperty* instanceProperty, Variant* that, Variant* iterator);
-	typedef ErrorCode(*ListInstancePropertyGetValue)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
-	typedef ErrorCode(*ListInstancePropertyInsert)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value); 
-	typedef ErrorCode(*ListInstancePropertyErase)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator);//�Ƴ��� iterator ָ����һ��
+	typedef ErrorCode(*InstancePropertyListIterate)(InstanceProperty* instanceProperty, Variant* that, Variant* iterator);
+	typedef ErrorCode(*InstancePropertyListGet)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
+	typedef ErrorCode(*InstancePropertyListSet)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
+	typedef ErrorCode(*InstancePropertyListInsert)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
+	typedef ErrorCode(*InstancePropertyListErase)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator);
 
-	typedef ErrorCode(*MapInstancePropertyGetter)(InstanceProperty* instanceProperty, Variant* that, Variant* key, Variant* value);
-	typedef ErrorCode(*MapInstancePropertySetter)(InstanceProperty* instanceProperty, Variant* that, Variant* key, Variant* value);
-	typedef ErrorCode(*MapInstancePropertyGetIterator)(InstanceProperty* instanceProperty, Variant* that, Variant* iterator);
-	typedef ErrorCode(*MapInstancePropertyGetKey)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* key);
-	typedef ErrorCode(*MapInstancePropertyGetValue)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
 
 #}
 
-	abstract class(instance_property)#PAFCORE_EXPORT InstanceProperty : Metadata
+	class(instance_property)#PAFCORE_EXPORT InstanceProperty : Metadata
 	{
 		ClassType* objectType { get };
 		
-		bool isArray { get };
+		bool isSimple{ get };
+		bool isFixedArray{ get };
+		bool isDynamicArray{ get };
 		bool isList { get };
-		bool isMap { get };
-		bool isSimple { get };
 
-		bool hasGetter { get };
-		bool hasSetter { get };
-		bool hasSizer { get };
-		bool hasResizer { get };
-		bool hasCandidate { get };
+		bool hasEnumerate{ get };
+		bool hasGet { get };
+		bool hasSet { get };
 		bool serializable { get };
 
 		Type* type { get };
-		bool isPtr{ get };
-		Type* keyType { get };
-		bool isKeyPtr { get };
+		TypeCompound typeCompound { get };
 #{
 	public:
 		InstanceProperty(
-			const char* name, 
-			Attributes* attributes, 
+			const char* name,
+			Attributes* attributes,
 			ClassType* objectType,
-			Type* type, 
-			bool isPtr,
-			InstancePropertyGetter getter,
-			InstancePropertySetter setter,
-			InstancePropertyCandidateCount candidateCount = 0,
-			InstancePropertyGetCandidate getCandidate = 0);
+			Type* type,
+			TypeCompound typeCompound,
+			InstancePropertyEnumerate enumerate,
+			InstancePropertyGet get,
+			InstancePropertySet set);
 
 		InstanceProperty(
 			const char* name, 
 			Attributes* attributes, 
 			ClassType* objectType,
 			Type* type,
-			bool isPtr,
-			ArrayInstancePropertyGetter getter,
-			ArrayInstancePropertySetter setter,
-			ArrayInstancePropertySizer sizer, 
-			ArrayInstancePropertyResizer resizer,
-			ArrayInstancePropertyGetIterator getIterator,
-			ArrayInstancePropertyGetValue getValue);
+			TypeCompound typeCompound,
+			InstancePropertyEnumerate enumerate,
+			InstancePropertyArrayGet arrayGet,
+			InstancePropertyArraySet arraySet,
+			InstancePropertyArraySize arraySize,
+			InstancePropertyArrayResize arrayResize);
 
 
 		InstanceProperty(
@@ -87,147 +77,48 @@ namespace pafcore
 			Attributes* attributes,
 			ClassType* objectType,
 			Type* type,
-			bool isPtr,
-			ListInstancePropertyPushBack pushBack,
-			ListInstancePropertyGetIterator getIterator,
-			ListInstancePropertyGetValue getValue,
-			ListInstancePropertyInsert insert,
-			ListInstancePropertyErase erase);
-
-		InstanceProperty(
-			const char* name,
-			Attributes* attributes,
-			ClassType* objectType,
-			Type* type,
-			bool isPtr,
-			Type* keyType, 
-			bool isKeyPtr,
-			MapInstancePropertyGetter getter,
-			MapInstancePropertySetter setter,
-			MapInstancePropertyGetIterator getIterator,
-			MapInstancePropertyGetKey getKey,
-			MapInstancePropertyGetValue getValue);
+			TypeCompound typeCompound,
+			InstancePropertyEnumerate enumerate,
+			InstancePropertyListGet listGet,
+			InstancePropertyListSet listSet,
+			InstancePropertyListIterate listIterate,
+			InstancePropertyListInsert listInsert,
+			InstancePropertyListErase listErase);
 
 	public:
 		ClassType * m_objectType;
+		InstancePropertyEnumerate m_enumerate;
 		union
 		{
 			struct
 			{
-				InstancePropertyGetter m_getter;
-				InstancePropertySetter m_setter;
-				InstancePropertyCandidateCount m_candidateCount;
-				InstancePropertyGetCandidate m_getCandidate;
+				InstancePropertyGet m_get;
+				InstancePropertySet m_set;
 			};
 			struct
 			{
-				ArrayInstancePropertyGetter m_arrayGetter;
-				ArrayInstancePropertySetter m_arraySetter;
-				ArrayInstancePropertySizer m_arraySizer;
-				ArrayInstancePropertyResizer m_arrayResizer;
-				ArrayInstancePropertyGetIterator m_arrayGetIterator;
-				ArrayInstancePropertyGetValue m_arrayGetValue;
+				InstancePropertyArrayGet m_arrayGet;
+				InstancePropertyArraySet m_arraySet;
+				InstancePropertyArraySize m_arraySize;
+				InstancePropertyArrayResize m_arrayResize;
 			};
 			struct
 			{
-				ListInstancePropertyPushBack m_listPushBack;
-				ListInstancePropertyGetIterator m_listGetIterator;
-				ListInstancePropertyGetValue m_listGetValue;
-				ListInstancePropertyInsert m_listInsert;
-				ListInstancePropertyErase m_listErase;
-			};
-			struct
-			{
-				MapInstancePropertyGetter m_mapGetter;
-				MapInstancePropertySetter m_mapSetter;
-				MapInstancePropertyGetIterator m_mapGetIterator;
-				MapInstancePropertyGetKey m_mapGetKey;
-				MapInstancePropertyGetValue m_mapGetValue;
+				InstancePropertyListGet m_listGet;
+				InstancePropertyListSet m_listSet;
+				InstancePropertyListIterate m_listIterate;
+				InstancePropertyListInsert m_listInsert;
+				InstancePropertyListErase m_listErase;
 			};
 		};
 		Type* m_type;
-		Type* m_keyType;
-		byte_t m_kind;
-		bool m_isPtr;
-		bool m_isKeyPtr;
+		TypeCompound m_typeCompound;
+		PropertyKind m_kind;
 		bool m_serializable;
 #}
 	};
 #{
-inline ObserverPtr<ClassType> InstanceProperty::objectType() const
-	{
-		return m_objectType;
-	}
 
-inline bool InstanceProperty::isSimple() const
-	{
-		return simple_property == m_kind;
-	}
-
-inline bool InstanceProperty::isArray() const
-	{
-		return array_property == m_kind;
-	}
-
-inline bool InstanceProperty::isList() const
-	{
-		return list_property == m_kind;
-	}
-
-inline bool InstanceProperty::isMap() const
-	{
-		return map_property == m_kind;
-	}
-
-inline bool InstanceProperty::hasGetter() const
-	{
-		return (0 != m_getter);
-	}
-
-inline bool InstanceProperty::hasSetter() const
-	{
-		return (0 != m_setter);
-	}
-
-inline bool InstanceProperty::hasSizer() const
-	{
-		return (0 != m_arraySizer);
-	}
-
-inline bool InstanceProperty::hasResizer() const
-	{
-		return (0 != m_arrayResizer);
-	}
-
-inline bool InstanceProperty::hasCandidate() const
-	{
-	return isSimple() && m_candidateCount && m_getCandidate;
-	}
-
-inline ObserverPtr<Type> InstanceProperty::type() const
-	{
-		return m_type;
-	}
-
-inline bool InstanceProperty::isPtr() const
-	{
-		return m_isPtr;
-	}
-
-inline ObserverPtr<Type> InstanceProperty::keyType() const
-	{
-		return m_keyType;
-	}
-
-inline bool InstanceProperty::isKeyPtr() const
-	{
-		return m_isKeyPtr;
-	}
-
-inline bool InstanceProperty::serializable() const
-	{
-		return m_serializable;
-	}
 
 #}
 

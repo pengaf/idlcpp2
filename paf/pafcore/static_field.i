@@ -7,16 +7,15 @@ namespace pafcore
 	struct Attributes;
 #}
 
-	abstract class(static_field)#PAFCORE_EXPORT StaticField : Metadata
+	class(static_field)#PAFCORE_EXPORT StaticField : Metadata
 	{
 		Type* type { get };
+		TypeCompound typeCompound{ get };
+		bool isArray{ get };
 		size_t address { get };
-		bool isConstant { get };
-		bool isArray { get };
-		bool isPointer { get };
-#{
+#{	
 	public:
-		StaticField(const char* name, Attributes* attributes, Type* type, size_t address, size_t arraySize, bool constant, TypeCompound tc);
+		StaticField(const char* name, Attributes* attributes, Type* type, size_t address, size_t arraySize, TypeCompound typeCompound);
 	public:
 		size_t getArraySize() const
 		{
@@ -26,8 +25,7 @@ namespace pafcore
 		Type* m_type;
 		size_t m_address;
 		size_t m_arraySize;
-		bool m_constant;
-		byte_t m_typeCompound;
+		TypeCompound m_typeCompound;
 #}
 	};
 

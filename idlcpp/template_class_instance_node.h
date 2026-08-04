@@ -5,16 +5,16 @@
 #include <vector>
 
 struct TypeNameListNode;
-struct TokenListNode;
+struct IdentifierListNode;
 struct TemplateClassInstanceTypeNode;
 struct ClassTypeNode;
 
 struct TemplateClassInstanceNode : MemberNode
 {
-	TypeNameListNode* m_parameterList;
-	TokenListNode* m_tokenList;
-	TemplateClassInstanceTypeNode* m_typeNode;
-	ClassTypeNode* m_classTypeNode;
+	TypeNameListNode* m_parameterList{ nullptr };
+	IdentifierListNode* m_reservedMemberList{ nullptr };
+	TemplateClassInstanceTypeNode* m_typeNode{ nullptr };
+	ClassTypeNode* m_classTypeNode{ nullptr };
 	TemplateArguments m_templateArguments;
 public:
 	TemplateClassInstanceNode(IdentifierNode* name, TypeNameListNode* parameterList);
@@ -23,5 +23,5 @@ public:
 	virtual void collectTypes(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments);
 	virtual void checkSemantic(TemplateArguments* templateArguments);
 	size_t getParameterCount();
-	void getReservedMembers(std::vector<IdentifierNode*>& reservedNames,std::vector<TokenNode*>& reservedOperators);
+	void getReservedMembers(std::vector<IdentifierNode*>& reservedMembers);
 };

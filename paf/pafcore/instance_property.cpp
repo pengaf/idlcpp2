@@ -10,23 +10,19 @@ InstanceProperty::InstanceProperty(
 	Attributes* attributes,
 	ClassType* objectType,
 	Type* type,
-	bool isPtr,
-	InstancePropertyGetter getter,
-	InstancePropertySetter setter,
-	InstancePropertyCandidateCount candidateCount,
-	InstancePropertyGetCandidate getCandidate)
+	TypeCompound typeCompound,
+	InstancePropertyEnumerate enumerate,
+	InstancePropertyGet get,
+	InstancePropertySet set)
 	:Metadata(name, attributes)
 {
 	m_objectType = objectType;
 	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = 0;
-	m_isKeyPtr = false;
-	m_getter = getter;
-	m_setter = setter;
-	m_candidateCount = candidateCount;
-	m_getCandidate = getCandidate;
-	m_kind = simple_property;
+	m_typeCompound = typeCompound;
+	m_enumerate = enumerate;
+	m_get = get;
+	m_set = set;
+	m_kind = PropertyKind::simple_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 
@@ -35,27 +31,23 @@ InstanceProperty::InstanceProperty(
 	Attributes* attributes,
 	ClassType* objectType,
 	Type* type,
-	bool isPtr,
-	ArrayInstancePropertyGetter getter,
-	ArrayInstancePropertySetter setter,
-	ArrayInstancePropertySizer sizer,
-	ArrayInstancePropertyResizer resizer,
-	ArrayInstancePropertyGetIterator getIterator,
-	ArrayInstancePropertyGetValue getValue)
+	TypeCompound typeCompound,
+	InstancePropertyEnumerate enumerate,
+	InstancePropertyArrayGet arrayGet,
+	InstancePropertyArraySet arraySet,
+	InstancePropertyArraySize arraySize,
+	InstancePropertyArrayResize arrayResize)
 	:Metadata(name, attributes)
 {
 	m_objectType = objectType;
 	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = 0;
-	m_isKeyPtr = false;
-	m_arrayGetter = getter;
-	m_arraySetter = setter;
-	m_arraySizer = sizer;
-	m_arrayResizer = resizer;
-	m_arrayGetIterator = getIterator;
-	m_arrayGetValue = getValue;
-	m_kind = array_property;
+	m_typeCompound = typeCompound;
+	m_enumerate = enumerate;
+	m_arrayGet = arrayGet;
+	m_arraySet = arraySet;
+	m_arraySize = arraySize;
+	m_arrayResize = arrayResize;
+	m_kind = arrayResize ? PropertyKind::dynamic_array_property : PropertyKind::fixed_array_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 
@@ -64,55 +56,80 @@ InstanceProperty::InstanceProperty(
 	Attributes* attributes,
 	ClassType* objectType,
 	Type* type,
-	bool isPtr,
-	ListInstancePropertyPushBack pushBack,
-	ListInstancePropertyGetIterator getIterator,
-	ListInstancePropertyGetValue getValue,
-	ListInstancePropertyInsert insert,
-	ListInstancePropertyErase erase)
-:Metadata(name, attributes)
-{
-	m_objectType = objectType;
-	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = 0;
-	m_isKeyPtr = false;
-	m_listPushBack = pushBack;
-	m_listGetIterator = getIterator;
-	m_listGetValue = getValue;
-	m_listInsert = insert;
-	m_listErase = erase;
-	m_kind = list_property;
-	m_serializable = !_hasAttribute_("NonSerialized");
-}
-
-InstanceProperty::InstanceProperty(
-	const char* name,
-	Attributes* attributes,
-	ClassType* objectType,
-	Type* type,
-	bool isPtr,
-	Type* keyType,
-	bool isKeyPtr,
-	MapInstancePropertyGetter getter,
-	MapInstancePropertySetter setter,
-	MapInstancePropertyGetIterator getIterator,
-	MapInstancePropertyGetKey getKey,
-	MapInstancePropertyGetValue getValue)
+	TypeCompound typeCompound,
+	InstancePropertyEnumerate enumerate,
+	InstancePropertyListGet listGet,
+	InstancePropertyListSet listSet,
+	InstancePropertyListIterate listIterate,
+	InstancePropertyListInsert listInsert,
+	InstancePropertyListErase listErase)
 	:Metadata(name, attributes)
 {
 	m_objectType = objectType;
 	m_type = type;
-	m_isPtr = isPtr;
-	m_keyType = keyType;
-	m_isKeyPtr = isKeyPtr;
-	m_mapGetter = getter;
-	m_mapSetter = setter;
-	m_mapGetIterator = getIterator;
-	m_mapGetKey = getKey;
-	m_mapGetValue = getValue;
-	m_kind = map_property;
+	m_typeCompound = typeCompound;
+	m_enumerate = enumerate;
+	m_listGet = listGet;
+	m_listSet = listSet;
+	m_listIterate = listIterate;
+	m_listInsert = listInsert;
+	m_listErase = listErase;
+	m_kind = PropertyKind::list_property;
 	m_serializable = !_hasAttribute_("NonSerialized");
 }
 
+ClassType* InstanceProperty::objectType() const
+{
+	return m_objectType;
+}
+
+bool InstanceProperty::isSimple() const
+{
+	return PropertyKind::simple_property == m_kind;
+}
+
+bool InstanceProperty::isFixedArray() const
+{
+	return PropertyKind::fixed_array_property == m_kind;
+}
+
+bool InstanceProperty::isDynamicArray() const
+{
+	return PropertyKind::dynamic_array_property == m_kind;
+}
+
+bool InstanceProperty::isList() const
+{
+	return PropertyKind::list_property == m_kind;
+}
+
+bool InstanceProperty::hasEnumerate() const
+{
+	return (0 != m_enumerate);
+}
+
+bool InstanceProperty::hasGet() const
+{
+	return (0 != m_get);
+}
+
+bool InstanceProperty::hasSet() const
+{
+	return (0 != m_set);
+}
+
+Type* InstanceProperty::type() const
+{
+	return m_type;
+}
+
+TypeCompound InstanceProperty::typeCompound() const
+{
+	return m_typeCompound;
+}
+
+bool InstanceProperty::serializable() const
+{
+	return m_serializable;
+}
 END_PAFCORE

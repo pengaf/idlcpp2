@@ -8,10 +8,10 @@ namespace pafcore
 {
 	class #PAFCORE_EXPORT Iterator : Object
 	{
-		virtual bool isEnd() const;
+		virtual bool isEnd();
 		virtual void moveNext();
 		virtual void reset();
-		virtual bool equal(Iterator* other) const;
+		virtual bool equal(Iterator* other);
 #{
 #}
 	};
@@ -59,7 +59,7 @@ namespace pafcore
 			//m_end = m_container->end();
 			m_iterator = m_container->begin();
 		}
-		virtual bool equal(ObserverPtr<Iterator> other) const
+		virtual bool equal(Iterator* other) const
 		{
 			return (static_cast<ThisType*>(other)->m_iterator == m_iterator);
 		}
@@ -110,7 +110,7 @@ namespace pafcore
 		{
 			m_index = 0;
 		}
-		virtual bool equal(ObserverPtr<Iterator> other) const
+		virtual bool equal(Iterator* other) const
 		{
 			ThisType* that = static_cast<ThisType*>(other);
 			return (that->m_begin + that->m_index == m_begin + m_index);

@@ -1,5 +1,7 @@
 #include "method_node.h"
 #include "variable_list_node.h"
+#include "variable_node.h"
+#include "compound_type_node.h"
 #include "type_name_node.h"
 #include "identifier_node.h"
 #include "class_node.h"
@@ -30,66 +32,35 @@ bool MethodNode::isStatic()
 
 bool MethodNode::isVirtual()
 {
-	return (0 != m_modifier && 
-		(snt_keyword_virtual == m_modifier->m_nodeType || 
-		snt_keyword_abstract == m_modifier->m_nodeType));
+	return (0 != m_modifier && snt_keyword_virtual == m_modifier->m_nodeType);
 }
 
-bool MethodNode::isAbstract()
+uint32_t MethodNode::getResultCount() const
 {
-	return (0 != m_modifier && snt_keyword_abstract == m_modifier->m_nodeType);
-}
-
-bool MethodNode::byValue()
-{
-	return 0 == m_typeCompound && 0 == m_byRef && !m_resultOwning;
-}
-
-bool MethodNode::byRef()
-{
-	return 0 != m_byRef;
-}
-
-bool MethodNode::byPtr()
-{
-	return byObserverPtr() || byUniquePtr() || bySharedPtr();
-}
-
-bool MethodNode::byObserverPtr()
-{
-	return (0 != m_typeCompound && '*' == m_typeCompound->m_nodeType);
-}
-
-bool MethodNode::byUniquePtr()
-{
-	return (0 != m_typeCompound && '!' == m_typeCompound->m_nodeType);
-}
-
-bool MethodNode::bySharedPtr()
-{
-	return (0 != m_typeCompound && '^' == m_typeCompound->m_nodeType);
-}
-
-bool MethodNode::returnsOwning()
-{
-	return m_resultOwning;
-}
-
-void MethodNode::setResultOwning(bool resultOwning)
-{
-	m_resultOwning = resultOwning;
-}
-
-size_t MethodNode::getParameterCount() const
-{
-	if (size_t(-1) == m_parameterCount)
+	if (uint32_t(-1) == m_resultCount)
 	{
-		size_t res = 0;
-		ParameterListNode* list = m_parameterList;
-		while(0 != list)
+		uint32_t res = 0;
+		VariableListNode* list = m_resultList;
+		while (0 != list)
 		{
 			++res;
-			list = list->m_parameterList;
+			list = list->m_variableList;
+		}
+		m_resultCount = res;
+	}
+	return m_resultCount;
+}
+
+uint32_t MethodNode::getParameterCount() const
+{
+	if (uint32_t(-1) == m_parameterCount)
+	{
+		uint32_t res = 0;
+		VariableListNode* list = m_parameterList;
+		while (0 != list)
+		{
+			++res;
+			list = list->m_variableList;
 		}
 		m_parameterCount = res;
 	}
@@ -104,57 +75,71 @@ void MethodNode::calcManglingName(std::string& name, TemplateArguments* template
 	}
 	else
 	{
-		if (isConstant())
+		name = ",";
+	}
+
+	std::vector<VariableNode*> resultNodes;
+	m_resultList->collectVariableNodes(resultNodes);
+	for (VariableNode* resultNode : resultNodes)
+	{
+		TypeNode* typeNode = resultNode->m_compoundType->m_typeName->getTypeNode(templateArguments);
+		if (typeNode)
 		{
-			name = "const,";
-		}
-		else
-		{
-			name = ",";
+			name += typeNode->m_name + ",";
 		}
 	}
 
-	std::vector<ParameterNode*> parameterNodes;
-	m_parameterList->collectParameterNodes(parameterNodes);
-	size_t parameterCount = parameterNodes.size();
-	for (size_t i = 0; i < parameterCount; ++i)
+	std::vector<VariableNode*> parameterNodes;
+	m_parameterList->collectVariableNodes(parameterNodes);
+	for (VariableNode* parameterNode : parameterNodes)
 	{
-		ParameterNode* parameterNode = parameterNodes[i];
-		TypeNode* typeNode = parameterNode->m_typeName->getTypeNode(templateArguments);
-		if (0 == typeNode)
+		TypeNode* typeNode = parameterNode->m_compoundType->m_typeName->getTypeNode(templateArguments);
+		if (typeNode)
 		{
-			return;	
-		}
-		if (parameterNode->isInput())
-		{
-			if (parameterNode->isConstant())
-			{
-				name += "const ";
-			}
 			name += typeNode->m_name + ",";
 		}
-		else
-		{
-			name += ",";
-		}		
 	}
 }
 
 void MethodNode::checkTypeNames(TypeNode* enclosingTypeNode, TemplateArguments* templateArguments)
 {
-	if (0 != m_resultTypeName)
+	std::vector<VariableNode*> resultNodes;
+	m_resultList->collectVariableNodes(resultNodes);
+	for (VariableNode* resultNode : resultNodes)
 	{
-		m_resultTypeName->calcTypeNodes(enclosingTypeNode, templateArguments);
+		resultNode->m_compoundType->m_typeName->calcTypeNodes(enclosingTypeNode, templateArguments);
 	}
 
-	std::vector<ParameterNode*> parameterNodes;
-	m_parameterList->collectParameterNodes(parameterNodes);
-	auto it = parameterNodes.begin();
-	auto end = parameterNodes.end();
-	for (; it != end; ++it)
+	std::vector<VariableNode*> parameterNodes;
+	m_parameterList->collectVariableNodes(parameterNodes);
+	for (VariableNode* parameterNode: parameterNodes)
 	{
-		ParameterNode* parameterNode = *it;
-		parameterNode->m_typeName->calcTypeNodes(enclosingTypeNode, templateArguments);
+		parameterNode->m_compoundType->m_typeName->calcTypeNodes(enclosingTypeNode, templateArguments);
+	}
+}
+
+void CheckFullParameterNames(const std::vector<VariableNode*>& resultNodes, const std::vector<VariableNode*>& parameterNodes)
+{
+	std::vector<VariableNode*> allParams;
+	if (resultNodes.size() > 1)
+	{
+		allParams.insert(allParams.end(), resultNodes.begin() + 1, resultNodes.end());
+	}
+	allParams.insert(allParams.end(), parameterNodes.begin(), parameterNodes.end());
+
+	std::set<IdentifierNode*, CompareIdentifierPtr> items;
+	for (VariableNode* param : allParams)
+	{
+		IdentifierNode* identifier = param->m_name;
+		auto res = items.insert(identifier);
+		if (!res.second)
+		{
+			char buf[4096];
+			sprintf_s(buf, "\'%s\' : parameter already defined at line %d, column %d", identifier->m_str.c_str(),
+				(*res.first)->m_lineNo, (*res.first)->m_columnNo);
+			ErrorList_AddItem_CurrentFile(identifier->m_lineNo,
+				identifier->m_columnNo, semantic_error_member_redefined, buf);
+		}
 	}
 }
 
@@ -162,39 +147,19 @@ void MethodNode::checkSemantic(TemplateArguments* templateArguments)
 {
 	MemberNode::checkSemantic(templateArguments);
 
-	assert(snt_class == m_enclosing->m_nodeType);
-	ClassNode* classNode = static_cast<ClassNode*>(m_enclosing);
-	if(0 != m_resultTypeName)
+	std::vector<VariableNode*> resultNodes;
+	m_resultList->collectVariableNodes(resultNodes);
+	for (VariableNode* resultNode : resultNodes)
 	{
-		TypeNode* typeNode = m_resultTypeName->getTypeNode(templateArguments);
-		if (0 == typeNode)
-		{
-			return;
-		}
-		if (void_type == typeNode->getTypeKind(templateArguments))
-		{
-			if ((0 != m_typeCompound && '*' != m_typeCompound->m_nodeType) || 0 != m_byRef)
-			{
-				RaiseError_InvalidResultType(this);
-			}
-		}
-		g_compiler.useType(typeNode, templateArguments, byValue() ? tu_use_definition : tu_use_declaration, m_resultTypeName);
-	}
-	if(m_override)
-	{
-		if(!isVirtual())
-		{
-			RaiseError_InterfaceMethodIsNotVirtual(m_name);
-		}
+		resultNode->checkSemantic(templateArguments);
 	}
 
-	std::vector<ParameterNode*> parameterNodes;
-	m_parameterList->collectParameterNodes(parameterNodes);
-	checkParameterNames(parameterNodes);
-
-	size_t parameterCount = parameterNodes.size();
-	for(size_t i = 0; i < parameterCount; ++i)
+	std::vector<VariableNode*> parameterNodes;
+	m_parameterList->collectVariableNodes(parameterNodes);
+	for (VariableNode* parameterNode : parameterNodes)
 	{
-		parameterNodes[i]->checkSemantic(templateArguments);
+		parameterNode->checkSemantic(templateArguments);
 	}
+
+	CheckFullParameterNames(resultNodes, parameterNodes);
 }

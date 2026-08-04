@@ -2,6 +2,7 @@
 
 PropertyAccessorListNode::PropertyAccessorListNode(PropertyAccessorListNode* propertyAccessorList, PropertyAccessorNode* propertyAccessor)
 {
+	m_nodeType = snt_property_accessor_list;
 	m_propertyAccessorList = propertyAccessorList;
 	m_propertyAccessor = propertyAccessor;
 }

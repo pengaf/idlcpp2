@@ -8,10 +8,8 @@ struct NamespaceTypeNode;
 
 struct NamespaceNode : ScopeNode
 {
-	TokenNode* m_keyword;
-	TokenNode* m_leftBrace;
-	TokenNode* m_rightBrace;
-	NamespaceTypeNode* m_typeNode;
+	TokenNode* m_keyword{ nullptr };
+	NamespaceTypeNode* m_typeNode{ nullptr };
 public:
 	NamespaceNode(TokenNode* keyword, IdentifierNode* name, TokenNode* leftBrace, MemberListNode* memberList, TokenNode* rightBrace);
 	virtual TypeNode* getTypeNode();

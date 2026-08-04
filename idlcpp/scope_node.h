@@ -6,10 +6,7 @@ struct MemberListNode;
 
 struct ScopeNode : MemberNode
 {
-	MemberListNode* m_memberList;
-public:
-	ScopeNode()
-	{
-		m_memberList = 0;
-	}
+	TokenNode* m_leftBrace{ nullptr };
+	MemberListNode* m_memberList{ nullptr };
+	TokenNode* m_rightBrace{ nullptr };
 };

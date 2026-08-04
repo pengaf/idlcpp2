@@ -5,19 +5,19 @@
 
 BEGIN_PAFCORE
 
-Enumerator::Enumerator(const char* name, Attributes* attributes, Type* type, int value)
+EnumMember::EnumMember(const char* name, Attributes* attributes, Type* type, int value)
 : Metadata(name, attributes)
 {
 	m_type = type;
 	m_value = value;
 }
 
-ObserverPtr<Type> Enumerator::_type_() const
+Type* EnumMember::_type_() const
 {
 	return m_type;
 }
 
-int Enumerator::_value_() const
+int EnumMember::_value_() const
 {
 	return m_value;
 }

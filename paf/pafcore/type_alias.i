@@ -2,10 +2,15 @@
 
 namespace pafcore
 {
-	abstract class(type_alias)#PAFCORE_EXPORT TypeAlias : Metadata
+#{ 
+	class NameSpace;
+#}
+
+	class(type_alias)#PAFCORE_EXPORT TypeAlias : Metadata
 	{
 		Type* type { get };
 #{
+		friend class NameSpace;
 	public:
 		TypeAlias(const char* name, Type* type, const char* declarationFile);
 		~TypeAlias();
@@ -14,7 +19,7 @@ namespace pafcore
 	public:
 		Type* m_type;
 		Metadata* m_enclosing;
-		const char* m_declarationFile;//�������������ļ�·��
+		const char* m_declarationFile;//file full path
 #}
 	};
 

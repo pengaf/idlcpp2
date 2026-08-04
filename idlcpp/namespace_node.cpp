@@ -1,7 +1,6 @@
 #include "namespace_node.h"
 #include "member_list_node.h"
 #include "class_node.h"
-#include "delegate_node.h"
 #include "type_tree.h"
 #include "compiler.h"
 #include <assert.h>
@@ -15,7 +14,6 @@ NamespaceNode::NamespaceNode(TokenNode* keyword, IdentifierNode* name, TokenNode
 	m_memberList = memberList;
 	m_rightBrace = rightBrace;
 	m_memberList->initializeMembersEnclosing(this);
-	m_typeNode = 0;
 }
 
 bool NamespaceNode::isGlobalNamespace()
@@ -66,9 +64,6 @@ void NamespaceNode::extendInternalCode(TypeNode* enclosingTypeNode, TemplateArgu
 			break;
 		case snt_class:
 			static_cast<ClassNode*>(memberNode)->extendInternalCode(m_typeNode, templateArguments);
-			break;
-		case snt_delegate:
-			static_cast<DelegateNode*>(memberNode)->extendInternalCode(m_typeNode, templateArguments);
 			break;
 		}
 	}

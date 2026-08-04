@@ -138,7 +138,7 @@ void DumpEnum(std::ostream& os, pafcore::EnumType* enumType, int indentLevel)
     os << Indent(indentLevel + 1) << "enumerators:" << std::endl;
     for (size_t i = 0; i < enumeratorCount; ++i)
     {
-        pafcore::Enumerator* enum_member = enumType->_getEnumerator_(i);
+        pafcore::EnumMember* enum_member = enumType->_getEnumerator_(i);
         os << Indent(indentLevel + 2)
            << "- "
            << SafeName(enum_member->m_name)

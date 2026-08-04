@@ -35,16 +35,16 @@ NameSpace::~NameSpace()
 		MetadataKind kind = member->_kind_();
 		switch (kind)
 		{
-		case name_space:
+		case MetadataKind::name_space:
 			PAF_ASSERT(static_cast<NameSpace*>(member)->m_enclosing == this);
-			pafcore::Destroy(static_cast<NameSpace*>(member));
+			static_cast<NameSpace*>(member)->m_enclosing = 0;
 			break;
-		case type_alias:
+		case MetadataKind::type_alias:
 			PAF_ASSERT(static_cast<TypeAlias*>(member)->m_enclosing == this);
 			static_cast<TypeAlias*>(member)->m_enclosing = 0;
 			break;
 		default:
-			PAF_ASSERT(void_type == kind || primitive_type == kind || enum_type == kind || class_type == kind);
+			PAF_ASSERT(MetadataKind::primitive_type == kind || MetadataKind::enum_type == kind || MetadataKind::class_type == kind);
 			PAF_ASSERT(static_cast<Type*>(member)->m_enclosing == this);
 			static_cast<Type*>(member)->m_enclosing = 0;
 		}
@@ -56,20 +56,22 @@ NameSpace* NameSpace::getNameSpace(const char* name)
 	char buffer[sizeof(Metadata)];
 	Metadata* fakeMetadata = (Metadata*)buffer;
 	fakeMetadata->m_name = name;
-	NameSpace* subNameSpace = 0;
+	NameSpace* subNameSpace = nullptr;
 	if(0 != this)
 	{
 		auto it = m_members.find(fakeMetadata);
 		if(m_members.end() == it)
 		{
-			subNameSpace = Create<NameSpace>(name);
-			m_members.insert(subNameSpace);
+			UniquePtr<NameSpace> nameSpace = MakeUnique<NameSpace>(name);
+			subNameSpace = nameSpace.get();
 			subNameSpace->m_enclosing = this;
+			m_members.insert(subNameSpace);
+			m_nameSpaces.push_back(std::move(nameSpace));
 		}
 		else
 		{
 			Metadata* member = *it;
-			if(name_space == member->_kind_())
+			if(MetadataKind::name_space == member->_kind_())
 			{
 				subNameSpace = static_cast<NameSpace*>(member);
 				PAF_ASSERT(this == subNameSpace->m_enclosing);
@@ -86,13 +88,13 @@ ErrorCode NameSpace::registerMember(Metadata* member)
 		return e_invalid_namespace;
 	}
 	MetadataKind kind = member->_kind_();
-	if (type_alias == kind)
+	if (MetadataKind::type_alias == kind)
 	{
 		static_cast<TypeAlias*>(member)->m_enclosing = this;
 	}
 	else
 	{
-		PAF_ASSERT(void_type == kind || primitive_type == kind || enum_type == kind || class_type == kind);
+		PAF_ASSERT(MetadataKind::primitive_type == kind || MetadataKind::enum_type == kind || MetadataKind::class_type == kind);
 		static_cast<Type*>(member)->m_enclosing = this;
 	}
 	return m_members.insert(member).second ? s_ok : e_name_conflict;
@@ -103,10 +105,9 @@ void NameSpace::unregisterMember(Metadata* metadata)
 	m_members.erase(metadata);
 }
 
-
-ObserverPtr<Metadata> NameSpace::_findMember_(string_t name)
+Metadata* NameSpace::_findMember_(string_t name)
 {
-	Metadata* member = 0;
+	Metadata* member = nullptr;
 	char buffer[sizeof(Metadata)];
 	Metadata* fakeMetadata = (Metadata*)buffer;
 	fakeMetadata->m_name = name;
@@ -123,7 +124,7 @@ size_t NameSpace::_getMemberCount_()
 	return m_members.size();
 }
 
-ObserverPtr<Metadata> NameSpace::_getMember_(size_t index)
+Metadata* NameSpace::_getMember_(size_t index)
 {
 	if (index < m_members.size())
 	{
@@ -142,7 +143,7 @@ Metadata* NameSpace::findMember(const char * name)
 	Metadata* member = _findMember_(name);
 	if(0 != member)
 	{
-		if(member->_kind_() == type_alias)
+		if(member->_kind_() == MetadataKind::type_alias)
 		{
 			member = static_cast<TypeAlias*>(member)->m_type;
 		}

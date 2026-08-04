@@ -1,5 +1,5 @@
 #include "overload.h"
-#include "argument.h"
+#include "parameter.h"
 #include "variant.h"
 #include "type.h"
 #include "primitive_type.h"
@@ -8,57 +8,64 @@
 
 BEGIN_PAFCORE
 
-enum ArgumentMatch
-{
-	no_match,
-	type_conversion,
-	type_promotion,
-	const_transformation,
-	exact_match,
-};
 
-Overload::Overload(Result* result, Argument* args, size_t argCount, bool isStatic, bool isConstant)
+Overload::Overload(Result* results, uint32_t resultCount, Parameter* parameters, uint32_t parameterCount)
 {
-	m_result = result;
-	m_args = args;
-	m_argCount = (uint16_t)argCount;
-	m_isStatic = isStatic;
-	m_isConstant = isConstant;
+	m_results = results;
+	m_parameters = parameters;
+	m_resultCount = resultCount;
+	m_parameterCount = parameterCount;
 }
 
-const char nm = no_match;
-const char tc = type_conversion;
-const char tp = type_promotion;
-const char em = exact_match;
-const char m1 = sizeof(unsigned short) < sizeof(int) ? tp : tc;
-const char m2 = sizeof(unsigned short) < sizeof(int) ? tc : tp;
+//const char nm = no_match;
+//const char tc = type_conversion;
+//const char tp = type_promotion;
+//const char em = exact_match;
+//const char m1 = sizeof(unsigned short) < sizeof(int) ? tp : tc;
+//const char m2 = sizeof(unsigned short) < sizeof(int) ? tc : tp;
+//
+//char g_primitiveArgumentMatchTable[primitive_type_count][primitive_type_count] =
+//{
+//	{ em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//bool
+//	{ tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//char
+//	{ tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//signed char
+//	{ tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//unsigned char
+//	{ tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//wchar_t
+//	{ tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//short
+//	{ tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//unsigned short
+//	{ tp, tp, tp, tp, tp, tp, m1, em, tc, tc, tc, tc, tc, tc, tc, tc, nm},//int
+//	{ tc, tc, tc, tc, tc, tc, m2, tc, em, tc, tc, tc, tc, tc, tc, tc, nm},//unsigned int
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, nm},//long
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, nm},//unsigned long
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, nm},//long long
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, nm},//unsigned long long
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, nm},//float
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tp, em, tc, nm},//double
+//	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, nm},//long double
+//	{ nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, em},//string_t
+//};
+//
+//inline ArgumentMatch MatchPrimitive(PrimitiveTypeKind dst, PrimitiveTypeKind src)
+//{
+//	return static_cast<ArgumentMatch>(g_primitiveArgumentMatchTable[dst][src]);
+//}
 
-char g_primitiveArgumentMatchTable[primitive_type_count][primitive_type_count] =
+bool MatchPrimitive(PrimitiveTypeKind dst, PrimitiveTypeKind src)
 {
-	{ em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//bool
-	{ tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//char
-	{ tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//signed char
-	{ tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//unsigned char
-	{ tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//wchar_t
-	{ tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//short
-	{ tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, tc, tc, tc, nm},//unsigned short
-	{ tp, tp, tp, tp, tp, tp, m1, em, tc, tc, tc, tc, tc, tc, tc, tc, nm},//int
-	{ tc, tc, tc, tc, tc, tc, m2, tc, em, tc, tc, tc, tc, tc, tc, tc, nm},//unsigned int
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, tc, nm},//long
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, tc, nm},//unsigned long
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, tc, nm},//long long
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, tc, nm},//unsigned long long
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, tc, tc, nm},//float
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tp, em, tc, nm},//double
-	{ tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, tc, em, nm},//long double
-	{ nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, em},//string_t
-};
-
-inline ArgumentMatch MatchPrimitive(PrimitiveTypeKind dst, PrimitiveTypeKind src)
-{
-	return static_cast<ArgumentMatch>(g_primitiveArgumentMatchTable[dst][src]);
+	if (PrimitiveTypeKind::bool_type < src && src < PrimitiveTypeKind::float_type)
+	{
+		return PrimitiveTypeKind::bool_type < dst && dst < PrimitiveTypeKind::float_type;
+	}
+	else if (PrimitiveTypeKind::float_type <= src && src <= PrimitiveTypeKind::long_double_type)
+	{
+		return PrimitiveTypeKind::float_type <= dst && dst <= PrimitiveTypeKind::long_double_type;
+	}
+	else
+	{
+		return dst == src;
+	}
 }
-
+/*
 ArgumentMatch MatchArgumentByPassingValue(Type* dstType, Type* srcType)
 {
 	switch (dstType->m_kind)
@@ -153,135 +160,186 @@ ArgumentMatch MatchArgumentByPassingPtr(Type* dstType, Type* srcType)
 			return no_match;
 		}
 	}
-};
+};                                                                                                                     */                                                                                                                                
 
-
-bool Overload::matchArguments(char* matches, Variant** variants)
+Overload::MatchKind MatchValue(const Parameter& parameter, Variant* argument)
 {
-	if (!m_isStatic)
+	Type* paramType = parameter.type();
+	Type* argType = argument->type();
+	if (paramType->isPrimitive())
 	{
-		if (!m_isConstant && variants[0]->m_constant)
+		if (argType->isPrimitive())
 		{
-			return false;
+			PrimitiveTypeKind paramKind = static_cast<PrimitiveType*>(paramType)->getPrimitiveTypeKind();
+			PrimitiveTypeKind argKind = static_cast<PrimitiveType*>(argType)->getPrimitiveTypeKind();
+			return MatchPrimitive(paramKind, argKind) ? Overload::MatchKind::exact_match : Overload::MatchKind::compatible_match;
 		}
-		++variants;
-	}
-	for (size_t i = 0; i < m_argCount; ++i)
-	{
-		ArgumentMatch match;
-		if (m_args[i].isOutput())
+		else if(argType->isEnum())
 		{
-			match = exact_match;
-		}
-		else if (m_args[i].byValue())
-		{
-			match = MatchArgumentByPassingValue(m_args[i].m_type, variants[i]->m_type);
-		}
-		else if (m_args[i].byRef())
-		{
-			if (m_args[i].m_constant)
-			{
-				match = MatchArgumentByPassingValue(m_args[i].m_type, variants[i]->m_type);
-				if (exact_match == match && !variants[i]->m_constant)
-				{
-					match = const_transformation;
-				}
-			}
-			else if(variants[i]->m_constant)
-			{
-				return false;
-			}
-			else
-			{
-				match = MatchArgumentByPassingPtr(m_args[i].m_type, variants[i]->m_type);
-			}
-		}
-		else if (m_args[i].byPtr())
-		{
-			if (!m_args[i].m_constant && variants[i]->m_constant)
-			{
-				return false;
-			}
-			match  = MatchArgumentByPassingPtr(m_args[i].m_type, variants[i]->m_type);
-			if(exact_match == match && m_args[i].m_constant && !variants[i]->m_constant)
-			{
-				match = const_transformation;
-			}
+			return Overload::MatchKind::compatible_match;
 		}
 		else
 		{
-			match = exact_match;
+			return Overload::MatchKind::no_match;
 		}
-		if (no_match == match)
-		{
-			return false;
-		}
-		matches[i] = match;
 	}
-	return true;
+	else if (paramType->isEnum())
+	{
+		return paramType == argType ? Overload::MatchKind::exact_match : Overload::MatchKind::no_match;
+	}
+	else
+	{
+		assert(paramType->isClass());
+		if (argType->isClass())
+		{
+			return static_cast<ClassType*>(argType)->isType(static_cast<ClassType*>(paramType)) ? Overload::MatchKind::exact_match : Overload::MatchKind::no_match;
+		}
+		else
+		{
+			return Overload::MatchKind::no_match;
+		}
+	}
 }
 
-size_t Overload::Resolution(Overload* overloads, Variant** variants, size_t argCount, size_t overloadCount, size_t* candidates, char* argMatches)
+Overload::MatchKind MatchObserverPtr(const Parameter& parameter, Variant* argument)
 {
-	size_t candidateCount = 0;
-	for (size_t i = 0; i < overloadCount; ++i)
+	TypeCompound typeCompound = argument->typeCompound();
+	if (TypeCompound::observer_ptr == typeCompound || TypeCompound::shared_ptr == typeCompound)
 	{
-		assert(argCount == overloads[i].m_argCount + overloads[i].m_isStatic ? 0 : 1);
-		if (overloads[i].matchArguments(&argMatches[i*argCount], variants))
+		Type* paramType = parameter.type();
+		Type* argType = argument->type();
+		if (paramType->isClass())
 		{
-			candidates[candidateCount] = i;
-			++candidateCount;
+			return static_cast<ClassType*>(argType)->isType(static_cast<ClassType*>(paramType)) ? Overload::MatchKind::exact_match : Overload::MatchKind::no_match;
+		}
+		else
+		{
+			assert(paramType->isPrimitive() || paramType->isEnum());
+			return paramType == argType ? Overload::MatchKind::exact_match : Overload::MatchKind::no_match;
 		}
 	}
-	if (0 == candidateCount)
+	else
 	{
-		size_t error_no_match = overloadCount;
-		return error_no_match;
+		return Overload::MatchKind::no_match;
 	}
-	else if (1 == candidateCount)
-	{
-		return candidates[0];
-	}
-	assert(candidateCount <= sizeof(size_t) * 8);
-	
-	size_t candidateMask = (1 << candidateCount) - 1;
-	for (size_t i = 0; i < argCount; ++i)
-	{
-		char bestMatch = type_conversion;
-		for (size_t j = 0; j < candidateCount; ++j)
-		{
-			char match = argMatches[candidates[j] * argCount + i];
-			if (bestMatch < match)
-			{
-				bestMatch = match;
-			}
-		}
-		if (bestMatch != type_conversion)
-		{
-			for (size_t j = 0; j < candidateCount; ++j)
-			{
-				char match = argMatches[candidates[j] * argCount + i];
-				if (match != bestMatch)
-				{
-					candidateMask &= ~(1 << j);
-				}
-			}
-		}
-	}
-	size_t index = 0;
-	size_t value = 1;
-	while (value <= candidateMask)
-	{
-		if (value == candidateMask)
-		{
-			return candidates[index];
-		}
-		++index;
-		value = size_t(1) << index;
-	}
-	size_t error_ambiguous = overloadCount + 1;
-	return error_ambiguous;
 }
 
+Overload::MatchKind MatchSharedPtr(const Parameter& parameter, Variant* argument)
+{
+	TypeCompound typeCompound = argument->typeCompound();
+	if (TypeCompound::observer_ptr == typeCompound || TypeCompound::shared_ptr == typeCompound)
+	{
+		Type* paramType = parameter.type();
+		Type* argType = argument->type();
+		if (paramType->isClass())
+		{
+			return static_cast<ClassType*>(argType)->isType(static_cast<ClassType*>(paramType)) ? Overload::MatchKind::exact_match : Overload::MatchKind::no_match;
+		}
+		else
+		{
+			assert(paramType->isPrimitive() || paramType->isEnum());
+			return paramType == argType ? Overload::MatchKind::exact_match : Overload::MatchKind::no_match;
+		}
+	}
+	else
+	{
+		return Overload::MatchKind::no_match;
+	}
+}
+
+Overload::MatchKind MatchObserverArray(const Parameter& parameter, Variant* argument)
+{
+	Type* type = argument->type();
+	TypeCompound typeCompound = argument->typeCompound();
+	if (parameter.type() == type &&
+		(TypeCompound::observer_array == typeCompound || TypeCompound::shared_array == typeCompound))
+	{
+		return Overload::MatchKind::exact_match;
+	}
+	else
+	{
+		return Overload::MatchKind::no_match;
+	}
+}
+
+Overload::MatchKind MatchSharedArray(const Parameter& parameter, Variant* argument)
+{
+	Type* type = argument->type();
+	TypeCompound typeCompound = argument->typeCompound();
+	if (parameter.type() == type &&
+		TypeCompound::shared_array == typeCompound)
+	{
+		return Overload::MatchKind::exact_match;
+	}
+	else
+	{
+		return Overload::MatchKind::no_match;
+	}
+}
+
+Overload::MatchKind MatchArgument(const Parameter& parameter, Variant* argument)
+{
+	Overload::MatchKind matchKind = Overload::MatchKind::no_match;
+	switch (parameter.m_typeCompound)
+	{
+	case TypeCompound::none:
+		matchKind = MatchValue(parameter, argument);
+		break;
+	case TypeCompound::observer_ptr:
+		matchKind = MatchObserverPtr(parameter, argument);
+		break;
+	case TypeCompound::shared_ptr:
+		matchKind = MatchSharedPtr(parameter, argument);
+		break;
+	case TypeCompound::observer_array:
+		matchKind = MatchObserverArray(parameter, argument);
+		break;
+	case TypeCompound::shared_array:
+		matchKind = MatchSharedArray(parameter, argument);
+		break;
+	}
+	return matchKind;
+}
+
+Overload::MatchKind Overload::matchArguments(Variant** arguments)
+{
+	bool exactMatch = true;
+	for (size_t i = 0; i < m_parameterCount; ++i)
+	{
+		Overload::MatchKind matchKind = MatchArgument(m_parameters[i], arguments[i]);
+		if (Overload::MatchKind::no_match == matchKind)
+		{
+			return Overload::MatchKind::no_match;
+		}
+		else if (Overload::MatchKind::compatible_match == matchKind)
+		{
+			exactMatch = false;
+		}
+	}
+	return exactMatch ? Overload::MatchKind::exact_match : Overload::MatchKind::compatible_match;
+}
+
+uint32_t Overload::Resolve(Overload* overloads, uint32_t overloadCount, Variant** arguments, uint32_t argumentCount)
+{
+	uint32_t compatibleIndex = overloadCount;
+	for (uint32_t i = 0; i < overloadCount; ++i)
+	{
+		assert(argumentCount == overloads[i].m_parameterCount);
+		MatchKind matchKind = overloads[i].matchArguments(arguments);
+		switch(matchKind)
+		{
+		case MatchKind::exact_match:
+			return i;
+			break;
+		case MatchKind::compatible_match:
+			if (compatibleIndex == overloadCount)
+			{
+				compatibleIndex = i;
+			}
+			break;
+		}
+	}
+	return compatibleIndex;
+}
 
 END_PAFCORE

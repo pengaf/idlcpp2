@@ -2,11 +2,11 @@
 #include "static_method.mh"
 #include "static_method.ic"
 #include "static_method.mc"
-#include "argument.h"
+#include "parameter.h"
 
 BEGIN_PAFCORE
 
-StaticMethod::StaticMethod(const char* name, Attributes* attributes, FunctionInvoker invoker, Overload* overloads, size_t overloadCount)
+StaticMethod::StaticMethod(const char* name, Attributes* attributes, FunctionInvoker invoker, Overload* overloads, uint32_t overloadCount)
 : Metadata(name, attributes)
 {
 	m_invoker = invoker;
@@ -14,36 +14,48 @@ StaticMethod::StaticMethod(const char* name, Attributes* attributes, FunctionInv
 	m_overloadCount = overloadCount;
 }
 
-size_t StaticMethod::overloadCount() const
+uint32_t StaticMethod::overloadCount() const
 {
 	return m_overloadCount;
 }
 
-ObserverPtr<Result> StaticMethod::getResult(size_t overloadIndex)
+uint32_t StaticMethod::getResultCount(uint32_t overloadIndex)
 {
-	if(overloadIndex < m_overloadCount)
+	if (overloadIndex < m_overloadCount)
 	{
-		return m_overloads[overloadIndex].m_result;
-	}
-	return nullptr;
-}
-
-size_t StaticMethod::getArgumentCount(size_t overloadIndex)
-{
-	if(overloadIndex < m_overloadCount)
-	{
-		return m_overloads[overloadIndex].m_argCount;
+		return m_overloads[overloadIndex].m_resultCount;
 	}
 	return 0;
 }
 
-ObserverPtr<Argument> StaticMethod::getArgument(size_t overloadIndex, size_t index)
+Result* StaticMethod::getResult(uint32_t overloadIndex, uint32_t index)
 {
 	if(overloadIndex < m_overloadCount)
 	{
-		if(index < m_overloads[overloadIndex].m_argCount)
+		if(index < m_overloads[overloadIndex].m_resultCount)
 		{
-			return &m_overloads[overloadIndex].m_args[index];
+			return &m_overloads[overloadIndex].m_results[index];
+		}
+	}
+	return nullptr;
+}
+
+uint32_t StaticMethod::getParameterCount(uint32_t overloadIndex)
+{
+	if (overloadIndex < m_overloadCount)
+	{
+		return m_overloads[overloadIndex].m_parameterCount;
+	}
+	return 0;
+}
+
+Parameter* StaticMethod::getParameter(uint32_t overloadIndex, uint32_t index)
+{
+	if(overloadIndex < m_overloadCount)
+	{
+		if(index < m_overloads[overloadIndex].m_parameterCount)
+		{
+			return &m_overloads[overloadIndex].m_parameters[index];
 		}
 	}
 	return nullptr;

@@ -17,18 +17,18 @@ namespace pafcore
 		candidate_list //���Ժ�ѡ�б���� (��������ֵ���)
 	};
 
-	override class #PAFCORE_EXPORT NotifyHandler : Object
+	class #PAFCORE_EXPORT NotifyHandler : Object
 	{
-		//override virtual void onDestroyNotifyHandlerList(NotifyHandlerList* sender);
-		//override virtual void onAttachNotifySource(NotifyHandlerList* sender);
-		//override virtual void onDetachNotifySource(NotifyHandlerList* sender);
+		virtual void onDestroyNotifyHandlerList(NotifyHandlerList* sender);
+		virtual void onAttachNotifySource(NotifyHandlerList* sender);
+		virtual void onDetachNotifySource(NotifyHandlerList* sender);
 	};
 
-	override class #PAFCORE_EXPORT PropertyChangedNotifyHandler : NotifyHandler
+	class #PAFCORE_EXPORT PropertyChangedNotifyHandler : NotifyHandler
 	{
-		override virtual void onPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
-		override virtual void onPropertyAvailabilityChanged(Object* sender, string_t propertyName);
-		override virtual void onDynamicPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
-		override virtual void onUpdateDynamicProperty(Object* sender);
+		virtual void onPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
+		virtual void onPropertyAvailabilityChanged(Object* sender, string_t propertyName);
+		virtual void onDynamicPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator);
+		virtual void onUpdateDynamicProperty(Object* sender);
 	};
 }

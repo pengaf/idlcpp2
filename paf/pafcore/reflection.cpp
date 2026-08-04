@@ -314,7 +314,7 @@ String Reflection::EnumToString(const Variant& value)
 	EnumType* enumType = static_cast<EnumType*>(value.m_type);
 	int enumValue = 0;
 	value.castToEnum(enumType, &enumValue);
-	Enumerator* enum_member = enumType->_getEnumeratorByValue_(enumValue);
+	EnumMember* enum_member = enumType->_getEnumeratorByValue_(enumValue);
 	if (enum_member)
 	{
 		return String(enum_member->_name_());
@@ -324,7 +324,7 @@ String Reflection::EnumToString(const Variant& value)
 
 bool Reflection::StringToEnum(Variant& value, EnumType* enumType, const char* str)
 {
-	Enumerator* enum_member = enumType->findEnumerator(str);
+	EnumMember* enum_member = enumType->findEnumerator(str);
 	if (enum_member)
 	{
 		value.assignEnum(enumType, &enum_member->m_value);

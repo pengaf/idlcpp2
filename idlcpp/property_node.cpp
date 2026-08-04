@@ -3,6 +3,7 @@
 #include "token_node.h"
 #include "identifier_node.h"
 #include "property_accessor_node.h"
+#include "property_accessor_list_node.h"
 #include "class_node.h"
 #include "type_tree.h"
 #include "raise_error.h"
@@ -57,42 +58,54 @@ void PropertyNode::checkTypeNames(TypeNode* enclosingTypeNode, TemplateArguments
 void PropertyNode::checkSemantic(TemplateArguments* templateArguments)
 {
 	MemberNode::checkSemantic(templateArguments);
-
-	assert(snt_class == m_enclosing->m_nodeType);
-	ClassNode* classNode = static_cast<ClassNode*>(m_enclosing);
-
-	if ((0 != m_typeCompound
-		&& '*' != m_typeCompound->m_nodeType
-		&& '!' != m_typeCompound->m_nodeType
-		&& '^' != m_typeCompound->m_nodeType)
-		|| (0 != m_byRef && 0 != m_typeCompound))
+	std::vector<PropertyAccessorNode*> propertyAccessors;
+	m_accessorList->collectPropertyAccessors(propertyAccessors);
+	for (PropertyAccessorNode* accessor : propertyAccessors)
 	{
-		RaiseError_InvalidPropertyType(this);
-		return;
+		switch (accessor->m_keyword->m_nodeType)
+		{
+		case snt_keyword_get:
+			if (m_get)
+			{
+				RaiseError_PropertyAccessorAlreadyExist(accessor, m_get);
+			}
+			else
+			{
+				m_get = accessor;
+			}
+			break;
+		case snt_keyword_set:
+			if (m_set)
+			{
+				RaiseError_PropertyAccessorAlreadyExist(accessor, m_set);
+			}
+			else
+			{
+				m_set = accessor;
+			}
+			break;
+		case snt_keyword_enum:
+			if (m_enumerate)
+			{
+				RaiseError_PropertyAccessorAlreadyExist(accessor, m_enumerate);
+			}
+			else
+			{
+				m_enumerate = accessor;
+			}
+			break;
+		}
 	}
-
-	if ((0 != m_keyTypeCompound
-		&& '*' != m_keyTypeCompound->m_nodeType
-		&& '!' != m_keyTypeCompound->m_nodeType
-		&& '^' != m_keyTypeCompound->m_nodeType)
-		|| (0 != m_keyByRef && 0 != m_keyTypeCompound))
+	if (m_enumerate)
 	{
-		RaiseError_InvalidPropertyType(this);
-		return;
+		if (!m_compoundType->isNotPtr())
+		{
+			RaiseError_PropertyEnumNotAllowPtr(m_enumerate);
+		}
 	}
-
-	TypeNode* typeNode = m_typeName->getTypeNode(templateArguments);
-	if (0 == typeNode)
+	TypeNode* typeNode = m_compoundType->m_typeName->getTypeNode(templateArguments);
+	if (typeNode)
 	{
-		return;
+		g_compiler.useType(typeNode, templateArguments, m_compoundType->isNotPtr() ? tu_use_definition : tu_use_declaration, m_compoundType->m_typeName);
 	}
-	if (void_type == typeNode->getTypeKind(templateArguments) && !isByPtr())
-	{
-		RaiseError_InvalidPropertyType(this);
-	}
-	if (isByUniquePtr() && rc_object_type == typeNode->getTypeKind(templateArguments))
-	{
-		RaiseError_InvalidPropertyType(this);
-	}
-	g_compiler.useType(typeNode, templateArguments, isByValue() ? tu_use_definition : tu_use_declaration, m_typeName);
 }

@@ -2,11 +2,11 @@
 #include "instance_method.mh"
 #include "instance_method.ic"
 #include "instance_method.mc"
-#include "argument.h"
+#include "parameter.h"
 
 BEGIN_PAFCORE
 
-InstanceMethod::InstanceMethod(const char* name, Attributes* attributes, FunctionInvoker invoker, Overload* overloads, size_t overloadCount)
+InstanceMethod::InstanceMethod(const char* name, Attributes* attributes, FunctionInvoker invoker, Overload* overloads, uint32_t overloadCount)
 : Metadata(name, attributes)
 {
 	m_invoker = invoker;
@@ -14,48 +14,53 @@ InstanceMethod::InstanceMethod(const char* name, Attributes* attributes, Functio
 	m_overloadCount = overloadCount;
 }
 
-size_t InstanceMethod::overloadCount() const
+uint32_t InstanceMethod::overloadCount() const
 {
 	return m_overloadCount;
 }
 
-ObserverPtr<Result> InstanceMethod::getResult(size_t overloadIndex)
+uint32_t InstanceMethod::getResultCount(uint32_t overloadIndex)
 {
 	if(overloadIndex < m_overloadCount)
 	{
-		return m_overloads[overloadIndex].m_result;
-	}
-	return nullptr;
-}
-
-size_t InstanceMethod::getArgumentCount(size_t overloadIndex)
-{
-	if(overloadIndex < m_overloadCount)
-	{
-		return m_overloads[overloadIndex].m_argCount;
+		return m_overloads[overloadIndex].m_resultCount;
 	}
 	return 0;
 }
 
-ObserverPtr<Argument> InstanceMethod::getArgument(size_t overloadIndex, size_t index)
+Result* InstanceMethod::getResult(uint32_t overloadIndex, uint32_t index)
 {
 	if(overloadIndex < m_overloadCount)
 	{
-		if(index < m_overloads[overloadIndex].m_argCount)
+		if(index < m_overloads[overloadIndex].m_resultCount)
 		{
-			return &m_overloads[overloadIndex].m_args[index];
+			return &m_overloads[overloadIndex].m_results[index];
 		}
 	}
 	return nullptr;
 }
 
-bool InstanceMethod::isConstant(size_t overloadIndex)
+uint32_t InstanceMethod::getParameterCount(uint32_t overloadIndex)
 {
 	if (overloadIndex < m_overloadCount)
 	{
-		return m_overloads[overloadIndex].m_isConstant;
+		return m_overloads[overloadIndex].m_parameterCount;
 	}
-	return false;
+	return 0;
 }
+
+
+Parameter* InstanceMethod::getParameter(uint32_t overloadIndex, uint32_t index)
+{
+	if(overloadIndex < m_overloadCount)
+	{
+		if(index < m_overloads[overloadIndex].m_parameterCount)
+		{
+			return &m_overloads[overloadIndex].m_parameters[index];
+		}
+	}
+	return nullptr;
+}
+
 
 END_PAFCORE

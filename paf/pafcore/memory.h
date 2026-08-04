@@ -32,7 +32,7 @@ namespace pafcore
 	struct is_base_or_same
 	{
 		static constexpr bool value =
-			std::is_base_of<Base, Derived>::value || 
+			std::is_base_of<Base, Derived>::value ||
 			std::is_same<Base, Derived>::value;
 	};
 
@@ -88,12 +88,73 @@ namespace pafcore
 #endif
 	}
 
+	template<typename T>
+	void Destruct(T* p, size_t count = 1)
+	{
+		if constexpr (std::is_destructible_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				p[i].~T();
+			}
+		}
+	}
+
+	template<typename T>
+	void CopyConstruct(T* dst, const T* src, size_t count = 1)
+	{
+		if constexpr (std::is_copy_constructible_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				new (dst + i) T(src[i]);
+			}
+		}
+	}
+
+	template<typename T>
+	void MoveConstruct(T* dst, T* src, size_t count = 1)
+	{
+		if constexpr (std::is_move_constructible_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				new (dst + i) T(std::move(src[i]));
+			}
+		}
+	}
+
+	template<typename T>
+	void CopyAssign(T* dst, const T* src, size_t count = 1)
+	{
+		if constexpr (std::is_copy_assignable_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				dst[i] = src[i];
+			}
+		}
+	}
+
+	template<typename T>
+	void MoveAssign(T* dst, T* src, size_t count = 1)
+	{
+		if constexpr (std::is_move_assignable_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				dst[i] = std::move(src[i]);
+			}
+		}
+	}
+
 	struct ArrayHeader
 	{
 		uint64_t m_count;
-		ArrayHeader(uint64_t count) : 
+		ArrayHeader(uint64_t count) :
 			m_count(count)
-		{}
+		{
+		}
 	};
 
 	struct STRCHeader
@@ -173,12 +234,12 @@ namespace pafcore
 
 	struct RefCountedArrayHeader
 	{
-		//std::atomic<uint32_t> m_refCount{ 1 };
 		uint32_t m_refCount{ 1 };
 		uint32_t m_count;
 		RefCountedArrayHeader(uint32_t count) :
 			m_count(count)
-		{}
+		{
+		}
 		uint32_t incRefCount() noexcept
 		{
 			return ++m_refCount;
@@ -187,7 +248,6 @@ namespace pafcore
 		{
 			return --m_refCount;
 		}
-
 	};
 
 
@@ -233,7 +293,7 @@ namespace pafcore
 		if (0 == result)
 		{
 			object->~Object_t();
-			DecObjectWeakRefCount<Object_t, RefCountHeader_t>(object);
+			DecWeakRefCount<RefCountHeader_t>(object);
 		}
 		return result;
 	}
@@ -294,36 +354,36 @@ namespace pafcore
 		}
 	}
 
-	template<typename T>
-	inline T* NewArray(size_t count)
-	{
-		static_assert(alignof(T) <= sizeof(ArrayHeader), "Object alignment is not compatible with ArrayHeader.");
-		size_t size = sizeof(ArrayHeader) + sizeof(T) * count;
-		void* p = Malloc(size);
-		ArrayHeader* header = static_cast<ArrayHeader*>(p);
-		new(header)ArrayHeader(count);
-		T* array = reinterpret_cast<T*>(header + 1);
-		for (size_t i = 0; i < count; ++i)
-		{
-			new (array + i) T;
-		}
-		return array;
-	}
+	//template<typename T>
+	//inline T* NewArray(size_t count)
+	//{
+	//	static_assert(alignof(T) <= sizeof(ArrayHeader), "Object alignment is not compatible with ArrayHeader.");
+	//	size_t size = sizeof(ArrayHeader) + sizeof(T) * count;
+	//	void* p = Malloc(size);
+	//	ArrayHeader* header = static_cast<ArrayHeader*>(p);
+	//	new(header)ArrayHeader(count);
+	//	T* array = reinterpret_cast<T*>(header + 1);
+	//	for (size_t i = 0; i < count; ++i)
+	//	{
+	//		new (array + i) T;
+	//	}
+	//	return array;
+	//}
 
-	template<typename T>
-	inline void DeleteArray(T* array)
-	{
-		if (nullptr != array)
-		{
-			ArrayHeader* header = static_cast<ArrayHeader*>(array) - 1;
-			size_t count = header->m_count;
-			for (size_t i = 0; i < count; ++i)
-			{
-				array[i].~T();
-			}
-			Free(header);
-		}
-	}
+	//template<typename T>
+	//inline void DeleteArray(T* array)
+	//{
+	//	if (nullptr != array)
+	//	{
+	//		ArrayHeader* header = static_cast<ArrayHeader*>(array) - 1;
+	//		size_t count = header->m_count;
+	//		for (size_t i = 0; i < count; ++i)
+	//		{
+	//			array[i].~T();
+	//		}
+	//		Free(header);
+	//	}
+	//}
 
 	template<typename T, typename... Args>
 	inline T* NewRefCounted(Args&&... args)
@@ -373,42 +433,10 @@ namespace pafcore
 		return array;
 	}
 
-	class GenericSmartPtr
+	template<typename T>
+	class ObserverPtr
 	{
 		friend class Variant;
-	public:
-		GenericSmartPtr() = default;
-		GenericSmartPtr(void* ptr) :
-			m_ptr(ptr)
-		{}
-
-		GenericSmartPtr& operator=(const GenericSmartPtr& other) noexcept
-		{
-			m_ptr = other.m_ptr;
-			return *this;
-		}
-
-		GenericSmartPtr& operator=(GenericSmartPtr&& other) noexcept
-		{
-			if (this != &other)
-			{
-				m_ptr = other.m_ptr;
-				other.m_ptr = nullptr;
-			}
-			return *this;
-		}
-
-		void* get() const
-		{
-			return m_ptr;
-		}
-	protected:
-		void* m_ptr = nullptr;
-	};
-
-	template<typename T>
-	class ObserverPtr : public GenericSmartPtr
-	{
 	public:
 		ObserverPtr() = default;
 
@@ -416,12 +444,12 @@ namespace pafcore
 		{}
 
 		ObserverPtr(T* ptr) : 
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{}
 
 		template<typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
 		ObserverPtr(const ObserverPtr<U>& other) : 
-			GenericSmartPtr(other.get())
+			m_ptr(other.get())
 		{}
 
 		ObserverPtr& operator=(std::nullptr_t)
@@ -436,19 +464,24 @@ namespace pafcore
 			return *this;
 		}
 
+		void assign(T* ptr)
+		{
+			m_ptr = ptr;
+		}
+
 		T* get() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		T& operator*() const
 		{
-			return *(T*)m_ptr;
+			return *m_ptr;
 		}
 
 		T* operator->() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		explicit operator bool() const
@@ -458,13 +491,15 @@ namespace pafcore
 
 		operator T*() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
+	private:
+		T* m_ptr;
 	};
 
 
 	template<>
-	class ObserverPtr<void> : public GenericSmartPtr
+	class ObserverPtr<void>
 	{
 	public:
 		ObserverPtr() = default;
@@ -473,7 +508,7 @@ namespace pafcore
 		{}
 
 		ObserverPtr(void* ptr) : 
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{}
 
 		ObserverPtr& operator=(std::nullptr_t)
@@ -502,12 +537,15 @@ namespace pafcore
 		{
 			return m_ptr;
 		}
+	private:
+		void* m_ptr;
 	};
 
 
 	template<typename T>
-	class ObserverArray : public GenericSmartPtr
+	class ObserverArray
 	{
+		friend class Variant;
 	public:
 		ObserverArray() = default;
 
@@ -515,7 +553,7 @@ namespace pafcore
 		{}
 
 		ObserverArray(T* ptr) : 
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{}
 
 		ObserverArray& operator=(std::nullptr_t)
@@ -530,25 +568,33 @@ namespace pafcore
 			return *this;
 		}
 
+		void assign(T* ptr)
+		{
+			m_ptr = ptr;
+		}
+
 		T* get() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		T& operator[](size_t index) const
 		{
-			return ((T*)m_ptr)[index];
+			assert(nullptr != m_ptr && index < (((RefCountedArrayHeader*)m_ptr) - 1)->m_count);
+			return m_ptr[index];
 		}
 
 		explicit operator bool() const
 		{
 			return 0 != m_ptr;
 		}
+	private:
+		T* m_ptr;
 	};
 
 
 	template<typename T>
-	class UniquePtr : public GenericSmartPtr
+	class UniquePtr
 	{
 	public:
 		static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "UniquePtr cannot own RCObject-derived or Interface-derived types.");
@@ -559,7 +605,7 @@ namespace pafcore
 		{}
 
 		explicit UniquePtr(T* ptr) : 
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{}
 
 		UniquePtr(const UniquePtr&) = delete;
@@ -567,7 +613,7 @@ namespace pafcore
 		UniquePtr& operator=(const UniquePtr&) = delete;
 
 		UniquePtr(UniquePtr&& other) noexcept : 
-			GenericSmartPtr(other.m_ptr)
+			m_ptr(other.m_ptr)
 		{
 			other.m_ptr = nullptr;
 		}
@@ -590,36 +636,38 @@ namespace pafcore
 
 		T* get() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		T* release()
 		{
 			T* ptr = m_ptr;
 			m_ptr = 0;
-			return (T*)ptr;
+			return ptr;
 		}
 
 		void reset(T* ptr = 0)
 		{
-			Delete((T*)m_ptr);
+			Delete(m_ptr);
 			m_ptr = ptr;
 		}
 
 		T& operator*() const
 		{
-			return *(T*)m_ptr;
+			return *m_ptr;
 		}
 
 		T* operator->() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		explicit operator bool() const
 		{
 			return 0 != m_ptr;
 		}
+	private:
+		T* m_ptr;
 	};
 
 	template<typename T, typename... Args>
@@ -628,78 +676,81 @@ namespace pafcore
 		return UniquePtr<T>(New<T>(std::forward<Args>(args)...));
 	}
 
+	//template<typename T>
+	//class UniqueArray
+	//{
+	//public:
+	//	static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "UniqueArray cannot own RCObject-derived or Interface-derived types.");
+
+	//	UniqueArray() = default;
+
+	//	UniqueArray(std::nullptr_t)
+	//	{}
+
+	//	UniqueArray(T* ptr) : 
+	//		m_ptr(ptr)
+	//	{}
+
+	//	UniqueArray(const UniqueArray&) = delete;
+
+	//	UniqueArray& operator=(const UniqueArray&) = delete;
+
+	//	UniqueArray(UniqueArray&& other) noexcept : 
+	//		m_ptr(other.m_ptr)
+	//	{
+	//		other.m_ptr = nullptr;
+	//	}
+
+	//	UniqueArray& operator=(UniqueArray&& other) noexcept
+	//	{
+	//		if (this != &other)
+	//		{
+	//			reset();
+	//			m_ptr = other.m_ptr;
+	//			other.m_ptr = nullptr;
+	//		}
+	//		return *this;
+	//	}
+
+	//	~UniqueArray()
+	//	{
+	//		reset();
+	//	}
+
+	//	T* get() const
+	//	{
+	//		return m_ptr;
+	//	}
+
+	//	void reset(T* ptr = 0)
+	//	{
+	//		DeleteArray(m_ptr);
+	//		m_ptr = ptr;
+	//	}
+
+	//	T& operator[](size_t index) const
+	//	{
+	//		return m_ptr[index];
+	//	}
+
+	//	explicit operator bool() const
+	//	{
+	//		return 0 != m_ptr;
+	//	}
+	//private:
+	//	T* m_ptr;
+	//};
+
+	//template<typename T>
+	//inline UniqueArray<T> MakeUniqueArray(size_t count)
+	//{
+	//	return UniqueArray<T>(NewArray<T>(count));
+	//}
+
 	template<typename T>
-	class UniqueArray : public GenericSmartPtr
+	class SharedPtr
 	{
-	public:
-		static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "UniqueArray cannot own RCObject-derived or Interface-derived types.");
-
-		UniqueArray() = default;
-
-		UniqueArray(std::nullptr_t)
-		{}
-
-		UniqueArray(T* ptr) : 
-			GenericSmartPtr(ptr)
-		{}
-
-		UniqueArray(const UniqueArray&) = delete;
-
-		UniqueArray& operator=(const UniqueArray&) = delete;
-
-		UniqueArray(UniqueArray&& other) noexcept : 
-			GenericSmartPtr(other.m_ptr)
-		{
-			other.m_ptr = nullptr;
-		}
-
-		UniqueArray& operator=(UniqueArray&& other) noexcept
-		{
-			if (this != &other)
-			{
-				reset();
-				m_ptr = other.m_ptr;
-				other.m_ptr = nullptr;
-			}
-			return *this;
-		}
-
-		~UniqueArray()
-		{
-			reset();
-		}
-
-		T* get() const
-		{
-			return (T*)m_ptr;
-		}
-
-		void reset(T* ptr = 0)
-		{
-			DeleteArray((T*)m_ptr);
-			m_ptr = ptr;
-		}
-
-		T& operator[](size_t index) const
-		{
-			return ((T*)m_ptr)[index];
-		}
-
-		explicit operator bool() const
-		{
-			return 0 != m_ptr;
-		}
-	};
-
-	template<typename T>
-	inline UniqueArray<T> MakeUniqueArray(size_t count)
-	{
-		return UniqueArray<T>(NewArray<T>(count), count);
-	}
-
-	template<typename T>
-	class SharedPtr : public GenericSmartPtr
-	{
+		friend class Variant;
 	public:
 		static SharedPtr Retain(T* ptr)
 		{
@@ -715,11 +766,11 @@ namespace pafcore
 		{}
 
 		explicit SharedPtr(T* ptr) : 
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{}
 
 		SharedPtr(const SharedPtr& other) : 
-			GenericSmartPtr(other.m_ptr)
+			m_ptr(other.m_ptr)
 		{
 			incStrongRefCount();
 		}
@@ -736,7 +787,7 @@ namespace pafcore
 		}
 
 		SharedPtr(SharedPtr&& other) noexcept : 
-			GenericSmartPtr(other.m_ptr)
+			m_ptr(other.m_ptr)
 		{
 			other.m_ptr = nullptr;
 		}
@@ -759,17 +810,17 @@ namespace pafcore
 
 		T* get() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		T& operator*() const
 		{
-			return *(T*)m_ptr;
+			return *m_ptr;
 		}
 
 		T* operator->() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		explicit operator bool() const
@@ -786,11 +837,11 @@ namespace pafcore
 			}
 			if constexpr (is_object_v<T> || is_interface_v<T>)
 			{
-				((T*)m_ptr)->incStrongRefCount();
+				m_ptr->incStrongRefCount();
 			}
 			else
 			{
-				IncStrongRefCount<STRCHeader>((T*)m_ptr);
+				IncStrongRefCount<STRCHeader>(m_ptr);
 			}
 		}
 
@@ -802,14 +853,26 @@ namespace pafcore
 			}
 			if constexpr (is_object_v<T> || is_interface_v<T>)
 			{
-				((T*)m_ptr)->decStrongRefCount();
+				m_ptr->decStrongRefCount();
 			}
 			else
 			{
-				DecStrongRefCount<STRCHeader>((T*)m_ptr);
+				DecStrongRefCount<STRCHeader>(m_ptr);
 			}
 			//m_ptr = 0;
 		}
+	private:
+		void assign(T* ptr)//for Variant
+		{
+			if (m_ptr != p)
+			{
+				decStrongRefCount();
+				m_ptr = ptr;
+				incStrongRefCount();
+			}
+		}
+	private:
+		T* m_ptr;
 	};
 
 	template<typename T, typename... Args>
@@ -819,7 +882,7 @@ namespace pafcore
 	}
 
 	template<typename T>
-	class WeakPtr : public GenericSmartPtr
+	class WeakPtr
 	{
 	public:
 
@@ -829,13 +892,13 @@ namespace pafcore
 		{}
 
 		explicit WeakPtr(T* ptr) : 
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{
 			incWeakRefCount();
 		}
 
 		WeakPtr(const WeakPtr& other) :
-			GenericSmartPtr(other.m_ptr)
+			m_ptr(other.m_ptr)
 		{
 			incWeakRefCount();
 		}
@@ -852,7 +915,7 @@ namespace pafcore
 		}
 
 		WeakPtr(WeakPtr&& other) noexcept :
-			GenericSmartPtr(other.m_ptr)
+			m_ptr(other.m_ptr)
 		{
 			other.m_ptr = nullptr;
 		}
@@ -875,7 +938,7 @@ namespace pafcore
 
 		T* get() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		bool expired() const
@@ -887,7 +950,7 @@ namespace pafcore
 		{
 			if (incStrongRefIfPositive())
 			{
-				return SharedPtr<T>((T*)m_ptr);
+				return SharedPtr<T>(m_ptr);
 			}
 			else
 			{
@@ -909,11 +972,11 @@ namespace pafcore
 			}
 			if constexpr (is_object_v<T> || is_interface_v<T>)
 			{
-				((T*)m_ptr)->incWeakRefCount();
+				m_ptr->incWeakRefCount();
 			}
 			else
 			{
-				IncWeakRefCount<STRCHeader>((T*)m_ptr);
+				IncWeakRefCount<STRCHeader>(m_ptr);
 			}
 		}
 
@@ -925,11 +988,11 @@ namespace pafcore
 			}
 			if constexpr (is_object_v<T> || is_interface_v<T>)
 			{
-				((T*)m_ptr)->decWeakRefCount();
+				m_ptr->decWeakRefCount();
 			}
 			else
 			{
-				DecWeakRefCount<STRCHeader>((T*)m_ptr);
+				DecWeakRefCount<STRCHeader>(m_ptr);
 			}
 			//m_ptr = 0;
 		}
@@ -942,11 +1005,11 @@ namespace pafcore
 			}
 			if constexpr (is_object_v<T> || is_interface_v<T>)
 			{
-				return ((T*)m_ptr)->incStrongRefCountNotZero();
+				return m_ptr->incStrongRefCountNotZero();
 			}
 			else
 			{
-				return IncStrongRefCountNotZero<STRCHeader>((T*)m_ptr);
+				return IncStrongRefCountNotZero<STRCHeader>(m_ptr);
 			}
 		}
 
@@ -958,19 +1021,22 @@ namespace pafcore
 			}
 			if constexpr (is_object_v<T> || is_interface_v<T>)
 			{
-				return ((T*)m_ptr)->getStrongRefCount();
+				return m_ptr->getStrongRefCount();
 			}
 			else
 			{
-				return GetStrongRefCount<STRCHeader>((T*)m_ptr);
+				return GetStrongRefCount<STRCHeader>(m_ptr);
 			}
 		}
+	private:
+		T* m_ptr;
 	};
 
 
 	template<typename T>
-	class SharedArray : public GenericSmartPtr
+	class SharedArray
 	{
+		friend class Variant;
 	public:
 		static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "SharedArray cannot own RCObject-derived or Interface-derived types.");
 
@@ -980,11 +1046,11 @@ namespace pafcore
 		{}
 
 		SharedArray(T* ptr) :
-			GenericSmartPtr(ptr)
+			m_ptr(ptr)
 		{}
 
 		SharedArray(const SharedArray& other) :
-			GenericSmartPtr(other.m_ptr)
+			m_ptr(other.m_ptr)
 		{
 			incStrongRefCount();
 		}
@@ -1024,12 +1090,13 @@ namespace pafcore
 
 		T* get() const
 		{
-			return (T*)m_ptr;
+			return m_ptr;
 		}
 
 		T& operator[](size_t index) const
 		{
-			return ((T*)m_ptr)[index];
+			assert(nullptr != m_ptr && index < (((RefCountedArrayHeader*)m_ptr) - 1)->m_count);
+			return m_ptr[index];
 		}
 
 		explicit operator bool() const
@@ -1044,7 +1111,7 @@ namespace pafcore
 			{
 				return;
 			}
-			IncArrayRefCount((T*)m_ptr);
+			IncArrayRefCount(m_ptr);
 		}
 
 		void decStrongRefCount()
@@ -1053,9 +1120,21 @@ namespace pafcore
 			{
 				return;
 			}
-			DecArrayRefCount((T*)m_ptr);
+			DecArrayRefCount(m_ptr);
 			m_ptr = nullptr;
 		}
+	private:
+		void assign(T* ptr)//for Variant
+		{
+			if (m_ptr != p)
+			{
+				decStrongRefCount();
+				m_ptr = ptr;
+				incStrongRefCount();
+			}
+		}
+	private:
+		T* m_ptr;
 	};
 
 	template<typename T>
@@ -1079,12 +1158,12 @@ namespace pafcore
 
 		T* allocate(std::size_t count)
 		{
-			return static_cast<T*>(Malloc(sizeof(T) * count, alignof(T)));
+			return static_cast<T*>(Malloc(sizeof(T) * count));
 		}
 
 		void deallocate(T* p, std::size_t) noexcept
 		{
-			Free(p, alignof(T));
+			Free(p);
 		}
 
 		template<typename U>

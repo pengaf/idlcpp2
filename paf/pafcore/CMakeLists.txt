@@ -22,12 +22,10 @@ set(header_files
 )
 
 set(interface_files
-    "argument.i"
     "buffer.i"
     "class_type.i"
-    "delegate.i"
     "dynamic_object.i"
-    "enumerator.i"
+    "enum_member.i"
     "enum_type.i"
     "instance_field.i"
     "instance_method.i"
@@ -38,6 +36,7 @@ set(interface_files
     "notify_handler.i"
     "notify_handler_list.i"
     "object.i"
+    "parameter.i"
     "primitive_type.i"
     "reflection.i"
     "result.i"
@@ -49,16 +48,13 @@ set(interface_files
     "type.i"
     "type_alias.i"
     "typedef.i"
-    "void_type.i"
 )
 
 set(source_files
-    "argument.cpp"
     "buffer.cpp"
     "class_type.cpp"
-    "delegate.cpp"
     "dynamic_object.cpp"
-    "enumerator.cpp"
+    "enum_member.cpp"
     "enum_type.cpp"
     "instance_field.cpp"
     "instance_method.cpp"
@@ -70,6 +66,7 @@ set(source_files
     "notify_handler_list.cpp"
     "object.cpp"
     "overload.cpp"
+    "parameter.cpp"
     "primitive_type.cpp"
     "reflection.cpp"
     "result.cpp"
@@ -83,7 +80,6 @@ set(source_files
     "typedef.cpp"
     "utility.cpp"
     "variant.cpp"
-    "void_type.cpp"
 )
 
 set(windows_cpp_only

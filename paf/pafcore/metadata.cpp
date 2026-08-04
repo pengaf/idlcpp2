@@ -27,7 +27,7 @@ Metadata::Metadata(const char* name, Attributes* attributes)
 MetadataKind Metadata::_kind_() const
 {
 	Type* type = const_cast<Metadata*>(this)->getType();
-	return type->m_kind;
+	return type->kind();
 }
 
 string_t Metadata::_getAttributeName_(size_t index)

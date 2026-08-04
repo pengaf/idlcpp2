@@ -5,50 +5,39 @@
 
 BEGIN_PAFCORE
 
-InstanceField::InstanceField(const char* name, Attributes* attributes, ClassType* objectType, Type* type, size_t offset, size_t arraySize, bool constant, TypeCompound tc)
+InstanceField::InstanceField(const char* name, Attributes* attributes, ClassType* objectType, Type* type, size_t offset, size_t arraySize, TypeCompound typeCompound)
 : Metadata(name, attributes)
 {
 	m_objectType = objectType;
 	m_type = type;
 	m_offset = offset;
 	m_arraySize = arraySize;
-	m_constant = constant;
-	m_typeCompound = tc;
+	m_typeCompound = typeCompound;
 }
 
-ObserverPtr<Type> InstanceField::type() const
+Type* InstanceField::type() const
 {
 	return m_type;
 }
 
-ObserverPtr<ClassType> InstanceField::objectType() const
+ClassType* InstanceField::objectType() const
 {
 	return m_objectType;
 }
 
 bool InstanceField::isArray() const
 {
-	return tc_observer_array == m_typeCompound
-		|| tc_unique_array == m_typeCompound
-		|| tc_shared_array == m_typeCompound;
+	return m_arraySize > 0;
 }
 
-bool InstanceField::isPointer() const
+TypeCompound InstanceField::typeCompound() const
 {
-	return tc_observer_ptr == m_typeCompound
-		|| tc_unique_ptr == m_typeCompound
-		|| tc_shared_ptr == m_typeCompound;
-}
-
-bool InstanceField::isConstant() const
-{
-	return m_constant;
+	return m_typeCompound;
 }
 
 size_t InstanceField::offset() const
 {
 	return m_offset;
 }
-
 
 END_PAFCORE

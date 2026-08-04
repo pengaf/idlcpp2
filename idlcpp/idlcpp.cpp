@@ -41,13 +41,11 @@ void ShowHelpInfo()
 		"-em<macro>\t\t set vc dllexport macro\n"
 		"-I<dir>\t\t\t add to import search path\n"
 		"-sac\t\t\t strict arguments count\n"
-		"-cc\t\t\t check constant\n"
 	);
 }
 
 extern int yylineno;
 extern int yytokenno;
-extern int yyHasArrayProperty;
 extern int yyHasListProperty;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 YY_BUFFER_STATE createBufferState(FILE* file);
@@ -102,10 +100,6 @@ void ParseOption(const char* arg)
 	else if (strncmp(arg + 1, "sac", 3) == 0)
 	{
 		g_options.m_strictArgumentsCount = true;
-	}
-	else if (strncmp(arg + 1, "cc", 2) == 0)
-	{
-		g_options.m_checkConstant = true;
 	}
 }
 
@@ -166,11 +160,9 @@ int main(int argc, char* argv[])
 			yyrestart(file);
 			yylineno = 1;
 			yytokenno = 0;
-			yyHasArrayProperty = 0;
 			yyHasListProperty = 0;
 			yyparse();
 			fclose(file);
-			sourceFile->m_hasArrayProperty = (0 != yyHasArrayProperty);
 			sourceFile->m_hasListProperty = (0 != yyHasListProperty);
 		}
 		mainSourceFile = false;

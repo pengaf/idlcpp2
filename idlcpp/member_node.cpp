@@ -14,12 +14,12 @@
 
 bool MemberNode::isNoCode() const
 {
-	return m_noCode;
+	return (m_filter && snt_keyword_nocode == m_filter->m_nodeType);
 }
 
 bool MemberNode::isNoMeta() const
 {
-	return m_noMeta;
+	return (m_filter && snt_keyword_nometa == m_filter->m_nodeType);
 }
 
 bool MemberNode::canGenerateMetaCode()
@@ -176,7 +176,6 @@ void MemberNode::checkSemantic(TemplateArguments* templateArguments)
 		m_attributeList->checkSemantic();
 	}
 }
-
 
 bool CompareMemberNodeByName::operator()(const MemberNode* m1, const MemberNode* m2) const
 {

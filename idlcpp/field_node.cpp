@@ -38,7 +38,7 @@ void FieldNode::checkSemantic(TemplateArguments* templateArguments)
 	MemberNode::checkSemantic(templateArguments);
 	TypeNameNode* typeName = m_compoundType->m_typeName;
 
-	if (m_compoundType->isSmartPtr())
+	if (!m_compoundType->isNotPtr())
 	{
 		g_compiler.m_currentSourceFile->m_useMemoryHeader = true;
 	}
@@ -52,14 +52,10 @@ void FieldNode::checkSemantic(TemplateArguments* templateArguments)
 	{
 		return;
 	}
-	if (void_type == typeNode->getTypeKind(templateArguments))
-	{
-		RaiseError_InvalidFieldType(this);
-	}
 	//if ((isUniquePtr() || isUniqueArray()) && rc_object_type == typeNode->getTypeKind(templateArguments))
 	//{
 	//	RaiseError_InvalidFieldType(this);
 	//}
-	g_compiler.useType(typeNode, templateArguments, m_compoundType->isSmartPtr() ? tu_use_declaration : tu_use_definition, typeName);
+	g_compiler.useType(typeNode, templateArguments, m_compoundType->isNotPtr() ? tu_use_definition : tu_use_declaration, typeName);
 }
 

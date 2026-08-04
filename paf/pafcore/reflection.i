@@ -24,7 +24,7 @@ namespace pafcore
 	{
 		static String GetTypeFullName(Type* type);
 		static String GetTypeAliasFullName(TypeAlias* typeAlias);
-		static Type* GetTypeFromFullName(const char* fullName);
+		static Type* GetTypeFromFullName(string_t fullName);
 #{
 		static String PrimitiveToString(const Variant& value);
 		static void StringToPrimitive(Variant& value, PrimitiveType* primitiveType, const char* str);

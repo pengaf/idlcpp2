@@ -3,8 +3,7 @@
 #include <string>
 
 
-const char g_tabs[] = { "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" };
-const char g_strSpaces[] = { "                " };
+const char g_tabs[] = { "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" };
 
 char g_lastWrittenChar = 0;
 
@@ -43,47 +42,4 @@ void writeSpaceToFile(FILE* file)
 char GetLastWrittenChar()
 {
 	return g_lastWrittenChar;
-}
-
-void ConvertFileBaseNameToSnakeCase(std::string& path)
-{
-	size_t slashPos = path.find_last_of("\\/");
-	size_t nameStart = (std::string::npos == slashPos) ? 0 : slashPos + 1;
-	size_t dotPos = path.find_last_of('.');
-	if (std::string::npos != dotPos && dotPos < nameStart)
-	{
-		dotPos = std::string::npos;
-	}
-
-	size_t nameEnd = (std::string::npos == dotPos) ? path.length() : dotPos;
-	std::string name = path.substr(nameStart, nameEnd - nameStart);
-	std::string snakeName;
-	snakeName.reserve(name.length() * 2);
-
-	for (size_t i = 0; i < name.length(); ++i)
-	{
-		char ch = name[i];
-		if ('A' <= ch && ch <= 'Z')
-		{
-			if (i > 0)
-			{
-				char prev = name[i - 1];
-				char next = (i + 1 < name.length()) ? name[i + 1] : 0;
-				bool needsUnderscore =
-					(('a' <= prev && prev <= 'z') || ('0' <= prev && prev <= '9'))
-					|| (('A' <= prev && prev <= 'Z') && ('a' <= next && next <= 'z'));
-				if (needsUnderscore && !snakeName.empty() && '_' != snakeName.back())
-				{
-					snakeName += '_';
-				}
-			}
-			snakeName += static_cast<char>(ch - 'A' + 'a');
-		}
-		else
-		{
-			snakeName += ch;
-		}
-	}
-
-	path.replace(nameStart, nameEnd - nameStart, snakeName);
 }

@@ -21,4 +21,6 @@ struct CompareTokenPtr
 	}
 };
 
-extern const char* g_keywordTokens[];
+const char* KeywardTokenToString(TokenNode* tokenNode);
+//const char* KeywardTokenToCppString(TokenNode* tokenNode);
+//extern const char* g_keywordTokens[];
