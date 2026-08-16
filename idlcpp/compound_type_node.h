@@ -16,4 +16,5 @@ public:
 	bool isObserverPtr() const;
 	bool isSharedArray() const;
 	bool isObserverArray() const;
+	bool isSmartPointer() const;
 };

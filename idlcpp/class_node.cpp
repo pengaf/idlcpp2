@@ -37,12 +37,27 @@ namespace
 		int offset = 0;
 		std::vector<int> objects;
 		std::vector<int> interfaces;
-		std::vector<int> otherClasses;
-		std::vector<std::string> notClasses;
+		//std::vector<int> otherClasses;
+		//std::vector<int> notClasses;
 	};
 
 	void StatBaseClass(BaseStat& stat, TypeNode* typeNode)
 	{
+		std::string typeName;
+		typeNode->getFullName(typeName);
+		if ("::pafcore::Object" == typeName)
+		{
+			stat.objects.push_back(stat.offset++);
+		}
+		else if ("::pafcore::Interface" == typeName)
+		{
+			stat.interfaces.push_back(stat.offset++);
+		}
+		//else
+		//{
+		//	stat.otherClasses.push_back(stat.offset++);
+		//}
+
 		ClassNode* classNode = nullptr;
 		TemplateArguments* templateArguments = nullptr;
 		if (typeNode->isTemplateClassInstance())
@@ -57,10 +72,12 @@ namespace
 		}
 		else
 		{
-			std::string typeName;
-			typeNode->getFullName(typeName);
-			stat.offset++;
-			stat.notClasses.push_back(typeName);
+			return;
+			//assert(false);
+			//std::string typeName;
+			//typeNode->getFullName(typeName);
+			//stat.offset++;
+			//stat.notClasses.push_back(typeName);
 		}
 		if (classNode->m_baseList)
 		{
@@ -72,24 +89,6 @@ namespace
 				StatBaseClass(stat, baseTypeNode);
 			}
 		}
-		else
-		{
-			std::string typeName;
-			typeNode->getFullName(typeName);
-			if ("::pafcore::Object" == typeName)
-			{
-				stat.objects.push_back(stat.offset++);
-			}
-			else if ("::pafcore::Interface" == typeName)
-			{
-				stat.interfaces.push_back(stat.offset++);
-			}
-			else
-			{
-				stat.otherClasses.push_back(stat.offset++);
-			}
-		}
-		
 	}
 
 	void CheckBaseTypes(ClassNode* classNode, std::vector<TypeNameNode*>& baseTypeNameNodes, TemplateArguments* templateArguments)
@@ -519,16 +518,22 @@ extern int yytokenno;
 extern int yylineno;
 extern int yycolumnno;
 
-void ClassNode::generateNewMethod(const char* methodName, MethodNode* constructor)
+void ClassNode::generateConstruct(const char* methodName, MethodNode* constructor)
 {
-	CompoundTypeNode* resultType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0,newScopeName(m_name, 0, 0, 0))), tc_shared_ptr);
-	IdentifierNode* resultName = (IdentifierNode*)newIdentifier("result");
-	VariableNode* resultVariable = (VariableNode*)newVariable(resultType, nullptr, resultName, nullptr);
-	VariableListNode* resultList = (VariableListNode*)newVariableList(nullptr, nullptr, resultVariable);
+	//CompoundTypeNode* resultType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0,newScopeName(m_name, 0, 0, 0))), tc_shared_ptr);
+	//IdentifierNode* resultName = (IdentifierNode*)newIdentifier("result");
+	//VariableNode* resultVariable = (VariableNode*)newVariable(resultType, nullptr, resultName, nullptr);
+	//VariableListNode* resultList = (VariableListNode*)newVariableList(nullptr, nullptr, resultVariable);
 
+	CompoundTypeNode* addressType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0,newScopeName(newIdentifier("size_t"), 0, 0, 0))), tc_none);
+	IdentifierNode* addressName = (IdentifierNode*)newIdentifier("address");
+	VariableNode* addressVariable = (VariableNode*)newVariable(addressType, nullptr, addressName, nullptr);
+
+	VariableListNode* paramList = MergeVariableList(addressVariable, constructor->m_parameterList);
 	IdentifierNode* name = (IdentifierNode*)newIdentifier(methodName);
-	MethodNode* method = (MethodNode*)newMethod(resultList, name,
-		constructor->m_leftParenthesis, constructor->m_parameterList, 
+
+	MethodNode* method = (MethodNode*)newMethod(nullptr, name,
+		constructor->m_leftParenthesis, paramList,
 		constructor->m_rightParenthesis);
 	TokenNode* modifier = (TokenNode*)newToken(snt_keyword_static);
 	setMethodModifier(method, modifier);
@@ -537,21 +542,25 @@ void ClassNode::generateNewMethod(const char* methodName, MethodNode* constructo
 	m_additionalMethods.push_back(method);
 }
 
-void ClassNode::generateNewArrayMethod(const char* methodName, MethodNode* constructor)
+void ClassNode::generateConstructArray(const char* methodName, MethodNode* constructor)
 {
-	CompoundTypeNode* resultType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0, newScopeName(m_name, 0, 0, 0))), tc_shared_array);
-	IdentifierNode* resultName = (IdentifierNode*)newIdentifier("result");
-	VariableNode* resultVariable = (VariableNode*)newVariable(resultType, nullptr, resultName, nullptr);
-	VariableListNode* resultList = (VariableListNode*)newVariableList(nullptr, nullptr, resultVariable);
+	//CompoundTypeNode* resultType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0, newScopeName(m_name, 0, 0, 0))), tc_shared_array);
+	//IdentifierNode* resultName = (IdentifierNode*)newIdentifier("result");
+	//VariableNode* resultVariable = (VariableNode*)newVariable(resultType, nullptr, resultName, nullptr);
+	//VariableListNode* resultList = (VariableListNode*)newVariableList(nullptr, nullptr, resultVariable);
+	CompoundTypeNode* addressType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0, newScopeName(newIdentifier("size_t"), 0, 0, 0))), tc_none);
+	IdentifierNode* addressName = (IdentifierNode*)newIdentifier("address");
+	VariableNode* addressVariable = (VariableNode*)newVariable(addressType, nullptr, addressName, nullptr);
 
-	CompoundTypeNode* paramType = (CompoundTypeNode*)newCompoundType(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), tc_none);
-	IdentifierNode* paramName = (IdentifierNode*)newIdentifier("count");
-	VariableNode* paramVariable = (VariableNode*)newVariable(paramType, nullptr, paramName, nullptr);
-	VariableListNode* paramList = (VariableListNode*)newVariableList(nullptr, nullptr, paramVariable);
+	//CompoundTypeNode* paramType = (CompoundTypeNode*)newCompoundType(newPrimitiveType(newToken(snt_keyword_unsigned), pt_uint), tc_none);
+	CompoundTypeNode* countType = (CompoundTypeNode*)newCompoundType(newTypeName(newScopeNameList(0, newScopeName(newIdentifier("size_t"), 0, 0, 0))), tc_none);
+	IdentifierNode* countName = (IdentifierNode*)newIdentifier("count");
+	VariableNode* countVariable = (VariableNode*)newVariable(countType, nullptr, countName, nullptr);
 
+	//VariableListNode* paramList = (VariableListNode*)newVariableList(nullptr, nullptr, paramVariable);
+	VariableListNode* paramList = MergeVariableList(addressVariable, countVariable);
 	IdentifierNode* name = (IdentifierNode*)newIdentifier(methodName);
-
-	MethodNode* method = (MethodNode*)newMethod(resultList, name,
+	MethodNode* method = (MethodNode*)newMethod(nullptr, name,
 		constructor->m_leftParenthesis, paramList,
 		constructor->m_rightParenthesis);
 
@@ -600,11 +609,11 @@ void ClassNode::buildAdditionalMethods()
 	for (size_t i = 0; i < count; ++i)
 	{
 		MethodNode* constructor = constructors[i];
-		generateNewMethod("New", constructor);
+		generateConstruct("Construct", constructor);
 	}
 	if (0 != defaultConstructor)
 	{
-		generateNewArrayMethod("NewArray", defaultConstructor);
+		generateConstructArray("ConstructArray", defaultConstructor);
 	}
 
 	yytokenno = backupToken;
@@ -726,7 +735,7 @@ void ClassNode::collectOverrideMethods(std::vector<MethodNode*>& methodNodes, Te
 	}
 }
 
-bool ClassNode::needSubclassProxy(TemplateArguments* templateArguments)
+bool ClassNode::needInterfaceProxy(TemplateArguments* templateArguments)
 {
 	if (isInterface())
 	{

@@ -5,12 +5,12 @@
 
 BEGIN_PAFCORE
 
-bool Iterator::isEnd()
+bool Iterator::isEnd() const
 {
 	return true;
 }
 
-void Iterator::moveNext()
+void Iterator::advance(int offset)
 {
 }
 
@@ -18,7 +18,7 @@ void Iterator::reset()
 {
 }
 
-bool Iterator::equal(Iterator* other)
+bool Iterator::equal(Iterator* other) const
 {
 	return false;
 }

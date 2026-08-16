@@ -5,29 +5,13 @@
 
 BEGIN_PAFCORE
 
-namespace
-{
-	void ReleaseNotifyHandlerLink(NotifyHandlerLink* link)
-	{
-		if (0 == link)
-		{
-			return;
-		}
-
-		if (0 == DecStrong(link))
-		{
-			NotifyHandlerLink::Delete(link);
-		}
-	}
-}
-
 NotifyHandlerLink::~NotifyHandlerLink()
 {
 }
 
 NotifyHandlerLink* NotifyHandlerLink::New(NotifyHandler* first, NotifyHandler* second)
 {
-	return CreateObject<NotifyHandlerLink>(first, second);
+	return pafcore::New<NotifyHandlerLink>(first, second);
 }
 
 bool NotifyHandlerLink::find(NotifyHandler* p)
@@ -55,12 +39,12 @@ NotifyHandler* NotifyHandlerLink::remove(NotifyHandler* p)
 	if (p == m_first)
 	{
 		res = m_second;
-		ReleaseNotifyHandlerLink(static_cast<NotifyHandlerLink*>(this));
+		pafcore::Delete(static_cast<NotifyHandlerLink*>(this));
 	}
 	else if (p == m_second)
 	{
 		res = m_first;
-		ReleaseNotifyHandlerLink(static_cast<NotifyHandlerLink*>(this));
+		pafcore::Delete(static_cast<NotifyHandlerLink*>(this));
 	}
 	else if (m_first->isStrictTypeOf<NotifyHandlerLink>())
 	{
@@ -129,21 +113,22 @@ bool NotifyHandlerLink::FindInList(NotifyHandler* root, NotifyHandler* p)
 }
 
 NotifyHandlerList::NotifyHandlerList() : m_notifyHandler(0)
-{}
+{
+}
 
 NotifyHandlerList::~NotifyHandlerList()
 {
-	//NotifyHandlerList ӵ�� NotifyHandlerLink ���ü���������ӵ�� NotifyHandler ���ü���
+	//NotifyHandlerList not hold NotifyHandler ref count
 	if (m_notifyHandler)
 	{
 		if (m_notifyHandler->isStrictTypeOf<NotifyHandlerLink>())
 		{
-			ReleaseNotifyHandlerLink(static_cast<NotifyHandlerLink*>(m_notifyHandler));
+			m_notifyHandler->decStrongRefCount();
 		}
 	}
 }
 
-void NotifyHandlerList::addNotifyHandler(ObserverPtr<NotifyHandler> handler) const
+void NotifyHandlerList::addNotifyHandler(NotifyHandler* handler) const
 {
 	if (!NotifyHandlerLink::FindInList(m_notifyHandler, handler))
 	{
@@ -151,7 +136,7 @@ void NotifyHandlerList::addNotifyHandler(ObserverPtr<NotifyHandler> handler) con
 	}
 }
 
-void NotifyHandlerList::removeNotifyHandler(ObserverPtr<NotifyHandler> handler) const
+void NotifyHandlerList::removeNotifyHandler(NotifyHandler* handler) const
 {
 	if (NotifyHandlerLink::FindInList(m_notifyHandler, handler))
 	{
@@ -159,42 +144,42 @@ void NotifyHandlerList::removeNotifyHandler(ObserverPtr<NotifyHandler> handler) 
 	}
 }
 
-bool NotifyHandlerList::findNotifyHandler(ObserverPtr<NotifyHandler> handler) const
+bool NotifyHandlerList::findNotifyHandler(NotifyHandler* handler) const
 {
 	return NotifyHandlerLink::FindInList(m_notifyHandler, handler);
 }
-
-void PropertyChangedNotifySource::notifyPropertyChanged(string_t propertyName, PropertyChangedFlag flag, Iterator* iterator)
-{
-	if (m_notifyHandlerList.m_notifyHandler)
-	{
-		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, propertyName, flag, iterator, &PropertyChangedNotifyHandler::onPropertyChanged);
-	}
-}
-
-void PropertyChangedNotifySource::nodifyPropertyAvailabilityChanged(string_t propertyName)
-{
-	if (m_notifyHandlerList.m_notifyHandler)
-	{
-		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, propertyName, &PropertyChangedNotifyHandler::onPropertyAvailabilityChanged);
-	}
-}
-
-void PropertyChangedNotifySource::notifyDynamicPropertyChanged(string_t propertyName, PropertyChangedFlag flag, Iterator* iterator)
-{
-	if (m_notifyHandlerList.m_notifyHandler)
-	{
-		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, propertyName, flag, iterator, &PropertyChangedNotifyHandler::onDynamicPropertyChanged);
-	}
-}
-
-void PropertyChangedNotifySource::notifyUpdateDynamicProperty()
-{
-	if (m_notifyHandlerList.m_notifyHandler)
-	{
-		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, &PropertyChangedNotifyHandler::onUpdateDynamicProperty);
-	}
-}
-
+//
+//void PropertyChangedNotifySource::notifyPropertyChanged(string_t propertyName, PropertyChangedFlag flag, Iterator* iterator)
+//{
+//	if (m_notifyHandlerList.m_notifyHandler)
+//	{
+//		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, propertyName, flag, iterator, &PropertyChangedNotifyHandler::onPropertyChanged);
+//	}
+//}
+//
+//void PropertyChangedNotifySource::nodifyPropertyAvailabilityChanged(string_t propertyName)
+//{
+//	if (m_notifyHandlerList.m_notifyHandler)
+//	{
+//		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, propertyName, &PropertyChangedNotifyHandler::onPropertyAvailabilityChanged);
+//	}
+//}
+//
+//void PropertyChangedNotifySource::notifyDynamicPropertyChanged(string_t propertyName, PropertyChangedFlag flag, Iterator* iterator)
+//{
+//	if (m_notifyHandlerList.m_notifyHandler)
+//	{
+//		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, propertyName, flag, iterator, &PropertyChangedNotifyHandler::onDynamicPropertyChanged);
+//	}
+//}
+//
+//void PropertyChangedNotifySource::notifyUpdateDynamicProperty()
+//{
+//	if (m_notifyHandlerList.m_notifyHandler)
+//	{
+//		NotifyHandlerLink::TransmitNotify<PropertyChangedNotifyHandler>(m_notifyHandlerList.m_notifyHandler, this, &PropertyChangedNotifyHandler::onUpdateDynamicProperty);
+//	}
+//}
+//
 
 END_PAFCORE

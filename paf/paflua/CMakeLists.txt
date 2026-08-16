@@ -102,14 +102,29 @@ else()
 endif()
 
 set(interface_files
-    "lua_call_back.i"
+)
+
+set(header_files
+    "common_func.h"
+    "instance_field.h"
+    "instance_property.h"
+    "paflua.h"
+    "script_invoker.h"
+    "static_field.h"
+    "static_property.h"
+    "utility.h"
+    "variant.h"
 )
 
 set(source_files
-    "lua_call_back.cpp"
-    "lua_subclass_invoker.cpp"
-    "lua_wrapper.cpp"
+    "common_func.cpp"
+    "instance_field.cpp"
+    "instance_property.cpp"
     "paflua.cpp"
+    "script_invoker.cpp"
+    "static_field.cpp"
+    "static_property.cpp"
+    "variant.cpp"
 )
 
 set(generated_files)
@@ -147,6 +162,11 @@ foreach(interface_file IN LISTS interface_files)
     )
 endforeach()
 
+set(paflua_header_paths)
+foreach(_f IN LISTS header_files)
+    list(APPEND paflua_header_paths "${CMAKE_CURRENT_SOURCE_DIR}/${_f}")
+endforeach()
+
 set(paflua_source_paths)
 foreach(_f IN LISTS source_files)
     list(APPEND paflua_source_paths "${CMAKE_CURRENT_SOURCE_DIR}/${_f}")
@@ -157,6 +177,7 @@ foreach(_f IN LISTS interface_files)
     list(APPEND paflua_interface_paths "${CMAKE_CURRENT_SOURCE_DIR}/${_f}")
 endforeach()
 
+source_group("Header Files" FILES ${paflua_header_paths})
 source_group("Source Files" FILES ${paflua_source_paths})
 source_group("Interface Files" FILES ${paflua_interface_paths})
 source_group("IDL Generated" FILES ${generated_files})
@@ -164,6 +185,7 @@ source_group("IDL Generated" FILES ${generated_files})
 add_library(
     ${project_name}
     ${paflua_library_type}
+    ${paflua_header_paths}
     ${paflua_source_paths}
 )
 

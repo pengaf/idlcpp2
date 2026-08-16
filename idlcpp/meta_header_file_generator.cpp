@@ -32,7 +32,7 @@
 
 
 const char g_metaMethodPrefix[] = "static ::pafcore::ErrorCode ";
-const char g_metaMethodPostfix[] = "(::pafcore::Variant** results, int numResults, ::pafcore::Variant** arguments, int numArguments);\n";
+const char g_metaMethodPostfix[] = "(::pafcore::Variant** results, uint32_t& numResults, ::pafcore::Variant** arguments, uint32_t numArguments);\n";
 
 void writeMetaMethodDecl(const char* funcName, FILE* file, int indentation)
 {
@@ -61,37 +61,40 @@ void writeMetaMethodDecls(ClassNode* classNode, std::vector<MethodNode*> methodN
 }
 
 const char* g_metaPropertyDeclPrefix = "static ::pafcore::ErrorCode ";
-const char* g_metaPropertyDeclGetPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Variant* value);\n";
-const char* g_metaPropertyDeclSetPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Variant* value);\n";
 
-const char* g_metaPropertyDeclArrayGetPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, size_t index, ::pafcore::Variant* value);\n";
-const char* g_metaPropertyDeclArraySetPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, size_t index, ::pafcore::Variant* value);\n";
-const char* g_metaPropertyDeclArraySizePostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, size_t& size);\n";
-const char* g_metaPropertyDeclArrayResizePostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, size_t size);\n";
+const char* g_metaPropertyDeclEnumPostfix = "(::pafcore::Variant const& that, ::pafcore::Variant& candidates);\n";
 
-const char* g_metaPropertyDeclListIteratePostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Variant* iterator);\n";
-const char* g_metaPropertyDeclListGetPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Iterator* iterator, ::pafcore::Variant* value);\n";
-const char* g_metaPropertyDeclListSetPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Iterator* iterator, ::pafcore::Variant* value);\n";
-const char* g_metaPropertyDeclListInsertPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Iterator* iterator, ::pafcore::Variant* value);\n";
-const char* g_metaPropertyDeclListErasePostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Iterator* iterator);\n";
+const char* g_metaPropertyDeclScalarGetPostfix = "(::pafcore::Variant const& that, ::pafcore::Variant& value);\n";
+const char* g_metaPropertyDeclScalarSetPostfix = "(::pafcore::Variant& that, ::pafcore::Variant const& value);\n";
 
-const char* g_metaPropertyDeclEnumPostfix = "(::pafcore::InstanceProperty* instanceProperty, ::pafcore::Variant* that, ::pafcore::Variant* candidates);\n";
+const char* g_metaPropertyDeclCollectionIteratePostfix = "(::pafcore::Variant const& that, ::pafcore::Variant& iterator);\n";
 
-const char* g_metaStaticPropertyDeclGetPostfix = "(::pafcore::Variant* value);\n";
-const char* g_metaStaticPropertyDeclSetPostfix = "(::pafcore::Variant* value);\n";
+const char* g_metaPropertyDeclCollectionGetPostfix = "(::pafcore::Variant const& that, ::pafcore::Variant const& iterator, ::pafcore::Variant& value);\n";
+const char* g_metaPropertyDeclCollectionSetPostfix = "(::pafcore::Variant& that, ::pafcore::Variant const& iterator, ::pafcore::Variant const& value);\n";
 
-const char* g_metaStaticPropertyDeclArrayGetPostfix = "(size_t index, ::pafcore::Variant* value);\n";
-const char* g_metaStaticPropertyDeclArraySetPostfix = "(size_t index, ::pafcore::Variant* value);\n";
-const char* g_metaStaticPropertyDeclArraySizePostfix = "(size_t& size);\n";
-const char* g_metaStaticPropertyDeclArrayResizePostfix = "(size_t size);\n";
+const char* g_metaPropertyDeclArraySizePostfix = "(::pafcore::Variant const& that, ::pafcore::Variant& size);\n";
+const char* g_metaPropertyDeclArrayResizePostfix = "(::pafcore::Variant& that, ::pafcore::Variant const& size);\n";
 
-const char* g_metaStaticPropertyDeclListIteratePostfix = "(::pafcore::Variant* iterator);\n";
-const char* g_metaStaticPropertyDeclListGetPostfix = "(::pafcore::Iterator* iterator, ::pafcore::Variant* value);\n";
-const char* g_metaStaticPropertyDeclListSetPostfix = "(::pafcore::Iterator* iterator, ::pafcore::Variant* value);\n";
-const char* g_metaStaticPropertyDeclListInsertPostfix = "(::pafcore::Iterator* iterator, ::pafcore::Variant* value);\n";
-const char* g_metaStaticPropertyDeclListErasePostfix = "(::pafcore::Iterator* iterator);\n";
+const char* g_metaPropertyDeclListInsertPostfix = "(::pafcore::Variant& that, ::pafcore::Variant const& iterator, ::pafcore::Variant const& value);\n";
+const char* g_metaPropertyDeclListErasePostfix = "(::pafcore::Variant& that, ::pafcore::Variant const& iterator);\n";
 
-const char* g_metaStaticPropertyDeclEnumPostfix = "(::pafcore::Variant* candidates);\n";
+
+const char* g_metaStaticPropertyDeclEnumPostfix = "(::pafcore::Variant& candidates);\n";
+
+const char* g_metaStaticPropertyDeclScalarGetPostfix = "(::pafcore::Variant& value);\n";
+const char* g_metaStaticPropertyDeclScalarSetPostfix = "(::pafcore::Variant const& value);\n";
+
+const char* g_metaStaticPropertyDeclCollectionIteratePostfix = "(::pafcore::Variant& iterator);\n";
+
+const char* g_metaStaticPropertyDeclCollectionGetPostfix = "(::pafcore::Variant const& iterator, ::pafcore::Variant& value);\n";
+const char* g_metaStaticPropertyDeclCollectionSetPostfix = "(::pafcore::Variant const& iterator, ::pafcore::Variant const& value);\n";
+
+const char* g_metaStaticPropertyDeclArraySizePostfix = "(::pafcore::Variant& size);\n";
+const char* g_metaStaticPropertyDeclArrayResizePostfix = "(::pafcore::Variant const& size);\n";
+
+const char* g_metaStaticPropertyDeclListInsertPostfix = "(::pafcore::Variant const& iterator, ::pafcore::Variant const& value);\n";
+const char* g_metaStaticPropertyDeclListErasePostfix = "(::pafcore::Variant const& iterator);\n";
+
 
 
 void writeMetaPropertyItemDecl(ClassNode* classNode, PropertyNode* propertyNode, const char* item, const char* prefix, const char* postfix, FILE* file, int indentation)
@@ -116,14 +119,14 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 			switch (propertyNode->getKind())
 			{
 			case simple_property:
-				postfix = g_metaStaticPropertyDeclGetPostfix;
+				postfix = g_metaStaticPropertyDeclScalarGetPostfix;
 				break;
 			case fixed_array_property:
 			case dynamic_array_property:
-				postfix = g_metaStaticPropertyDeclArrayGetPostfix;
+				postfix = g_metaStaticPropertyDeclCollectionGetPostfix;
 				break;
 			case list_property:
-				postfix = g_metaStaticPropertyDeclListGetPostfix;
+				postfix = g_metaStaticPropertyDeclCollectionGetPostfix;
 				break;
 			}
 		}
@@ -132,14 +135,14 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 			switch (propertyNode->getKind())
 			{
 			case simple_property:
-				postfix = g_metaPropertyDeclGetPostfix;
+				postfix = g_metaPropertyDeclScalarGetPostfix;
 				break;
 			case fixed_array_property:
 			case dynamic_array_property:
-				postfix = g_metaPropertyDeclArrayGetPostfix;
+				postfix = g_metaPropertyDeclCollectionGetPostfix;
 				break;
 			case list_property:
-				postfix = g_metaPropertyDeclListGetPostfix;
+				postfix = g_metaPropertyDeclCollectionGetPostfix;
 				break;
 			}
 		}
@@ -152,14 +155,14 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 			switch (propertyNode->getKind())
 			{
 			case simple_property:
-				postfix = g_metaStaticPropertyDeclSetPostfix;
+				postfix = g_metaStaticPropertyDeclScalarSetPostfix;
 				break;
 			case fixed_array_property:
 			case dynamic_array_property:
-				postfix = g_metaStaticPropertyDeclArraySetPostfix;
+				postfix = g_metaStaticPropertyDeclCollectionSetPostfix;
 				break;
 			case list_property:
-				postfix = g_metaStaticPropertyDeclListSetPostfix;
+				postfix = g_metaStaticPropertyDeclCollectionSetPostfix;
 				break;
 			}
 		}
@@ -168,14 +171,14 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 			switch (propertyNode->getKind())
 			{
 			case simple_property:
-				postfix = g_metaPropertyDeclSetPostfix;
+				postfix = g_metaPropertyDeclScalarSetPostfix;
 				break;
 			case fixed_array_property:
 			case dynamic_array_property:
-				postfix = g_metaPropertyDeclArraySetPostfix;
+				postfix = g_metaPropertyDeclCollectionSetPostfix;
 				break;
 			case list_property:
-				postfix = g_metaPropertyDeclListSetPostfix;
+				postfix = g_metaPropertyDeclCollectionSetPostfix;
 				break;
 			}
 		}
@@ -188,6 +191,9 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 	}
 	if(propertyNode->isFixedArray() || propertyNode->isDynamicArray())
 	{
+		postfix = propertyNode->isStatic() ? g_metaStaticPropertyDeclCollectionIteratePostfix : g_metaPropertyDeclCollectionIteratePostfix;
+		writeMetaPropertyItemDecl(classNode, propertyNode, "iterate", prefix, postfix, file, itemIndentation);
+
 		postfix = propertyNode->isStatic() ? g_metaStaticPropertyDeclArraySizePostfix : g_metaPropertyDeclArraySizePostfix;
 		writeMetaPropertyItemDecl(classNode, propertyNode, "size", prefix, postfix, file, itemIndentation);
 		if (propertyNode->isDynamicArray())
@@ -198,7 +204,7 @@ void writeMetaPropertyDecl(ClassNode* classNode, PropertyNode* propertyNode, FIL
 	}
 	else if (propertyNode->isList())
 	{
-		postfix = propertyNode->isStatic() ? g_metaStaticPropertyDeclListIteratePostfix : g_metaPropertyDeclListIteratePostfix;
+		postfix = propertyNode->isStatic() ? g_metaStaticPropertyDeclCollectionIteratePostfix : g_metaPropertyDeclCollectionIteratePostfix;
 		writeMetaPropertyItemDecl(classNode, propertyNode, "iterate", prefix, postfix, file, itemIndentation);
 
 		postfix = propertyNode->isStatic() ? g_metaStaticPropertyDeclListInsertPostfix : g_metaPropertyDeclListInsertPostfix;
@@ -258,7 +264,7 @@ void MetaHeaderFileGenerator::generateCode_Program(FILE* file, SourceFile* sourc
 	writeStringToFile(buf, file);
 	sprintf_s(buf, "#include \"%svariant.h\"\n", pafcorePath.c_str());
 	writeStringToFile(buf, file);
-	sprintf_s(buf, "#include \"%ssubclass_invoker.h\"\n", pafcorePath.c_str());
+	sprintf_s(buf, "#include \"%sscript_invoker.h\"\n", pafcorePath.c_str());
 	writeStringToFile(buf, file);
 
 	writeStringToFile("\nnamespace idlcpp\n{\n\n", file);
@@ -437,8 +443,11 @@ void MetaHeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 				{
 					if(methodNode->isStatic())
 					{
-						if (methodNode->m_name->m_str == "__destruct__"
-							|| methodNode->m_name->m_str == "__assign__")
+						if (methodNode->m_name->m_str == "Destruct" ||
+							methodNode->m_name->m_str == "CopyConstruct" ||
+							methodNode->m_name->m_str == "MoveConstruct" ||
+							methodNode->m_name->m_str == "CopyAssign" ||
+							methodNode->m_name->m_str == "MoveAssign")
 						{
 							typeMethodNodes.push_back(methodNode);
 						}
@@ -511,19 +520,21 @@ void MetaHeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 	writeStringToFile("();\n", file);
 
 	writeStringToFile("public:\n", file, indentation);
-	writeStringToFile("virtual void destruct(void* address, size_t count);\n", file, indentation + 1);
-	writeStringToFile("virtual void copyConstruct(void* dst, const void* src, size_t count);\n", file, indentation + 1);
-	writeStringToFile("virtual void moveConstruct(void* dst, void* src, size_t count);\n", file, indentation + 1);
-	writeStringToFile("virtual void copyAssign(void* dst, const void* src, size_t count);\n", file, indentation + 1);
-	writeStringToFile("virtual void moveAssign(void* dst, void* src, size_t count);\n", file, indentation + 1);
+	writeStringToFile("virtual bool copyConstruct(void* dst, const void* src, size_t count) const override;\n", file, indentation + 1);
+	writeStringToFile("virtual bool moveConstruct(void* dst, void* src, size_t count) const override;\n", file, indentation + 1);
+	writeStringToFile("virtual bool copyAssign(void* dst, const void* src, size_t count) const override;\n", file, indentation + 1);
+	writeStringToFile("virtual bool moveAssign(void* dst, void* src, size_t count) const override;\n", file, indentation + 1);
+	writeStringToFile("virtual bool destruct(void* ptr, size_t count) const override;\n", file, indentation + 1);
+	//writeStringToFile("virtual void releaseSharedPtr(void* ptr) const override;\n", file, indentation + 1);
+	//writeStringToFile("virtual void releaseSharedArray(void* ptr) const override;\n", file, indentation + 1);
 
-	if(classNode->needSubclassProxy(templateArguments))
+	if(classNode->needInterfaceProxy(templateArguments))
 	{
 		std::string className;
 		classNode->getNativeName(className, templateArguments);
 
 		writeStringToFile("public:\n", file, indentation);
-		sprintf_s(buf, "virtual pafcore::SharedPtr<%s> createSubclassProxy(::pafcore::SubclassInvoker* subclassInvoker);\n", className.c_str());
+		sprintf_s(buf, "virtual ::pafcore::SharedPtr<::pafcore::Interface> createInterfaceProxy(::pafcore::ScriptInvoker* scriptInvoker) const override;\n", className.c_str());
 		writeStringToFile(buf, file, indentation + 1);
 	}
 	writeMetaPropertyDecls(classNode, propertyNodes, file, indentation);
@@ -538,9 +549,9 @@ void MetaHeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNod
 	writeStringToFile(buf, file, indentation + 1);
 	writeStringToFile("};\n\n", file, indentation);
 
-	if(classNode->needSubclassProxy(templateArguments))
+	if(classNode->needInterfaceProxy(templateArguments))
 	{
-		generateCode_SubclassProxy(file, classNode, templateArguments, indentation);
+		generateCode_InterfaceProxy(file, classNode, templateArguments, indentation);
 	}
 
 	size_t subTypeCount = subTypeNodes.size();
@@ -631,21 +642,21 @@ void writeInterfaceMethodsDecl(FILE* file, ClassNode* classNode, TemplateArgumen
 	}
 }
 
-void MetaHeaderFileGenerator::generateCode_SubclassProxy(FILE* file, ClassNode* classNode, TemplateArguments* templateArguments, int indentation)
+void MetaHeaderFileGenerator::generateCode_InterfaceProxy(FILE* file, ClassNode* classNode, TemplateArguments* templateArguments, int indentation)
 {
 	char buf[4096];
 	std::string className;
 	classNode->getFullName(className, templateArguments);
 	std::string subclassProxyName;
-	GetSubclassProxyFullName(subclassProxyName, classNode, templateArguments);
+	GetInterfaceProxyFullName(subclassProxyName, classNode, templateArguments);
 	
 	sprintf_s(buf, "class %s : public %s\n", subclassProxyName.c_str(), className.c_str());
 	writeStringToFile(buf, file, indentation);
 	writeStringToFile("{\n", file, indentation);
 	writeStringToFile("public:\n", file, indentation);
-	writeStringToFile("::pafcore::SubclassInvoker* m_subclassInvoker;\n", file, indentation + 1);
+	writeStringToFile("::pafcore::ScriptInvoker* m_scriptInvoker;\n", file, indentation + 1);
 	writeStringToFile("public:\n", file, indentation);
-	sprintf_s(buf, "%s(::pafcore::SubclassInvoker* subclassInvoker);\n", subclassProxyName.c_str());
+	sprintf_s(buf, "%s(::pafcore::ScriptInvoker* scriptInvoker);\n", subclassProxyName.c_str());
 	writeStringToFile(buf, file, indentation + 1);
 	sprintf_s(buf, "~%s();\n", subclassProxyName.c_str());
 	writeStringToFile(buf, file, indentation + 1);

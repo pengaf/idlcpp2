@@ -30,8 +30,8 @@ static Metadata* FindMetadataByName(Metadata** members, size_t memberCount, cons
 	return nullptr;
 }
 
-ClassType::ClassType(const char* name, MetadataKind kind, const char* declarationFile)
-: Type(name, kind, declarationFile)
+ClassType::ClassType(const char* name, MetadataKind kind, RefCountPolicy refCountPolicy, uint32_t size, const char* declarationFile)
+: Type(name, kind, refCountPolicy, size, declarationFile)
 {
 	m_baseClasses = 0;
 	m_baseClassCount = 0;
@@ -61,7 +61,7 @@ ClassType::ClassType(const char* name, MetadataKind kind, const char* declaratio
 	m_specialClass = not_special_class;
 }
 
-Type* ClassType::findNestedType(const char* name, bool includeBaseClasses, bool typeAliasToType)
+Type* ClassType::findNestedType(const char* name, bool includeBaseClasses, bool typeAliasToType) const
 {
 	Metadata dummy(name);
 	Type** it = std::lower_bound(m_nestedTypes, m_nestedTypes + m_nestedTypeCount, &dummy, CompareMetaDataPtrByName());
@@ -91,7 +91,7 @@ Type* ClassType::findNestedType(const char* name, bool includeBaseClasses, bool 
 	return 0;
 }
 
-TypeAlias* ClassType::findNestedTypeAlias(const char* name, bool includeBaseClasses)
+TypeAlias* ClassType::findNestedTypeAlias(const char* name, bool includeBaseClasses) const
 {
 	Metadata dummy(name);
 	TypeAlias** it = std::lower_bound(m_nestedTypeAliases, m_nestedTypeAliases + m_nestedTypeAliasCount, &dummy, CompareMetaDataPtrByName());
@@ -114,7 +114,7 @@ TypeAlias* ClassType::findNestedTypeAlias(const char* name, bool includeBaseClas
 }
 
 
-InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseClasses)
+InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseClasses) const
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
 	if (member && MetadataKind::instance_field == member->_kind_())
@@ -124,7 +124,7 @@ InstanceField* ClassType::findInstanceField(const char* name, bool includeBaseCl
 	return 0;
 }
 
-StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasses)
+StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasses) const
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
 	if (member && MetadataKind::static_field == member->_kind_())
@@ -154,7 +154,7 @@ StaticField* ClassType::findStaticField(const char* name, bool includeBaseClasse
 	*/
 }
 
-InstanceProperty* ClassType::findInstanceProperty(const char* name, bool includeBaseClasses)
+InstanceProperty* ClassType::findInstanceProperty(const char* name, bool includeBaseClasses) const
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
 	if (member && MetadataKind::instance_property == member->_kind_())
@@ -184,7 +184,7 @@ InstanceProperty* ClassType::findInstanceProperty(const char* name, bool include
 	*/
 }
 
-StaticProperty* ClassType::findStaticProperty(const char* name, bool includeBaseClasses)
+StaticProperty* ClassType::findStaticProperty(const char* name, bool includeBaseClasses) const
 {
 	Metadata* member = _findMember_(name, includeBaseClasses);
 	if (member && MetadataKind::static_property == member->_kind_())
@@ -214,7 +214,7 @@ StaticProperty* ClassType::findStaticProperty(const char* name, bool includeBase
 	*/
 }
 
-InstanceMethod* ClassType::findInstanceMethod(const char* name, bool includeBaseClasses)
+InstanceMethod* ClassType::findInstanceMethod(const char* name, bool includeBaseClasses) const
 {
 	Metadata dummy(name);
 	InstanceMethod* res = std::lower_bound(m_instanceMethods, m_instanceMethods + m_instanceMethodCount, dummy);
@@ -236,7 +236,7 @@ InstanceMethod* ClassType::findInstanceMethod(const char* name, bool includeBase
 	return 0;
 }
 
-StaticMethod* ClassType::findStaticMethod(const char* name, bool includeBaseClasses)
+StaticMethod* ClassType::findStaticMethod(const char* name, bool includeBaseClasses) const
 {
 	Metadata dummy(name);
 	StaticMethod* res = std::lower_bound(m_staticMethods, m_staticMethods + m_staticMethodCount, dummy);
@@ -258,7 +258,7 @@ StaticMethod* ClassType::findStaticMethod(const char* name, bool includeBaseClas
 	return 0;
 }
 
-Metadata* ClassType::_findMember_(string_t name, bool includeBaseClasses)
+Metadata* ClassType::_findMember_(string_t name, bool includeBaseClasses) const
 {
 	Metadata* member = FindMetadataByName(m_members, m_memberCount, name);
 	if (nullptr != member)
@@ -279,7 +279,7 @@ Metadata* ClassType::_findMember_(string_t name, bool includeBaseClasses)
 	return nullptr;
 }
 
-Metadata* ClassType::findMember(const char* name, bool includeBaseClasses)
+Metadata* ClassType::findMember(const char* name, bool includeBaseClasses) const
 {
 	Metadata* member = FindMetadataByName(m_resolvedMembers.data(), m_resolvedMembers.size(), name);
 	if (nullptr == member)
@@ -298,7 +298,7 @@ Metadata* ClassType::findMember(const char* name, bool includeBaseClasses)
 	return member;
 }
 
-Metadata* ClassType::findClassMember(const char* name, bool includeBaseClasses, bool typeAliasToType)
+Metadata* ClassType::findClassMember(const char* name, bool includeBaseClasses, bool typeAliasToType) const
 {
 	Metadata* member = FindMetadataByName(m_classMembers, m_classMemberCount, name);
 	if (nullptr != member)
@@ -322,17 +322,17 @@ Metadata* ClassType::findClassMember(const char* name, bool includeBaseClasses, 
 	return member;
 }
 
-Metadata* ClassType::findMember(const char* name)
+Metadata* ClassType::findMember(const char* name) const
 {
 	return findMember(name, true);
 }
 
-SharedPtr<RCObject> ClassType::createSubclassProxy(SubclassInvoker* subclassInvoker)
+SharedPtr<Interface> ClassType::createInterfaceProxy(ScriptInvoker* scriptInvoker) const
 {
-	return SharedPtr<RCObject>();
+	return nullptr;
 }
 
-size_t ClassType::_getMemberCount_(bool includeBaseClasses)
+size_t ClassType::_getMemberCount_(bool includeBaseClasses) const
 {
 	size_t count = m_memberCount;
 	if(includeBaseClasses)
@@ -345,7 +345,7 @@ size_t ClassType::_getMemberCount_(bool includeBaseClasses)
 	return count;
 }
 	
-Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses)
+Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses) const
 {
 	if(includeBaseClasses)
 	{
@@ -378,12 +378,12 @@ Metadata* ClassType::_getMember_(size_t index, bool includeBaseClasses)
 	}
 }
 
-size_t ClassType::_getBaseClassCount_()
+size_t ClassType::_getBaseClassCount_() const
 {
 	return m_baseClassCount;
 }
 
-Metadata* ClassType::_getBaseClass_(size_t index)
+Metadata* ClassType::_getBaseClass_(size_t index) const
 {
 	if(index < m_baseClassCount)
 	{
@@ -392,7 +392,7 @@ Metadata* ClassType::_getBaseClass_(size_t index)
 	return nullptr;
 }
 
-bool ClassType::getClassOffset_(size_t& offset, ClassType* otherType)
+bool ClassType::getClassOffset_(size_t& offset, const ClassType* otherType) const
 {
 	if(this == otherType)
 	{
@@ -410,18 +410,18 @@ bool ClassType::getClassOffset_(size_t& offset, ClassType* otherType)
 	return false;
 }
 
-bool ClassType::getClassOffset(size_t& offset, ClassType* otherType)
+bool ClassType::getClassOffset(size_t& offset, const ClassType* otherType) const
 {
 	offset = 0;
 	return getClassOffset_(offset, otherType);
 }
 
-ClassTypeIterator* ClassType::_getFirstDerivedClass_()
+ClassTypeIterator* ClassType::_getFirstDerivedClass_() const
 {
 	return m_firstDerivedClass;
 }
 
-size_t ClassType::_getInstancePropertyCount_(bool includeBaseClasses)
+size_t ClassType::_getInstancePropertyCount_(bool includeBaseClasses) const
 {
 	size_t count = m_instancePropertyCount;
 	if (includeBaseClasses)
@@ -434,7 +434,7 @@ size_t ClassType::_getInstancePropertyCount_(bool includeBaseClasses)
 	return count;
 }
 
-InstanceProperty* ClassType::_getInstanceProperty_(size_t index, bool includeBaseClasses)
+InstanceProperty* ClassType::_getInstanceProperty_(size_t index, bool includeBaseClasses) const
 {
 	if (includeBaseClasses)
 	{
@@ -451,7 +451,7 @@ InstanceProperty* ClassType::_getInstanceProperty_(size_t index, bool includeBas
 	}
 }
 
-InstanceProperty* ClassType::getInstanceProperty_(size_t& index)//����property��ǰ
+InstanceProperty* ClassType::getInstanceProperty_(size_t& index) const
 {
 	if (index < m_instancePropertyCount)
 	{
@@ -469,7 +469,7 @@ InstanceProperty* ClassType::getInstanceProperty_(size_t& index)//����pr
 	return 0;
 }
 
-InstanceProperty* ClassType::getInstancePropertyBaseClassFirst_(size_t& index)//����property��ǰ
+InstanceProperty* ClassType::getInstancePropertyBaseClassFirst_(size_t& index) const
 {
 	for (size_t i = 0; i < m_baseClassCount; ++i)
 	{
@@ -487,7 +487,7 @@ InstanceProperty* ClassType::getInstancePropertyBaseClassFirst_(size_t& index)//
 	return 0;
 }
 
-size_t ClassType::_getInstanceFieldCount_(bool includeBaseClasses)
+size_t ClassType::_getInstanceFieldCount_(bool includeBaseClasses) const
 {
 	size_t count = m_instanceFieldCount;
 	if (includeBaseClasses)
@@ -500,7 +500,7 @@ size_t ClassType::_getInstanceFieldCount_(bool includeBaseClasses)
 	return count;
 }
 
-InstanceField* ClassType::_getInstanceField_(size_t index, bool includeBaseClasses)
+InstanceField* ClassType::_getInstanceField_(size_t index, bool includeBaseClasses) const
 {
 	if (includeBaseClasses)
 	{
@@ -517,7 +517,7 @@ InstanceField* ClassType::_getInstanceField_(size_t index, bool includeBaseClass
 	}
 }
 
-InstanceField* ClassType::getInstanceField_(size_t& index)//����property��ǰ
+InstanceField* ClassType::getInstanceField_(size_t& index) const
 {
 	if (index < m_instanceFieldCount)
 	{
@@ -535,7 +535,7 @@ InstanceField* ClassType::getInstanceField_(size_t& index)//����property
 	return 0;
 }
 
-InstanceField* ClassType::getInstanceFieldBaseClassFirst_(size_t& index)
+InstanceField* ClassType::getInstanceFieldBaseClassFirst_(size_t& index) const
 {
 	for (size_t i = 0; i < m_baseClassCount; ++i)
 	{
@@ -553,7 +553,7 @@ InstanceField* ClassType::getInstanceFieldBaseClassFirst_(size_t& index)
 	return 0;
 }
 
-bool ClassType::isType(ClassType* otherType)
+bool ClassType::isType(const ClassType* otherType) const
 {
 	if (this == otherType)
 	{

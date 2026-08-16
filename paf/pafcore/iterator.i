@@ -2,21 +2,84 @@
 
 #{
 #include "utility.h"
+#include <iterator>
 #}
 
 namespace pafcore
 {
 	class #PAFCORE_EXPORT Iterator : Object
 	{
-		virtual bool isEnd();
-		virtual void moveNext();
+		virtual bool isEnd() const;
+		virtual void advance(int offset);
 		virtual void reset();
-		virtual bool equal(Iterator* other);
+		virtual bool equal(Iterator* other) const;
 #{
+		void next()
+		{
+			advance(1);
+		}
+		void prev()
+		{
+			advance(-1);
+		}
 #}
 	};
 
 #{
+
+	template<typename Iterator_t>
+	void SafeAdvance(Iterator_t& iterator, int offset, Iterator_t begin, Iterator_t end)
+	{
+		if (offset > 0)
+		{
+			if (1 == offset)
+			{
+				if (iterator != end)
+				{
+					++iterator;
+				}
+			}
+			else
+			{
+				int maxOffset = std::distance(iterator, end);
+				if (offset > maxOffset)
+				{
+					iterator = end;
+				}
+				else
+				{
+					std::advance(iterator, offset);
+				}
+			}
+		}
+		else if (offset < 0)
+		{
+			if (-1 == offset)
+			{
+				if (iterator == begin)
+				{
+					iterator = end;
+				}
+				else if (iterator != end)
+				{
+					--iterator;
+				}
+			}
+			else
+			{
+				int maxOffset = std::distance(begin, iterator);
+				if (-offset > maxOffset)
+				{
+					iterator = end;
+				}
+				else
+				{
+					std::advance(iterator, offset);
+				}
+			}
+		}
+	}
+
 	template<typename C, typename I = typename C::iterator>
 	class IteratorImpl : public Iterator
 	{
@@ -43,32 +106,29 @@ namespace pafcore
 			m_iterator(iterator)
 		{}
 	public:
-		virtual bool isEnd() const
+		virtual bool isEnd() const override
 		{
 			return (m_end == m_iterator);
 		}
-		virtual void moveNext()
+		virtual void advance(int offset) override
 		{
-			if (m_end != m_iterator)
-			{
-				++m_iterator;
-			}
+			SafeAdvance(m_iterator, offset, m_container->begin(), m_end);
 		}
-		virtual void reset()
+		virtual void reset() override
 		{
-			//m_end = m_container->end();
 			m_iterator = m_container->begin();
+			//m_end = m_container->end();
 		}
-		virtual bool equal(Iterator* other) const
+		virtual bool equal(Iterator* other) const override
 		{
 			return (static_cast<ThisType*>(other)->m_iterator == m_iterator);
 		}
 	public:
-		ContainerType* getContainer()
-		{
-			return m_container;
-		}
-		IteratorType& getIterator()
+		//ContainerType* container()
+		//{
+		//	return m_container;
+		//}
+		IteratorType iterator() const
 		{
 			return m_iterator;
 		}
@@ -86,48 +146,51 @@ namespace pafcore
 	public:
 		ArrayIteratorImpl(T* begin, size_t size) :
 			m_begin(begin),
-			m_size(size),
-			m_index(0)
+			m_end(begin + size),
+			m_iterator(begin)
 		{}
+		
 		ArrayIteratorImpl(T* begin, size_t size, size_t index) :
 			m_begin(begin),
-			m_size(size),
-			m_index(index)
+			m_end(begin + size),
+			m_iterator(begin + (index < size ? index : size))
 		{}
+
 	public:
-		virtual bool isEnd() const
+		virtual bool isEnd() const override
 		{
-			return (m_index == m_size);
+			return (m_iterator == m_end);
 		}
-		virtual void moveNext()
+		virtual void advance(int offset) override
 		{
-			if (m_index != m_size)
-			{
-				++m_index;
-			}
+			SafeAdvance(m_iterator, offset, m_begin, m_end);
 		}
-		virtual void reset()
+		virtual void reset() override
 		{
-			m_index = 0;
+			m_iterator = m_begin;
 		}
-		virtual bool equal(Iterator* other) const
+		virtual bool equal(Iterator* other) const override
 		{
 			ThisType* that = static_cast<ThisType*>(other);
-			return (that->m_begin + that->m_index == m_begin + m_index);
+			return (that->m_iterator == m_iterator);
 		}
 	public:
-		T* getBegin()
+		T* begin() const
 		{
 			return m_begin;
 		}
-		size_t getIndex()
+		T* end() const
 		{
-			return m_index;
+			return m_end;
+		}
+		ptrdiff_t index() const
+		{
+			return m_iterator - m_begin;
 		}
 	protected:
 		T* m_begin;
-		size_t m_size;
-		size_t m_index;
+		T* m_end;
+		T* m_iterator;
 	};
 
 	template<typename C, typename I>

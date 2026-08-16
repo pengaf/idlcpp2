@@ -368,7 +368,8 @@ void Compiler::outputUsedTypes(FILE* file, SourceFile* sourceFile)
 
 			sprintf_s(buf, "template<%s>%s%s;", 
 				paramNames.c_str(), 
-				KeywardTokenToString(classNode->m_keyword));
+				KeywardTokenToString(classNode->m_keyword),
+				typeNode->m_name.c_str());
 		}
 		else if (typeNode->isClass())
 		{

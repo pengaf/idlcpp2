@@ -12,11 +12,14 @@ StaticMethod::StaticMethod(const char* name, Attributes* attributes, FunctionInv
 	m_invoker = invoker;
 	m_overloads = overloads;
 	m_overloadCount = overloadCount;
-}
-
-uint32_t StaticMethod::overloadCount() const
-{
-	return m_overloadCount;
+	m_maxNumResults = 0;
+	for (uint32_t i = 0; i < overloadCount; i++)
+	{
+		if (m_overloads[i].m_resultCount > m_maxNumResults)
+		{
+			m_maxNumResults = m_overloads[i].m_resultCount;
+		}
+	}
 }
 
 uint32_t StaticMethod::getResultCount(uint32_t overloadIndex)

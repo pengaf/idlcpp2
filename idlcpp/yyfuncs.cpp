@@ -100,7 +100,7 @@ SyntaxNode* newIdentifierList(SyntaxNode* identifierList, SyntaxNode* comma, Syn
 SyntaxNode* newAttribute(SyntaxNode* name, SyntaxNode* content, int u8content)
 {
 	assert(0 != name && snt_identifier == name->m_nodeType);
-	assert(0 != content && snt_identifier == content->m_nodeType);
+	assert(0 != content || snt_identifier == content->m_nodeType);
 	AttributeNode* res = new AttributeNode((IdentifierNode*)name, (IdentifierNode*)content, u8content);
 	g_syntaxNodes.push_back(res);
 	return res;
@@ -371,6 +371,14 @@ void setMethodModifier(SyntaxNode* syntaxNode, SyntaxNode* modifier)
 	assert(snt_keyword_static == modifier->m_nodeType || snt_keyword_virtual == modifier->m_nodeType);
 	MethodNode* methodNode = (MethodNode*)syntaxNode;
 	methodNode->m_modifier = (TokenNode*)modifier;
+}
+
+void setMethodConst(SyntaxNode* syntaxNode, SyntaxNode* constant)
+{
+	assert(snt_method == syntaxNode->m_nodeType);
+	assert(snt_keyword_const == constant->m_nodeType);
+	MethodNode* methodNode = (MethodNode*)syntaxNode;
+	methodNode->m_constant = (TokenNode*)constant;
 }
 
 void setMemberFilter(SyntaxNode* syntaxNode, SyntaxNode* filter)

@@ -1,5 +1,7 @@
 #include "../../paf/pafcore/flat_set.h"
 #include "../../paf/pafcore/memory.h"
+#include "../../paf/pafcore/object.h"
+#include "../../paf/pafcore/primitive_type.h"
 #include "../../paf/pafcore/std_deque.h"
 #include "../../paf/pafcore/std_forward_list.h"
 #include "../../paf/pafcore/std_list.h"
@@ -10,9 +12,10 @@
 #include "../../paf/pafcore/std_unordered_map.h"
 #include "../../paf/pafcore/std_unordered_set.h"
 #include "../../paf/pafcore/std_vector.h"
-#include "../../paf/pafcore/object.h"
 #include "../../paf/pafcore/string.h"
-#include "../../paf/pafcore/utility.h"
+#include "../../paf/pafcore/variant.h"
+#include "../test_smart_types/test_smart_types.h"
+#include "../test_smart_types/test_smart_types.mh"
 
 #include <cassert>
 #include <cstdint>
@@ -92,42 +95,28 @@ namespace
 
 	void TestRawAllocate()
 	{
-		void* block = pafcore::Allocate(128);
+		void* block = pafcore::Malloc(128);
 		assert(0 != block);
-		pafcore::Deallocate(block);
+		pafcore::Free(block);
 	}
 
-	void TestAlignedCreate()
+	void TestNewDelete()
 	{
-		AlignedObject* object = pafcore::Create<AlignedObject>();
+		CountingObject* object = pafcore::New<CountingObject>();
 		assert(0 != object);
-		assert(reinterpret_cast<uintptr_t>(object) % alignof(AlignedObject) == 0);
-		assert(object->m_value == 7);
-		pafcore::Destroy(object);
-	}
-
-	void TestArrayLifecycle()
-	{
-		CountingObject* objects = pafcore::CreateArray<CountingObject>(8);
-		assert(0 != objects);
-		assert(pafcore::ArraySizeOf(objects) == 8);
-		assert(CountingObject::s_liveCount == 8);
-
-		for (size_t i = 0; i < 8; ++i)
-		{
-			objects[i].m_value = static_cast<int>(i);
-		}
-
-		pafcore::DestroyArray(objects);
+		assert(CountingObject::s_liveCount == 1);
+		object->m_value = 42;
+		assert(object->m_value == 42);
+		pafcore::Delete(object);
 		assert(CountingObject::s_liveCount == 0);
 	}
 
-	void TestUtilityArrayHelpers()
+	void TestAlignedNew()
 	{
-		int* numbers = pafcore::CreateArray<int>(4);
-		assert(0 != numbers);
-		assert(pafcore::ArraySizeOf(numbers) == 4);
-		pafcore::DestroyArray(numbers);
+		AlignedObject* object = pafcore::New<AlignedObject>();
+		assert(0 != object);
+		assert(object->m_value == 7);
+		pafcore::Delete(object);
 	}
 
 	void TestString()
@@ -143,7 +132,6 @@ namespace
 		values.push_back(3);
 		values.push_back(1);
 		values.push_back(4);
-
 		assert(values.size() == 3);
 		assert(values[0] == 3);
 		assert(values[1] == 1);
@@ -228,30 +216,17 @@ namespace
 	void TestSmartPointers()
 	{
 		{
-			pafcore::UniquePtr<SmartValue> value(pafcore::Create<SmartValue>());
-			assert(value);
-			value->m_value = 42;
-			assert(value->m_value == 42);
-			assert(SmartValue::s_liveCount == 1);
-		}
-		assert(SmartValue::s_liveCount == 0);
-
-		{
-			pafcore::UniqueArray<SmartValue> values(pafcore::CreateArray<SmartValue>(3), 3);
-			assert(values);
-			assert(values.size() == 3);
-			assert(SmartValue::s_liveCount == 3);
-		}
-		assert(SmartValue::s_liveCount == 0);
-
-		{
 			pafcore::SharedArray<SmartValue> values = pafcore::MakeSharedArray<SmartValue>(2);
 			assert(values);
-			assert(values.size() == 2);
+			values[0].m_value = 21;
+			values[1].m_value = 22;
+			assert(values[0].m_value == 21);
+			assert(values[1].m_value == 22);
 			assert(SmartValue::s_liveCount == 2);
 			{
 				pafcore::SharedArray<SmartValue> values2 = values;
-				assert(values2.size() == 2);
+				assert(values2[0].m_value == 21);
+				assert(values2[1].m_value == 22);
 				assert(SmartValue::s_liveCount == 2);
 			}
 			assert(SmartValue::s_liveCount == 2);
@@ -259,32 +234,42 @@ namespace
 		assert(SmartValue::s_liveCount == 0);
 
 		{
-			pafcore::SharedPtr<SmartObject> object(pafcore::CreateObject<SmartObject>());
+			pafcore::SharedPtr<SmartObject> object = pafcore::MakeShared<SmartObject>();
 			assert(object);
 			object->m_value = 7;
-			pafcore::WeakPtr<SmartObject> weak(object.get());
-			assert(!weak.expired());
-			{
-				pafcore::SharedPtr<SmartObject> object2 = weak.lock();
-				assert(object2);
-				assert(object2->m_value == 7);
-				assert(SmartObject::s_liveCount == 1);
-			}
-			assert(!weak.expired());
+			assert(object->m_value == 7);
+			assert(SmartObject::s_liveCount == 1);
 		}
-		assert(SmartObject::s_liveCount == 0);
+	}
+
+	void TestVariantAssignSharedPtrMove()
+	{
+		pafcore::SharedPtr<testsmart::TestObject> object = pafcore::MakeShared<testsmart::TestObject>(123);
+		assert(object);
+		assert(object->id == 123);
+
+		pafcore::Variant variant;
+		variant.assignSharedPtr(std::move(object));
+
+		assert(!object);
+		assert(variant.typeCompound() == pafcore::TypeCompound::shared_ptr);
+
+		pafcore::SharedPtr<testsmart::TestObject> read;
+		assert(variant.castToSharedPtr(read));
+		assert(read);
+		assert(read->id == 123);
 	}
 }
 
 int main()
 {
 	TestRawAllocate();
-	TestAlignedCreate();
-	TestArrayLifecycle();
-	TestUtilityArrayHelpers();
+	TestNewDelete();
+	TestAlignedNew();
 	TestString();
 	TestStdAllocator();
 	TestFlatSet();
 	TestSmartPointers();
+	TestVariantAssignSharedPtrMove();
 	return 0;
 }

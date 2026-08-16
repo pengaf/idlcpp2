@@ -3,10 +3,11 @@
 
 struct TokenNode;
 struct IdentifierNode;
-struct TypeNameNode;
 struct ScopeNode;
-struct VariableNode;
+struct TypeNameNode;
 struct CompoundTypeNode;
+struct VariableNode;
+struct VariableListNode;
 
 
 void generateCode_outputEmbededCodes(FILE* file, TokenNode* tokenNode);
@@ -17,3 +18,4 @@ void generateCode_TypeName(FILE* file, TypeNameNode* typeNameNode, ScopeNode* sc
 void generateCode_CompoundType(FILE* file, CompoundTypeNode* compoundType, ScopeNode* scopeNode, int indentation, bool outputEmbededCode);
 void generateCode_ResultType(FILE* file, CompoundTypeNode* resultType, TokenNode* byRef, ScopeNode* scopeNode, bool constant, int indentation, bool outputEmbededCode);
 void generateCode_Parameter(FILE* file, VariableNode* parameter, bool output, ScopeNode* scopeNode, bool outputEmbededCode);
+

@@ -3,30 +3,28 @@
 namespace pafcore
 {
 #{
-	enum ErrorCode
+	enum class ErrorCode
 	{
 		s_ok,
 		e_invalid_namespace,
 		e_name_conflict,
-		e_void_variant,
+		e_null_variant,
 		e_is_not_type,
 		e_is_not_class,
 		e_invalid_subscript_type,
 		e_member_not_found,
 		e_index_out_of_range,
-		e_is_not_simple_property,
+		e_is_not_scalar_property,
+		e_is_not_collection_property,
 		e_is_not_array_property,
 		e_is_not_dynamic_array_property,
 		e_is_not_list_property,
-		e_is_not_map_property,
 		e_property_is_not_readable,
 		e_property_is_not_writable,
 		e_property_is_not_iterable,
-		e_property_is_not_dereferenceable,
-		e_property_has_no_candidate,
-		e_item_is_constant,
-		e_field_is_an_array,
-		e_field_is_constant,
+		e_property_is_not_enumerable,
+		e_field_is_not_scalar,
+		e_field_is_not_array,
 		e_invalid_type,
 		e_invalid_object_type,
 		e_invalid_field_type,
@@ -55,27 +53,6 @@ namespace pafcore
 		e_invalid_arg_type_18,
 		e_invalid_arg_type_19,
 		e_invalid_arg_type_20,
-		e_this_is_constant,
-		e_arg_is_constant_1,
-		e_arg_is_constant_2,
-		e_arg_is_constant_3,
-		e_arg_is_constant_4,
-		e_arg_is_constant_5,
-		e_arg_is_constant_6,
-		e_arg_is_constant_7,
-		e_arg_is_constant_8,
-		e_arg_is_constant_9,
-		e_arg_is_constant_10,
-		e_arg_is_constant_11,
-		e_arg_is_constant_12,
-		e_arg_is_constant_13,
-		e_arg_is_constant_14,
-		e_arg_is_constant_15,
-		e_arg_is_constant_16,
-		e_arg_is_constant_17,
-		e_arg_is_constant_18,
-		e_arg_is_constant_19,
-		e_arg_is_constant_20,
 		e_not_implemented,
 		e_script_error,
 		e_script_dose_not_override,
@@ -84,6 +61,8 @@ namespace pafcore
 	extern const char* g_errorStrings[];
 
 	PAFCORE_EXPORT const char* ErrorCodeToString(ErrorCode errorCode);
+
+	const size_t max_parameter_count = 20;
 
 	struct Attribute
 	{
@@ -123,16 +102,18 @@ namespace pafcore
 	enum class TypeCompound ## : uint8_t
 	{
 		none,
+		ref,
 		raw_ptr,
 		shared_ptr,
 		observer_ptr,
+		raw_array,
 		shared_array,
 		observer_array,
 	};
 
 	enum class PropertyKind ## : uint8_t
 	{
-		simple_property,
+		scalar_property,
 		fixed_array_property,
 		dynamic_array_property,
 		list_property,
@@ -143,12 +124,11 @@ namespace pafcore
 		string_t _name_ { get };
 		MetadataKind _kind_ { get };
 		size_t _attributeCount_ { get };
-		string_t _getAttributeName_(size_t index);
-		string_t _getAttributeContent_(size_t index);
-		string_t _getAttributeContentByName_(string_t attributeName);
-		bool _hasAttribute_(string_t attributeName);
+		string_t _getAttributeName_(size_t index) const;
+		string_t _getAttributeContent_(size_t index) const;
+		string_t _getAttributeContentByName_(string_t attributeName) const;
+		bool _hasAttribute_(string_t attributeName) const;
 #{
-	public:
 	public:
 		Metadata(const char* name, Attributes* attributes = 0);
 		//Metadata(const Metadata&) = default;

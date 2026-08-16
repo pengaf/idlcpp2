@@ -19,7 +19,7 @@ namespace pafcore
 	class StaticMethod;
 	class EnumMember;
 	class TypeAlias;
-	class SubclassInvoker;
+	class ScriptInvoker;
 	class Variant;
 #}
 	struct #PAFCORE_EXPORT ClassTypeIterator
@@ -49,16 +49,16 @@ namespace pafcore
 
 	class(class_type)#PAFCORE_EXPORT ClassType : Type
 	{
-		size_t _getMemberCount_(bool includeBaseClasses);
-		Metadata* _getMember_(size_t index, bool includeBaseClasses);
-		Metadata* _findMember_(string_t name, bool includeBaseClasses);
-		size_t _getBaseClassCount_();
-		Metadata* _getBaseClass_(size_t index);
-		ClassTypeIterator* _getFirstDerivedClass_();
-		size_t _getInstancePropertyCount_(bool includeBaseClasses);	
-		InstanceProperty* _getInstanceProperty_(size_t index, bool includeBaseClasses);//������property��ǰ	
-		size_t _getInstanceFieldCount_(bool includeBaseClasses);
-		InstanceField* _getInstanceField_(size_t index, bool includeBaseClasses);//������field��ǰ	
+		size_t _getMemberCount_(bool includeBaseClasses) const;
+		Metadata* _getMember_(size_t index, bool includeBaseClasses) const;
+		Metadata* _findMember_(string_t name, bool includeBaseClasses) const;
+		size_t _getBaseClassCount_()  const;
+		Metadata* _getBaseClass_(size_t index) const;
+		ClassTypeIterator* _getFirstDerivedClass_() const;
+		size_t _getInstancePropertyCount_(bool includeBaseClasses) const;
+		InstanceProperty* _getInstanceProperty_(size_t index, bool includeBaseClasses) const;
+		size_t _getInstanceFieldCount_(bool includeBaseClasses) const;
+		InstanceField* _getInstanceField_(size_t index, bool includeBaseClasses) const;
 #{
 	public:
 		struct BaseClass
@@ -72,35 +72,35 @@ namespace pafcore
 			string_class,
 		};
 	public:
-		ClassType(const char* name, MetadataKind kind, const char* declarationFile);
+		ClassType(const char* name, MetadataKind kind, RefCountPolicy refCountPolicy, uint32_t size, const char* declarationFile);
 	public:
-		virtual Metadata* findMember(const char* name) override;
-		virtual SharedPtr<RCObject> createSubclassProxy(SubclassInvoker* subclassInvoker);
-		Metadata* findMember(const char* name, bool includeBaseClasses);
-		Metadata* findClassMember(const char* name, bool includeBaseClasses, bool typeAliasToType);
+		virtual Metadata* findMember(const char* name) const override;
+		virtual SharedPtr<Interface> createInterfaceProxy(ScriptInvoker* scriptInvoker) const;
+		Metadata* findMember(const char* name, bool includeBaseClasses) const;
+		Metadata* findClassMember(const char* name, bool includeBaseClasses, bool typeAliasToType) const;
 	public:
-		bool isType(ClassType* otherType);
-		bool getClassOffset_(size_t& offset, ClassType* otherType);
-		bool getClassOffset(size_t& offset, ClassType* otherType);
-		Type* findNestedType(const char* name, bool includeBaseClasses, bool typeAliasToType);
-		TypeAlias* findNestedTypeAlias(const char* name, bool includeBaseClasses);
-		InstanceField* findInstanceField(const char* name, bool includeBaseClasses);
-		StaticField* findStaticField(const char* name, bool includeBaseClasses);
-		InstanceProperty* findInstanceProperty(const char* name, bool includeBaseClasses);
-		StaticProperty* findStaticProperty(const char* name, bool includeBaseClasses);
-		InstanceMethod* findInstanceMethod(const char* name, bool includeBaseClasses);
-		StaticMethod* findStaticMethod(const char* name, bool includeBaseClasses);
+		bool isType(const ClassType* otherType) const;
+		bool getClassOffset_(size_t& offset, const ClassType* otherType) const;
+		bool getClassOffset(size_t& offset, const ClassType* otherType) const;
+		Type* findNestedType(const char* name, bool includeBaseClasses, bool typeAliasToType) const;
+		TypeAlias* findNestedTypeAlias(const char* name, bool includeBaseClasses) const;
+		InstanceField* findInstanceField(const char* name, bool includeBaseClasses) const;
+		StaticField* findStaticField(const char* name, bool includeBaseClasses) const;
+		InstanceProperty* findInstanceProperty(const char* name, bool includeBaseClasses) const;
+		StaticProperty* findStaticProperty(const char* name, bool includeBaseClasses) const;
+		InstanceMethod* findInstanceMethod(const char* name, bool includeBaseClasses) const;
+		StaticMethod* findStaticMethod(const char* name, bool includeBaseClasses) const;
 		bool hasDynamicInstanceField(bool includeBaseClasses) const;
 		bool hasDynamicInstanceField() const;
 		bool isStringClass() const;
 	public:
-		InstanceProperty* getInstancePropertyBaseClassFirst(size_t index);//����property��ǰ
-		InstanceField* getInstanceFieldBaseClassFirst(size_t index);//����field��ǰ
+		InstanceProperty* getInstancePropertyBaseClassFirst(size_t index) const;
+		InstanceField* getInstanceFieldBaseClassFirst(size_t index) const;
 	private:
-		InstanceProperty* getInstancePropertyBaseClassFirst_(size_t& index);//����property��ǰ
-		InstanceField* getInstanceFieldBaseClassFirst_(size_t& index);//����field��ǰ
-		InstanceProperty* getInstanceProperty_(size_t& index);//����property��ǰ
-		InstanceField* getInstanceField_(size_t& index);//����field��ǰ
+		InstanceProperty* getInstancePropertyBaseClassFirst_(size_t& index) const;
+		InstanceField* getInstanceFieldBaseClassFirst_(size_t& index) const;
+		InstanceProperty* getInstanceProperty_(size_t& index) const;
+		InstanceField* getInstanceField_(size_t& index) const;
 	public:
 		BaseClass* m_baseClasses;
 		size_t m_baseClassCount;
@@ -126,21 +126,20 @@ namespace pafcore
 		size_t m_staticPropertyCount;
 		StaticMethod* m_staticMethods;
 		size_t m_staticMethodCount;
-		FlatSet<Metadata*, CompareMetaDataPtrByName> m_resolvedMembers;
+		mutable FlatSet<Metadata*, CompareMetaDataPtrByName> m_resolvedMembers;
 		bool m_hasDynamicInstanceField;
-		SpecialClass m_specialClass;//�ַ����������⴦��
-		//bool m_hasDynamicInstanceProperty;
+		SpecialClass m_specialClass;//
 #}
 	};
 
 #{
-	inline InstanceProperty* ClassType::getInstancePropertyBaseClassFirst(size_t index)
+	inline InstanceProperty* ClassType::getInstancePropertyBaseClassFirst(size_t index) const
 	{
 		InstanceProperty* res = getInstancePropertyBaseClassFirst_(index);
 		return res;
 	}
 
-	inline InstanceField* ClassType::getInstanceFieldBaseClassFirst(size_t index)
+	inline InstanceField* ClassType::getInstanceFieldBaseClassFirst(size_t index) const
 	{
 		InstanceField* res = getInstanceFieldBaseClassFirst_(index);
 		return res;

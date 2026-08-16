@@ -6,6 +6,7 @@ set(header_files
     "flat_set.h"
     "memory.h"
     "overload.h"
+    "reflection.h"
     "std_deque.h"
     "std_forward_list.h"
     "std_list.h"
@@ -16,7 +17,7 @@ set(header_files
     "std_unordered_map.h"
     "std_unordered_set.h"
     "std_vector.h"
-    "subclass_invoker.h"
+    "script_invoker.h"
     "utility.h"
     "variant.h"
 )
@@ -24,7 +25,7 @@ set(header_files
 set(interface_files
     "buffer.i"
     "class_type.i"
-    "dynamic_object.i"
+    "dynamic_properties.i"
     "enum_member.i"
     "enum_type.i"
     "instance_field.i"
@@ -38,7 +39,6 @@ set(interface_files
     "object.i"
     "parameter.i"
     "primitive_type.i"
-    "reflection.i"
     "result.i"
     "static_field.i"
     "static_method.i"
@@ -53,7 +53,7 @@ set(interface_files
 set(source_files
     "buffer.cpp"
     "class_type.cpp"
-    "dynamic_object.cpp"
+    "dynamic_properties.cpp"
     "enum_member.cpp"
     "enum_type.cpp"
     "instance_field.cpp"

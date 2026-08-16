@@ -146,7 +146,7 @@ void SourceFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, c
 		writeStringToFile(">::RuntimeType::GetSingleton();\n", file);
 		writeStringToFile("}\n\n", file, indentation);
 
-		if (classNode->isDerivedFromObject())
+		if (classNode->isDerivedFromObject() || classNode->isDerivedFromInterface())
 		{
 			generateCode_TemplateHeader(file, classNode, indentation);
 			if (isInline)
@@ -164,26 +164,26 @@ void SourceFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, c
 			writeStringToFile(typeName.c_str(), file);
 			writeStringToFile(">::RuntimeType::GetSingleton();\n", file);
 			writeStringToFile("}\n\n", file, indentation);
-
-			if (classNode->isDerivedFromInterface())
-			{
-				generateCode_TemplateHeader(file, classNode, indentation);
-				if (isInline)
-				{
-					writeStringToFile("inline size_t ", file, indentation);
-				}
-				else
-				{
-					writeStringToFile("size_t ", file, indentation);
-				}
-				writeStringToFile(typeName.c_str(), file);
-				writeStringToFile("::getAddress()\n", file);
-				writeStringToFile("{\n", file, indentation);
-				//writeStringToFile("return reinterpret_cast<size_t>(static_cast<::pafcore::Object*>(this));\n", file, indentation + 1);
-				writeStringToFile("return (size_t)this;\n", file, indentation + 1);
-				writeStringToFile("}\n\n", file, indentation);
-			}
 		}
+		if (classNode->isDerivedFromInterface())
+		{
+			generateCode_TemplateHeader(file, classNode, indentation);
+			if (isInline)
+			{
+				writeStringToFile("inline size_t ", file, indentation);
+			}
+			else
+			{
+				writeStringToFile("size_t ", file, indentation);
+			}
+			writeStringToFile(typeName.c_str(), file);
+			writeStringToFile("::getAddress()\n", file);
+			writeStringToFile("{\n", file, indentation);
+			//writeStringToFile("return reinterpret_cast<size_t>(static_cast<::pafcore::Object*>(this));\n", file, indentation + 1);
+			writeStringToFile("return (size_t)this;\n", file, indentation + 1);
+			writeStringToFile("}\n\n", file, indentation);
+		}
+
 	}
 
 	if (!classNode->isNoCode())
@@ -257,12 +257,14 @@ void SourceFileGenerator::generateCode_AdditionalMethod(FILE* file, MethodNode* 
 	{
 		writeStringToFile("inline ", file, indentation);
 	}
-	assert(methodNode->m_resultList && methodNode->m_resultList->m_variable
-		&& nullptr == methodNode->m_resultList->m_variableList && nullptr == methodNode->m_resultList->m_variable->m_byRef);
+	//assert(methodNode->m_resultList && methodNode->m_resultList->m_variable
+	//	&& nullptr == methodNode->m_resultList->m_variableList && nullptr == methodNode->m_resultList->m_variable->m_byRef);
+	assert(nullptr == methodNode->m_resultList);
 
-	VariableNode* resultVariable = methodNode->m_resultList->m_variable;
-	generateCode_ResultType(file, resultVariable->m_compoundType, nullptr, classNode->m_enclosing, false, isInline ? 0 : indentation, false);
-
+	//VariableNode* resultVariable = methodNode->m_resultList->m_variable;
+	//generateCode_ResultType(file, resultVariable->m_compoundType, nullptr, classNode->m_enclosing, false, isInline ? 0 : indentation, false);
+	
+	writeStringToFile("void ", file, isInline ? 0 : indentation);
 	writeStringToFile(typeName.c_str(), file);
 	writeStringToFile("::", file);
 
@@ -288,14 +290,14 @@ void SourceFileGenerator::generateCode_AdditionalMethod(FILE* file, MethodNode* 
 	writeStringToFile("\n", file);
 	writeStringToFile("{\n", file, indentation);
 
-	if ("New" == methodNode->m_name->m_str)
+	if ("Construct" == methodNode->m_name->m_str)
 	{
-		sprintf_s(buf, "return ::pafcore::MakeShared<%s>(", typeName.c_str());
+		sprintf_s(buf, "::pafcore::Construct<%s>((void*)", typeName.c_str());
 	}
 	else
 	{
-		assert("NewArray" == methodNode->m_name->m_str);
-		sprintf_s(buf, "return ::pafcore::MakeSharedArray<%s>(", typeName.c_str());
+		assert("ConstructArray" == methodNode->m_name->m_str);
+		sprintf_s(buf, "::pafcore::ConstructArray<%s>((void*)", typeName.c_str());
 	}
 
 	writeStringToFile(buf, file, indentation + 1);

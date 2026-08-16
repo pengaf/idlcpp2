@@ -18,7 +18,7 @@ inline bool isNotIdentifierChar(char c)
 
 void GetMetaTypeFullName(std::string& metaTypeName, MemberNode* memberNode, TemplateArguments* templateArguments);
 void GetMetaTypeFullName(std::string& metaTypeName, TypeNode* typeNode);
-void GetSubclassProxyFullName(std::string& subclassProxyName, ClassNode* typeNode, TemplateArguments* templateArguments);
+void GetInterfaceProxyFullName(std::string& subclassProxyName, ClassNode* typeNode, TemplateArguments* templateArguments);
 TypeKind CalcTypeNativeName(std::string& typeName, TypeNameNode* typeNameNode, TemplateArguments* templateArguments);
 void CollectTypeNodes(std::vector<TypeNode*>& typeNodes, MemberNode* memberNode);
 

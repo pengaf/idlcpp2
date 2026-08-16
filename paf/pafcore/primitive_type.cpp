@@ -9,12 +9,12 @@
 
 BEGIN_PAFCORE
 
-size_t PrimitiveType::_getMemberCount_()
+size_t PrimitiveType::_getMemberCount_() const
 {
 	return m_memberCount;
 }
 
-Metadata* PrimitiveType::_getMember_(size_t index)
+Metadata* PrimitiveType::_getMember_(size_t index) const
 {
 	if (index < m_memberCount)
 	{
@@ -23,7 +23,7 @@ Metadata* PrimitiveType::_getMember_(size_t index)
 	return nullptr;
 }
 
-Metadata* PrimitiveType::_findMember_(string_t name)
+Metadata* PrimitiveType::_findMember_(string_t name) const
 {
 	Metadata dummy(name);
 	Metadata** it = std::lower_bound(m_members, m_members + m_memberCount, &dummy, CompareMetaDataPtrByName());
@@ -34,23 +34,23 @@ Metadata* PrimitiveType::_findMember_(string_t name)
 	return nullptr;
 }
 
-Metadata* PrimitiveType::findMember(const char* name)
+Metadata* PrimitiveType::findMember(const char* name) const
 {
 	return _findMember_(name);
 }
 
-InstanceMethod* PrimitiveType::findInstanceMethod(const char* name)
-{
-	Metadata dummy(name);
-	InstanceMethod* res = std::lower_bound(m_instanceMethods, m_instanceMethods + m_instanceMethodCount, dummy);
-	if (m_instanceMethods + m_instanceMethodCount != res && strcmp(name, res->m_name) == 0)
-	{
-		return res;
-	}
-	return 0;
-}
+//InstanceMethod* PrimitiveType::findInstanceMethod(const char* name)
+//{
+//	Metadata dummy(name);
+//	InstanceMethod* res = std::lower_bound(m_instanceMethods, m_instanceMethods + m_instanceMethodCount, dummy);
+//	if (m_instanceMethods + m_instanceMethodCount != res && strcmp(name, res->m_name) == 0)
+//	{
+//		return res;
+//	}
+//	return 0;
+//}
 
-StaticMethod* PrimitiveType::findStaticMethod(const char* name)
+StaticMethod* PrimitiveType::findStaticMethod(const char* name) const
 {
 	Metadata dummy(name);
 	StaticMethod* res = std::lower_bound(m_staticMethods, m_staticMethods + m_staticMethodCount, dummy);
@@ -61,7 +61,7 @@ StaticMethod* PrimitiveType::findStaticMethod(const char* name)
 	return 0;
 }
 
-Metadata* PrimitiveType::findTypeMember(const char* name)
+Metadata* PrimitiveType::findTypeMember(const char* name) const
 {
 	return findStaticMethod(name);
 }
@@ -69,7 +69,7 @@ Metadata* PrimitiveType::findTypeMember(const char* name)
 template<bool short_less_int>
 struct TypePromoter
 {
-	static PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind)
+	static PrimitiveKind GetPromotedTypeKind(PrimitiveKind typeKind)
 	{
 		if (typeKind <= unsigned_short_type)
 		{
@@ -82,7 +82,7 @@ struct TypePromoter
 template<>
 struct TypePromoter<false>
 {
-	static PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind)
+	static PrimitiveKind GetPromotedTypeKind(PrimitiveKind typeKind)
 	{
 		if (typeKind < unsigned_short_type)
 		{
@@ -96,14 +96,14 @@ struct TypePromoter<false>
 	}
 };
 
-inline PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind)
+inline PrimitiveKind GetPromotedTypeKind(PrimitiveKind typeKind)
 {
 	return TypePromoter<sizeof(unsigned short) < sizeof(int)>::GetPromotedTypeKind(typeKind);
 }
 
-inline PrimitiveTypeKind GetPromotedTypeKind(PrimitiveTypeKind typeKind1, PrimitiveTypeKind typeKind2)
+inline PrimitiveKind GetPromotedTypeKind(PrimitiveKind typeKind1, PrimitiveKind typeKind2)
 {
-	PrimitiveTypeKind small, large; 
+	PrimitiveKind small, large; 
 	if(typeKind1 < typeKind2)
 	{
 		small = typeKind1;

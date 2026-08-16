@@ -1,7 +1,7 @@
 #import "typedef.i"
 
 #{
-#include "utility.h"
+#include "memory.h"
 #}
 
 namespace pafcore
@@ -10,7 +10,7 @@ namespace pafcore
 	class(value_instance) #PAFCORE_EXPORT String
 	{
 		String();
-		string_t toString__() #const;
+		string_t toString__() const;
 		void fromString__(string_t str);
 #{
 	public:

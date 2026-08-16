@@ -60,39 +60,59 @@ void PropertyNode::checkSemantic(TemplateArguments* templateArguments)
 	MemberNode::checkSemantic(templateArguments);
 	std::vector<PropertyAccessorNode*> propertyAccessors;
 	m_accessorList->collectPropertyAccessors(propertyAccessors);
+	
+	PropertyAccessorNode* get = nullptr;
+	PropertyAccessorNode* set = nullptr;
+	PropertyAccessorNode* enumerate = nullptr;
 	for (PropertyAccessorNode* accessor : propertyAccessors)
 	{
 		switch (accessor->m_keyword->m_nodeType)
 		{
 		case snt_keyword_get:
-			if (m_get)
+			if (get)
 			{
-				RaiseError_PropertyAccessorAlreadyExist(accessor, m_get);
+				RaiseError_PropertyAccessorAlreadyExist(accessor, get);
 			}
 			else
 			{
-				m_get = accessor;
+				get = accessor;
 			}
 			break;
 		case snt_keyword_set:
-			if (m_set)
+			if (set)
 			{
-				RaiseError_PropertyAccessorAlreadyExist(accessor, m_set);
+				RaiseError_PropertyAccessorAlreadyExist(accessor, set);
 			}
 			else
 			{
-				m_set = accessor;
+				set = accessor;
 			}
 			break;
 		case snt_keyword_enum:
-			if (m_enumerate)
+			if (enumerate)
 			{
-				RaiseError_PropertyAccessorAlreadyExist(accessor, m_enumerate);
+				RaiseError_PropertyAccessorAlreadyExist(accessor, enumerate);
 			}
 			else
 			{
-				m_enumerate = accessor;
+				enumerate = accessor;
 			}
+			break;
+		}
+	}
+
+	for (PropertyAccessorNode* accessor : propertyAccessors)
+	{
+		switch (accessor->m_keyword->m_nodeType)
+		{
+		case snt_keyword_get:
+			m_get = accessor;
+			break;
+		case snt_keyword_set:
+			m_set = accessor;
+			break;
+		case snt_keyword_enum:
+			m_enumerate = accessor;
 			break;
 		}
 	}

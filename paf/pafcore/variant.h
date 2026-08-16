@@ -2,6 +2,7 @@
 
 #include "utility.h"
 #include "metadata.h"
+#include "class_type.h"
 #include "memory.h"
 
 BEGIN_PAFCORE
@@ -23,25 +24,61 @@ class Type;
 class PAFCORE_EXPORT Variant
 {
 public:
+	Variant() = default;
 	~Variant();
 	Variant(Variant&& other);
 	Variant& operator = (Variant&& other);
 	Variant(const Variant&) = delete;
 	Variant& operator = (const Variant&) = delete;
 public:
-	TypeCompound typeCompound() const;
+	void* pointer() const;
 	Type* type() const;
-	bool isNull();
-	bool byValue();
-	bool byRef();
-	//bool isArray();
-	void clear();
-	void move(Variant& var);
-	bool subscript(Variant& var, size_t index);
+	TypeCompound typeCompound() const;
+	uint32_t arraySize() const;
 
-	void assignPrimitive(Type* type, const void* pointer);
-	void assignEnum(Type* type, const void* pointer);
-	void assignClass(Type* type, const void* pointer);
+	bool isNull() const;
+	void setNull();
+	void move(Variant& var);
+	bool subscript(Variant& var, size_t index) const;
+
+	//TypeCompound::none
+	ErrorCode constructPrimitive(const Type* type, Variant** arguments, uint32_t numArguments);
+	ErrorCode constructClass(const Type* type, Variant** arguments, uint32_t numArguments);
+	ErrorCode construct(const Type* type, Variant** arguments, uint32_t numArguments);
+
+	//TypeCompound::shared_ptr
+	ErrorCode newPrimitiveSharedPtr(const Type* type, Variant** arguments, uint32_t numArguments);
+	ErrorCode newClassSharedPtr(const Type* type, Variant** arguments, uint32_t numArguments);
+	ErrorCode newSharedPtr(const Type* type, Variant** arguments, uint32_t numArguments);
+
+	//TypeCompound::shared_array
+	ErrorCode newPrimitiveSharedArray(const Type* type, uint32_t count);
+	ErrorCode newClassSharedArray(const Type* type, uint32_t count);
+	ErrorCode newSharedArray(const Type* type, uint32_t count);
+
+	void assignPrimitive(const Type* type, const void* pointer);
+	void assignEnum(const Type* type, const void* pointer);
+	void assignClass(const Type* type, const void* pointer);
+	void assignValue(const Type* type, const void* pointer);
+
+	void assignRef(const Type* type, void* src);
+	void assignRawPtr(const Type* type, void* src);
+	void assignObserverPtr(const Type* type, void* src);
+	void assignRawArray(const Type* type, void* src, uint32_t arraySize);
+	void assignObserverArray(const Type* type, void* src);
+
+	bool castToPrimitive(const Type* dstType, void* dst) const;
+	bool castToEnum(const Type* dstType, void* dst) const;
+	bool castToClass(const Type* dstType, void* dst) const;
+	bool castToValue(const Type* dstType, void* dst) const;
+
+	bool castToPrimitivePtr(const Type* dstType, void** dst) const;
+	bool castToEnumPtr(const Type* dstType, void** dst) const;
+	bool castToClassPtr(const Type* dstType, void** dst) const;
+	bool castToClassPtrStrict(const Type* dstType, void** dst) const;
+	bool castToRawPtr(const Type* dstType, void** dst) const;
+	bool castToSharedPtr(const Type* dstType, void** dst) const;
+	bool castToSharedArray(const Type* dstType, void** dst) const;
 
 	template<typename T>
 	void assignPrimitive(const T& src)
@@ -85,61 +122,111 @@ public:
 		}
 	}
 
-	//template<typename T>
-	//void assignRawPtr(const T*& dst)
-	//{
-	//	assignRawPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void*)dst);
-	//}
-
 	template<typename T>
-	void assignRawPtr(T*& dst)
-	{
-		assignRawPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void*)dst);
+	void assignRawPtr(T* src)
+	{	
+		if constexpr (is_object_v<T>)
+		{
+			PAF_ASSERT(paf_base_offset_of(T, Object) == 0);
+			assignRawPtr(src->getType(), (void*)src);
+		}
+		else if constexpr (is_interface_v<T>)
+		{
+			assignRawPtr(src->getType(), (void*)src->getAddress());
+		}
+		else
+		{
+			assignRawPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void*)src);
+		}
 	}
 
 	template<typename T>
-	void assignSharedPtr(const SharedPtr<T>& dst)
+	void assignSharedPtr(const SharedPtr<T>& src)
 	{
-		dst.incStrongRefCount();
-		assignSharedPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+		const_cast<SharedPtr<T>&>(src).incStrongRefCount();
+		if constexpr (is_object_v<T>)
+		{
+			PAF_ASSERT(paf_base_offset_of(T, Object) == 0);
+			assignSharedPtr(src->getType(), (void*)src.m_ptr);
+		}
+		else if constexpr (is_interface_v<T>)
+		{
+			assignSharedPtr(src->getType(), (void*)src->getAddress());
+		}
+		else
+		{
+			assignSharedPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), src.m_ptr);
+		}
 	}
 
 	template<typename T>
-	void assignSharedPtr(SharedPtr<T>&& dst)
+	void assignSharedPtr(SharedPtr<T>&& src)
 	{
-		assignSharedPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
-		dst.m_ptr = nullptr;
+		if constexpr (is_object_v<T>)
+		{
+			PAF_ASSERT(paf_base_offset_of(T, Object) == 0);
+			assignSharedPtr(src->getType(), (void*)src.m_ptr);
+		}
+		else if constexpr (is_interface_v<T>)
+		{
+			assignSharedPtr(src->getType(), (void*)src->getAddress());
+		}
+		else
+		{
+			assignSharedPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), src.m_ptr);
+		}
+		src.m_ptr = nullptr;
 	}
 
 	template<typename T>
-	void assignObserverPtr(const ObserverPtr<T>& dst)
+	void assignObserverPtr(const ObserverPtr<T>& src)
 	{
-		assignObserverPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+		if constexpr (is_object_v<T>)
+		{
+			PAF_ASSERT(paf_base_offset_of(T, Object) == 0);
+			assignObserverPtr(src->getType(), (void*)src.m_ptr);
+		}
+		else if constexpr (is_interface_v<T>)
+		{
+			assignObserverPtr(src->getType(), (void*)src->getAddress());
+		}
+		else
+		{
+			assignObserverPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), src.m_ptr);
+		}
 	}
 
 	template<typename T>
-	void assignSharedArray(const SharedArray<T>& dst)
+	void assignSharedArray(const SharedArray<T>& src)
 	{
-		dst.incStrongRefCount();
-		assignSharedArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+		if constexpr (is_interface_v<T>)
+		{
+			PAF_ASSERT(RuntimeTypeOf<T>::RuntimeType::GetSingleton() == src->getType());
+		}
+		src.incStrongRefCount();
+		assignSharedArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), src.m_ptr);
 	}
 
 	template<typename T>
-	void assignSharedArray(SharedArray<T>&& dst)
+	void assignSharedArray(SharedArray<T>&& src)
 	{
-		assignSharedArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
-		dst.m_ptr = nullptr;
+		if constexpr (is_interface_v<T>)
+		{
+			PAF_ASSERT(RuntimeTypeOf<T>::RuntimeType::GetSingleton() == src->getType());
+		}
+		assignSharedArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), src.m_ptr);
+		src.m_ptr = nullptr;
 	}
 
 	template<typename T>
-	void assignObserverArray(const ObserverArray<T>& dst)
+	void assignObserverArray(const ObserverArray<T>& src)
 	{
-		assignObserverArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), dst.m_ptr);
+		if constexpr (is_interface_v<T>)
+		{
+			PAF_ASSERT(RuntimeTypeOf<T>::RuntimeType::GetSingleton() == src->getType());
+		}
+		assignObserverArray(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), src.m_ptr);
 	}
-
-	bool castToPrimitive(Type* dstType, void* dst) const;
-	bool castToEnum(Type* dstType, void* dst) const;
-	bool castToClass(Type* dstType, void* dst) const;
 
 	template<typename T>
 	bool castToPrimitive(T& dst) const
@@ -152,7 +239,7 @@ public:
 	bool castToEnum(T& dst) const
 	{
 		static_assert(is_enum_v<T>);
-		return castToPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+		return castToEnum(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
 	}
 
 	template<typename T>
@@ -162,62 +249,36 @@ public:
 		return castToClass(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
 	}
 	
-	bool castToPrimitivePtr(Type* dstType, void** dst) const;
-	bool castToEnumPtr(Type* dstType, void** dst) const;
-	bool castToClassPtr(Type* dstType, void** dst) const;
-	bool castToClassPtrStrict(Type* dstType, void** dst) const;
-
 	template<typename T>
 	bool castToPrimitivePtr(T*& dst) const
 	{
 		static_assert(is_primitive_v<T>);
-		return castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+		return castToPrimitivePtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&dst);
 	}
 
 	template<typename T>
 	bool castToEnumPtr(T*& dst) const
 	{
 		static_assert(is_enum_v<T>);
-		return castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+		return castToEnumPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&dst);
 	}
 
 	template<typename T>
 	bool castToClassPtr(T*& dst) const
 	{
 		static_assert(is_class_v<T>);
-		return castToClassPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+		return castToClassPtr(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&dst);
 	}
 
 	template<typename T>
 	bool castToClassPtrStrict(T*& dst) const
 	{
 		static_assert(is_class_v<T>);
-		return castToClassPtrStrict(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &dst);
+		return castToClassPtrStrict(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), (void**)&dst);
 	}
 
-	//bool castToPrimitivePtr(Type* dstType, void** dst) const;
-	//bool castToEnumPtr(Type* dstType, void** dst) const;
-	//bool castToClassPtr(Type* dstType, void** dst) const;
-
-
-	//bool castToVoidPtrAllowNull(void** dst) const;
-	//bool castToPrimitivePtrAllowNull(Type* dstType, void** dst) const;
-	//bool castToEnumPtrAllowNull(Type* dstType, void** dst) const;
-	//bool castToValuePtrAllowNull(Type* dstType, void** dst) const;
-	//bool castToRcPtrAllowNull(Type* dstType, void** dst) const;
-
-	//bool castToObjectPtr(Type* dstType, void** dst) const;
-	//bool castToObject(Type* dstType, void* dst) const;
-
-	//void reinterpretCastToPtr(Variant& var, Type* dstType) const;
-
-	//void setTemporary();
-	//bool isTemporary() const;
-
-	//void setSubClassProxy();
-	//bool isSubClassProxy() const;
 	template<typename T>
-	bool castToRawPtr(T*& ptr)
+	bool castToRawPtr(T*& ptr) const
 	{
 		if constexpr (is_primitive_v<T>)
 		{
@@ -238,7 +299,7 @@ public:
 	}
 
 	template<typename T>
-	bool castToSharedPtr(SharedPtr<T>& dst)
+	bool castToSharedPtr(SharedPtr<T>& dst) const
 	{
 		if (TypeCompound::observer_ptr != m_typeCompound && TypeCompound::shared_ptr != m_typeCompound)
 		{
@@ -272,9 +333,8 @@ public:
 		return false;
 	}
 
-
 	template<typename T>
-	bool castToObserverPtr(ObserverPtr<T>& dst)
+	bool castToObserverPtr(ObserverPtr<T>& dst) const
 	{
 		if (TypeCompound::none == m_typeCompound)
 		{
@@ -309,7 +369,7 @@ public:
 	}
 
 	template<typename T>
-	bool castToSharedArray(SharedPtr<T>& dst)
+	bool castToSharedArray(SharedArray<T>& dst) const
 	{
 		if (TypeCompound::observer_array != m_typeCompound && TypeCompound::shared_array != m_typeCompound)
 		{
@@ -344,7 +404,7 @@ public:
 	}
 
 	template<typename T>
-	bool castToObserverArray(ObserverPtr<T>& dst)
+	bool castToObserverArray(ObserverArray<T>& dst) const
 	{
 		if (TypeCompound::observer_array != m_typeCompound && TypeCompound::shared_array != m_typeCompound)
 		{
@@ -377,26 +437,54 @@ public:
 		}
 		return false;
 	}
+
+protected:
+	void clear();
+	void assignSharedPtr(const Type* type, void* src);
+	void assignSharedArray(const Type* type, void* src);
 private:
-	void assignRawPtr(Type* type, void* src);
-	void assignObserverPtr(Type* type, void* src);
-	void assignObserverArray(Type* type, void* src);
-	void assignSharedPtr(Type* type, void* src);
-	void assignSharedArray(Type* type, void* src);
-private:
-	bool destroyStorage();
-public:
-	Type* m_type = nullptr;
-	void* m_pointer = nullptr;
-	byte_t m_embeddedValue[max_embedded_value_size];
-	TypeCompound m_typeCompound = TypeCompound::none;
+	template<typename Type_t>
+	ErrorCode newSharedPtr_(const Type_t* type, Variant** arguments, uint32_t numArguments);
+	template<typename Type_t>
+	ErrorCode newSharedArray_(const Type_t* type, uint32_t count);	
+protected:
+	void* m_pointer{ nullptr };
+	Type* m_type{ nullptr };
+	TypeCompound m_typeCompound{ TypeCompound::none };
+	uint32_t m_arraySize{ 0 };
+	byte_t m_embeddedValue[max_embedded_value_size];//align 8 bytes
 };
 
 //------------------------------------------------------------------------------
 
-inline bool Variant::isNull()
+inline void* Variant::pointer() const
+{
+	return m_pointer;
+}
+
+inline Type* Variant::type() const
+{
+	return m_type;
+}
+
+inline TypeCompound Variant::typeCompound() const
+{
+	return m_typeCompound;
+}
+
+inline uint32_t Variant::arraySize() const
+{
+	return m_arraySize;
+}
+
+inline bool Variant::isNull() const
 {
 	return nullptr == m_pointer;
+}
+
+inline void Variant::setNull()
+{
+	clear();
 }
 
 END_PAFCORE

@@ -1,5 +1,5 @@
 #import "notify_handler.i"
-#import "dynamic_object.i"
+#import "dynamic_properties.i"
 
 #{
 #include "utility.h"
@@ -93,9 +93,9 @@ namespace pafcore
 
 	class(value_instance) #PAFCORE_EXPORT NotifyHandlerList
 	{
-		void addNotifyHandler(NotifyHandler* handler) #const;
-		void removeNotifyHandler(NotifyHandler* handler) #const;
-		bool findNotifyHandler(NotifyHandler* handler) #const;
+		void addNotifyHandler(NotifyHandler* handler) const;
+		void removeNotifyHandler(NotifyHandler* handler) const;
+		bool findNotifyHandler(NotifyHandler* handler) const;
 #{
 	public:
 		NotifyHandlerList();
@@ -105,37 +105,37 @@ namespace pafcore
 #}
 	};
 
-	class #PAFCORE_EXPORT PropertyChangedNotifySource : DynamicObject
-	{
-		void addNotifyHandler(PropertyChangedNotifyHandler* handler) #const;
-		void removeNotifyHandler(PropertyChangedNotifyHandler* handler) #const;
-		bool findNotifyHandler(PropertyChangedNotifyHandler* handler) #const;
-#{
-	public:
-		void notifyPropertyChanged(string_t propertyName, PropertyChangedFlag flag = PropertyChangedFlag::update, Iterator* iterator = 0);
-		void nodifyPropertyAvailabilityChanged(string_t propertyName);
-		void notifyDynamicPropertyChanged(string_t propertyName, PropertyChangedFlag flag = PropertyChangedFlag::update, Iterator* iterator = 0);
-		void notifyUpdateDynamicProperty();
-	protected:
-		NotifyHandlerList m_notifyHandlerList;
-#}
-	};
-
-#{
-	inline void PropertyChangedNotifySource::addNotifyHandler(ObserverPtr<PropertyChangedNotifyHandler> handler) const
-	{
-		m_notifyHandlerList.addNotifyHandler(handler);
-	}
-	
-	inline void PropertyChangedNotifySource::removeNotifyHandler(ObserverPtr<PropertyChangedNotifyHandler> handler) const	
-	{
-		m_notifyHandlerList.removeNotifyHandler(handler);
-	}
-	
-	inline bool PropertyChangedNotifySource::findNotifyHandler(ObserverPtr<PropertyChangedNotifyHandler> handler) const
-	{
-		return m_notifyHandlerList.findNotifyHandler(handler);
-	}
-#}
+//	class #PAFCORE_EXPORT PropertyChangedNotifySource : DynamicProperties
+//	{
+//		void addNotifyHandler(PropertyChangedNotifyHandler* handler) const;
+//		void removeNotifyHandler(PropertyChangedNotifyHandler* handler) const;
+//		bool findNotifyHandler(PropertyChangedNotifyHandler* handler) const;
+//#{
+//	public:
+//		void notifyPropertyChanged(string_t propertyName, PropertyChangedFlag flag = PropertyChangedFlag::update, Iterator* iterator = 0);
+//		void nodifyPropertyAvailabilityChanged(string_t propertyName);
+//		void notifyDynamicPropertyChanged(string_t propertyName, PropertyChangedFlag flag = PropertyChangedFlag::update, Iterator* iterator = 0);
+//		void notifyUpdateDynamicProperty();
+//	protected:
+//		NotifyHandlerList m_notifyHandlerList;
+//#}
+//	};
+//
+//#{
+//	inline void PropertyChangedNotifySource::addNotifyHandler(PropertyChangedNotifyHandler* handler) const
+//	{
+//		m_notifyHandlerList.addNotifyHandler(handler);
+//	}
+//	
+//	inline void PropertyChangedNotifySource::removeNotifyHandler(PropertyChangedNotifyHandler* handler) const	
+//	{
+//		m_notifyHandlerList.removeNotifyHandler(handler);
+//	}
+//	
+//	inline bool PropertyChangedNotifySource::findNotifyHandler(PropertyChangedNotifyHandler* handler) const
+//	{
+//		return m_notifyHandlerList.findNotifyHandler(handler);
+//	}
+//#}
 
 }

@@ -6,14 +6,14 @@
 
 BEGIN_PAFCORE
 
-Type::Type(const char* name, MetadataKind kind, const char* declarationFile) :
+Type::Type(const char* name, MetadataKind kind, RefCountPolicy refCountPolicy, uint32_t size, const char* declarationFile) :
 	Metadata(name),
 	m_kind(kind),
-	m_size(0),
-	m_enclosing(0),
+	m_refCountPolicy(refCountPolicy),
+	m_size(size),
+	m_enclosing(nullptr),
 	m_declarationFile(declarationFile)
-{
-}
+{}
 
 Type::~Type()
 {
@@ -23,37 +23,40 @@ Type::~Type()
 	}
 }
 
-void Type::destruct(void* address, size_t count)
+void Type::incSharedPtrRefCount(void* ptr) const
 {
+	PAF_ASSERT(RefCountPolicy::single_thread == m_refCountPolicy || RefCountPolicy::multi_thread == m_refCountPolicy);
+	if (RefCountPolicy::single_thread == m_refCountPolicy)
+	{
+		IncStrongRefCount<STRCHeader>(ptr);
+	}
+	else
+	{
+		IncStrongRefCount<MTRCHeader>(ptr);
+	}
 }
 
-void Type::assign(void* dst, const void* src)
+void Type::decSharedPtrRefCount(void* ptr) const
 {
+	PAF_ASSERT(RefCountPolicy::single_thread == m_refCountPolicy || RefCountPolicy::multi_thread == m_refCountPolicy);
+	if (RefCountPolicy::single_thread == m_refCountPolicy)
+	{
+		DecStrongRefCount<STRCHeader>(ptr, [this](void* object) { this->destruct(object, 1); });
+	}
+	else
+	{
+		DecStrongRefCount<MTRCHeader>(ptr, [this](void* object) { this->destruct(object, 1); });
+	}
 }
 
-size_t Type::_size_() const
+void Type::incSharedArrayRefCount(void* ptr) const
 {
-	return m_size;
+	IncArrayRefCount(ptr);
 }
 
-bool Type::isPrimitive() const
+void Type::decSharedArrayRefCount(void* ptr) const
 {
-	return MetadataKind::primitive_instance == m_kind;
-}
-
-bool Type::isEnum() const
-{
-	return MetadataKind::enum_instance == m_kind;
-}
-
-bool Type::isClass() const
-{
-	return MetadataKind::class_instance == m_kind;
-}
-
-const char* Type::getDeclarationFile() const
-{
-	return m_declarationFile;
+	DecArrayRefCount(ptr, [this](void* array, size_t count) { this->destruct(array, count); });
 }
 
 END_PAFCORE

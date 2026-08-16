@@ -34,7 +34,7 @@ void GetMetaTypeFullName(std::string& metaTypeName, TypeNode* typeNode)
 	metaTypeName = typeName + g_options.m_metaTypePostfix;
 }
 
-void GetSubclassProxyFullName(std::string& subclassProxyName, ClassNode* classNode, TemplateArguments* templateArguments)
+void GetInterfaceProxyFullName(std::string& subclassProxyName, ClassNode* classNode, TemplateArguments* templateArguments)
 {
 	std::string typeName;
 	classNode->getFullName(typeName, templateArguments);

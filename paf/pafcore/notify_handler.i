@@ -10,18 +10,18 @@ namespace pafcore
 {
 	enum class PropertyChangedFlag
 	{
-		update, //����ֵ�����������������ԣ��� iterator ָ������, ����Ϊnull
-		remove, //���������Ƴ�һ��֮ǰ��iterator ָ�򼴽��Ƴ�����
-		add, //������������һ��֮��iterator ָ������ӵ���
-		reset,//�������Զ����任��iterator Ϊ null
-		candidate_list //���Ժ�ѡ�б���� (��������ֵ���)
+		update, //property changed; iterator points to the changed item for container property, otherwise null
+		remove, //before the container removes an element, the iterator points to that element.
+		add, //add an item to a container property; iterator points to the newly added item.
+		reset,//reset; for container property with multiple items changed, iterator is null
+		candidates //the candidates for the property has changed (not the property value itself)
 	};
 
-	class #PAFCORE_EXPORT NotifyHandler : Object
+	interface #PAFCORE_EXPORT NotifyHandler : Interface
 	{
-		virtual void onDestroyNotifyHandlerList(NotifyHandlerList* sender);
-		virtual void onAttachNotifySource(NotifyHandlerList* sender);
-		virtual void onDetachNotifySource(NotifyHandlerList* sender);
+		virtual void onDestroyNotifyHandlerList(Object* sender);
+		virtual void onAttachNotifySource(Object* sender);
+		virtual void onDetachNotifySource(Object* sender);
 	};
 
 	class #PAFCORE_EXPORT PropertyChangedNotifyHandler : NotifyHandler

@@ -62,7 +62,7 @@ NameSpace* NameSpace::getNameSpace(const char* name)
 		auto it = m_members.find(fakeMetadata);
 		if(m_members.end() == it)
 		{
-			UniquePtr<NameSpace> nameSpace = MakeUnique<NameSpace>(name);
+			std::unique_ptr<NameSpace> nameSpace = std::make_unique<NameSpace>(name);
 			subNameSpace = nameSpace.get();
 			subNameSpace->m_enclosing = this;
 			m_members.insert(subNameSpace);
@@ -85,7 +85,7 @@ ErrorCode NameSpace::registerMember(Metadata* member)
 {
 	if(0 == this)
 	{
-		return e_invalid_namespace;
+		return ErrorCode::e_invalid_namespace;
 	}
 	MetadataKind kind = member->_kind_();
 	if (MetadataKind::type_alias == kind)
@@ -97,7 +97,7 @@ ErrorCode NameSpace::registerMember(Metadata* member)
 		PAF_ASSERT(MetadataKind::primitive_type == kind || MetadataKind::enum_type == kind || MetadataKind::class_type == kind);
 		static_cast<Type*>(member)->m_enclosing = this;
 	}
-	return m_members.insert(member).second ? s_ok : e_name_conflict;
+	return m_members.insert(member).second ? ErrorCode::s_ok : ErrorCode::e_name_conflict;
 }
 
 void NameSpace::unregisterMember(Metadata* metadata)
@@ -105,7 +105,7 @@ void NameSpace::unregisterMember(Metadata* metadata)
 	m_members.erase(metadata);
 }
 
-Metadata* NameSpace::_findMember_(string_t name)
+Metadata* NameSpace::_findMember_(string_t name) const
 {
 	Metadata* member = nullptr;
 	char buffer[sizeof(Metadata)];
@@ -119,12 +119,12 @@ Metadata* NameSpace::_findMember_(string_t name)
 	return member;
 }
 
-size_t NameSpace::_getMemberCount_()
+size_t NameSpace::_getMemberCount_() const
 {
 	return m_members.size();
 }
 
-Metadata* NameSpace::_getMember_(size_t index)
+Metadata* NameSpace::_getMember_(size_t index) const
 {
 	if (index < m_members.size())
 	{
@@ -138,7 +138,7 @@ Metadata* NameSpace::_getMember_(size_t index)
 	}
 }
 
-Metadata* NameSpace::findMember(const char * name)
+Metadata* NameSpace::findMember(const char * name) const
 {
 	Metadata* member = _findMember_(name);
 	if(0 != member)

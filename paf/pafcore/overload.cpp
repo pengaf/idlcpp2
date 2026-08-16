@@ -45,20 +45,20 @@ Overload::Overload(Result* results, uint32_t resultCount, Parameter* parameters,
 //	{ nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, nm, em},//string_t
 //};
 //
-//inline ArgumentMatch MatchPrimitive(PrimitiveTypeKind dst, PrimitiveTypeKind src)
+//inline ArgumentMatch MatchPrimitive(PrimitiveKind dst, PrimitiveKind src)
 //{
 //	return static_cast<ArgumentMatch>(g_primitiveArgumentMatchTable[dst][src]);
 //}
 
-bool MatchPrimitive(PrimitiveTypeKind dst, PrimitiveTypeKind src)
+bool MatchPrimitive(PrimitiveKind dst, PrimitiveKind src)
 {
-	if (PrimitiveTypeKind::bool_type < src && src < PrimitiveTypeKind::float_type)
+	if (PrimitiveKind::bool_type < src && src < PrimitiveKind::float_type)
 	{
-		return PrimitiveTypeKind::bool_type < dst && dst < PrimitiveTypeKind::float_type;
+		return PrimitiveKind::bool_type < dst && dst < PrimitiveKind::float_type;
 	}
-	else if (PrimitiveTypeKind::float_type <= src && src <= PrimitiveTypeKind::long_double_type)
+	else if (PrimitiveKind::float_type <= src && src <= PrimitiveKind::long_double_type)
 	{
-		return PrimitiveTypeKind::float_type <= dst && dst <= PrimitiveTypeKind::long_double_type;
+		return PrimitiveKind::float_type <= dst && dst <= PrimitiveKind::long_double_type;
 	}
 	else
 	{
@@ -170,8 +170,8 @@ Overload::MatchKind MatchValue(const Parameter& parameter, Variant* argument)
 	{
 		if (argType->isPrimitive())
 		{
-			PrimitiveTypeKind paramKind = static_cast<PrimitiveType*>(paramType)->getPrimitiveTypeKind();
-			PrimitiveTypeKind argKind = static_cast<PrimitiveType*>(argType)->getPrimitiveTypeKind();
+			PrimitiveKind paramKind = static_cast<PrimitiveType*>(paramType)->primitiveKind();
+			PrimitiveKind argKind = static_cast<PrimitiveType*>(argType)->primitiveKind();
 			return MatchPrimitive(paramKind, argKind) ? Overload::MatchKind::exact_match : Overload::MatchKind::compatible_match;
 		}
 		else if(argType->isEnum())

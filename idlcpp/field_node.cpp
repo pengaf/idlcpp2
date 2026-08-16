@@ -3,11 +3,12 @@
 #include "compound_type_node.h"
 #include "class_node.h"
 #include "type_name_node.h"
+#include "identifier_node.h"
 #include "type_tree.h"
 #include "raise_error.h"
 #include "compiler.h"
 #include "source_file.h"
-#include <assert.h>
+#include "error_list.h"
 
 FieldNode::FieldNode(CompoundTypeNode* compoundType, IdentifierNode* name, TokenNode* leftBracket, TokenNode* rightBracket)
 {
@@ -38,24 +39,24 @@ void FieldNode::checkSemantic(TemplateArguments* templateArguments)
 	MemberNode::checkSemantic(templateArguments);
 	TypeNameNode* typeName = m_compoundType->m_typeName;
 
-	if (!m_compoundType->isNotPtr())
+	//if (isArray())
+	//{
+	//	if (!m_compoundType->isNotPtr())
+	//	{
+	//		ErrorList_AddItem_CurrentFile(m_name->m_lineNo, m_name->m_columnNo, semantic_error_field, "array field cannot be a pointer");
+	//		return;
+	//	}
+	//}
+
+	if (m_compoundType->isSmartPointer())
 	{
 		g_compiler.m_currentSourceFile->m_useMemoryHeader = true;
 	}
-	//if (0 != m_typeCompound && '&' == m_typeCompound->m_nodeType)
-	//{
-	//	RaiseError_InvalidFieldType(this);
-	//	return;
-	//}
 	TypeNode* typeNode = typeName->getTypeNode(templateArguments);
 	if (0 == typeNode)
 	{
 		return;
 	}
-	//if ((isUniquePtr() || isUniqueArray()) && rc_object_type == typeNode->getTypeKind(templateArguments))
-	//{
-	//	RaiseError_InvalidFieldType(this);
-	//}
 	g_compiler.useType(typeNode, templateArguments, m_compoundType->isNotPtr() ? tu_use_definition : tu_use_declaration, typeName);
 }
 

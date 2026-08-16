@@ -113,6 +113,7 @@ int yyHasListProperty = 0;
 "interface"										{yylval.sn = newToken(snt_keyword_interface);		yycolumnno += strlen(yytext); yytokenno++; return INTERFACE;}
 "virtual"										{yylval.sn = newToken(snt_keyword_virtual);			yycolumnno += strlen(yytext); yytokenno++; return VIRTUAL;}
 "static"										{yylval.sn = newToken(snt_keyword_static);			yycolumnno += strlen(yytext); yytokenno++; return STATIC;}
+"const"											{yylval.sn = newToken(snt_keyword_const);			yycolumnno += strlen(yytext); yytokenno++; return CONST;}
 "typedef"										{yylval.sn = newToken(snt_keyword_typedef);			yycolumnno += strlen(yytext); yytokenno++; return TYPEDEF;}
 "typename"										{yylval.sn = newToken(snt_keyword_typename);		yycolumnno += strlen(yytext); yytokenno++; return TYPENAME;}
 "get"											{yylval.sn = newToken(snt_keyword_get);				yycolumnno += strlen(yytext); yytokenno++; return GET;}

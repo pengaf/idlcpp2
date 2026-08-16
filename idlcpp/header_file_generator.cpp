@@ -250,7 +250,7 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 			ClassNode* nestedClassNode = static_cast<ClassNode*>(memberNode);
 			if (0 == nestedClassNode->m_nativeName)
 			{
-				sprintf_s(buf, "%s%s;\n", KeywardTokenToString(nestedClassNode->m_keyword),
+				sprintf_s(buf, "%s %s;\n", KeywardTokenToString(nestedClassNode->m_keyword),
 					nestedClassNode->m_name->m_str.c_str());
 				writeStringToFile(buf, file, indentation + 1);
 			}
@@ -261,7 +261,7 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 			EnumNode* nestedEnumNode = static_cast<EnumNode*>(memberNode);
 			if (0 == nestedEnumNode->m_nativeName)
 			{
-				sprintf_s(buf, "%s%s%s;\n", KeywardTokenToString(nestedEnumNode->m_keyword),
+				sprintf_s(buf, "%s %s%s;\n", KeywardTokenToString(nestedEnumNode->m_keyword),
 					nestedEnumNode->m_keyword2 ? "class " : "",
 					nestedEnumNode->m_name->m_str.c_str());
 				writeStringToFile(buf, file, indentation + 1);
@@ -273,13 +273,13 @@ void HeaderFileGenerator::generateCode_Class(FILE* file, ClassNode* classNode, i
 	if (!classNode->isNoMeta())
 	{
 		writeStringToFile("static ::pafcore::ClassType* GetType();\n", file, indentation + 1);
-		if (classNode->isDerivedFromObject())
+		if (classNode->isDerivedFromObject() || classNode->isDerivedFromInterface())
 		{
 			writeStringToFile("virtual ::pafcore::ClassType* getType();\n", file, indentation + 1);
-			if (classNode->isDerivedFromInterface())
-			{
-				writeStringToFile("virtual size_t getAddress();\n", file, indentation + 1);
-			}
+		}
+		if (classNode->isDerivedFromInterface())
+		{
+			writeStringToFile("virtual size_t getAddress();\n", file, indentation + 1);
 		}
 	}
 	for(size_t i = 0; i < memberCount; ++i)
@@ -412,13 +412,9 @@ void HeaderFileGenerator::generateCode_Property_Get(FILE* file, PropertyNode* pr
 
 	writeStringToFile("(", file);
 
-	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
+	if (!propertyNode->isSimple())
 	{
-		writeStringToFile("size_t", file);
-	}
-	else if (propertyNode->isList())
-	{
-		writeStringToFile("::pafcore::Iterator", file);
+		writeStringToFile("::pafcore::Iterator*", file);
 	}
 	if (propertyNode->isStatic())
 	{
@@ -474,13 +470,9 @@ void HeaderFileGenerator::generateCode_Property_Set(FILE* file, PropertyNode* pr
 	
 	writeStringToFile("(", file);
 	
-	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
+	if (!propertyNode->isSimple())
 	{
-		writeStringToFile("size_t, ", file);
-	}
-	else if (propertyNode->isList())
-	{
-		writeStringToFile("::pafcore::Iterator, ", file);
+		writeStringToFile("::pafcore::Iterator*, ", file);
 	}
 	generateCode_ResultType(file, propertyNode->m_compoundType, propertyNode->m_set->m_byRef, propertyNode->m_enclosing, true, 0, true);
 	writeStringToFile(");", file);	
@@ -568,7 +560,7 @@ void HeaderFileGenerator::generateCode_Property_Iterate(FILE* file, PropertyNode
 		writeStringToFile("static ", file, indentation);
 		indentation = 0;
 	}
-	writeStringToFile("::pafcore::SharedPtr<::pafcore::Iterator*> iterate_", file, indentation);
+	writeStringToFile("::pafcore::SharedPtr<::pafcore::Iterator> iterate_", file, indentation);
 	writeStringToFile(propertyNode->m_name->m_str.c_str(), file);
 	writeStringToFile("();", file);
 }
@@ -633,6 +625,8 @@ void HeaderFileGenerator::generateCode_Property(FILE* file, PropertyNode* proper
 	
 	if (propertyNode->isFixedArray() || propertyNode->isDynamicArray())
 	{
+		generateCode_Property_Iterate(file, propertyNode, indentation);
+		writeStringToFile("\n", file);
 		generateCode_Property_Size(file, propertyNode, indentation);
 		writeStringToFile("\n", file);
 		if (propertyNode->isDynamicArray())
@@ -747,6 +741,10 @@ void HeaderFileGenerator::generateCode_Method(FILE* file, MethodNode* methodNode
 		}
 	}
 	generateCode_Token(file, methodNode->m_rightParenthesis, 0, true);
+	if (methodNode->m_constant)
+	{
+		generateCode_Token(file, methodNode->m_constant, 0, true);
+	}
 	generateCode_Token(file, methodNode->m_semicolon, 0, true);
 }
 

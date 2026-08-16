@@ -15,29 +15,4 @@ InstanceField::InstanceField(const char* name, Attributes* attributes, ClassType
 	m_typeCompound = typeCompound;
 }
 
-Type* InstanceField::type() const
-{
-	return m_type;
-}
-
-ClassType* InstanceField::objectType() const
-{
-	return m_objectType;
-}
-
-bool InstanceField::isArray() const
-{
-	return m_arraySize > 0;
-}
-
-TypeCompound InstanceField::typeCompound() const
-{
-	return m_typeCompound;
-}
-
-size_t InstanceField::offset() const
-{
-	return m_offset;
-}
-
 END_PAFCORE

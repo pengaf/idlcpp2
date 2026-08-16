@@ -17,7 +17,7 @@
 namespace pafcore
 {
 #{
-	enum PrimitiveTypeKind
+	enum PrimitiveKind
 	{
 		bool_type,
 		char_type,
@@ -42,38 +42,40 @@ namespace pafcore
 
 	class(primitive_type)#PAFCORE_EXPORT PrimitiveType : Type
 	{
-		size_t _getMemberCount_();
-		Metadata* _getMember_(size_t index);
-		Metadata* _findMember_(string_t name);
+		size_t _getMemberCount_() const;
+		Metadata* _getMember_(size_t index) const;
+		Metadata* _findMember_(string_t name) const;
 #{
 	public:
-		PrimitiveType(const char* name) : Type(name, MetadataKind::primitive_instance, "")
+		PrimitiveType(const char* name, uint32_t size) : Type(name, MetadataKind::primitive_instance, RefCountPolicy::single_thread, size, "")
 		{}
 	public:
-		virtual bool castTo(void* dst, Type* dstType, const void* src) = 0;
+		virtual bool castTo(void* dst, const Type* dstType, const void* src) = 0;
 	public:
-		InstanceMethod * findInstanceMethod(const char* name);
-		StaticMethod* findStaticMethod(const char* name);
-		Metadata* findTypeMember(const char* name);
-		virtual Metadata* findMember(const char* name) override;
+		//InstanceMethod * findInstanceMethod(const char* name);
+		StaticMethod* findStaticMethod(const char* name) const;
+		Metadata* findTypeMember(const char* name) const;
+		virtual Metadata* findMember(const char* name) const override;
 	public:
-		PrimitiveTypeKind getPrimitiveTypeKind() const
+		PrimitiveKind primitiveKind() const
 		{
-			return m_typeKind;
+			return m_primitiveKind;
 		}
 		bool isString() const
 		{
-			return (string_type == m_typeKind);
+			return (string_type == m_primitiveKind);
 		}
-	public:
-		PrimitiveTypeKind m_typeKind;
+		StaticMethod* staticMethods() const
+		{
+			return m_staticMethods;
+		}
+	protected:
+		PrimitiveKind m_primitiveKind;
 		Metadata** m_members;
 		size_t m_memberCount;
-		InstanceMethod* m_instanceMethods;
-		size_t m_instanceMethodCount;
 		StaticMethod* m_staticMethods;
-#}
 		size_t m_staticMethodCount;
+#}
 	};
 #{
 
@@ -194,33 +196,27 @@ namespace pafcore
 	class PAFCORE_EXPORT PrimitiveTypeImpl : public PrimitiveType
 	{
 	public:
-		PrimitiveTypeImpl(const char* name) : PrimitiveType(name)
+		PrimitiveTypeImpl(const char* name) : PrimitiveType(name, sizeof(T))
 		{
-			m_typeKind = (PrimitiveTypeKind)PrimitiveTypeTraits<T>::type_kind;
-			m_name = name;
-			m_size = sizeof(T);
+			m_primitiveKind = (PrimitiveKind)PrimitiveTypeTraits<T>::type_kind;
 
-			static ::pafcore::Result s_staticResults[] =
-			{
-				::pafcore::Result("result", this, ::pafcore::TypeCompound::none, false),
-				::pafcore::Result("result", this, ::pafcore::TypeCompound::none, false),
-				::pafcore::Result("result", this, ::pafcore::TypeCompound::shared_array, false),
-			};
 			static ::pafcore::Parameter s_staticArguments[] =
 			{
+				::pafcore::Parameter("address", RuntimeTypeOf<::size_t>::RuntimeType::GetSingleton(), ::pafcore::TypeCompound::none, false, false),
 				::pafcore::Parameter("arg", this, ::pafcore::TypeCompound::none, false, false),
-				::pafcore::Parameter("count", GetUnsignedIntRuntimeType(), ::pafcore::TypeCompound::none, false, false),
+				::pafcore::Parameter("address", RuntimeTypeOf<::size_t>::RuntimeType::GetSingleton(), ::pafcore::TypeCompound::none, false, false),
+				::pafcore::Parameter("count", RuntimeTypeOf<::size_t>::RuntimeType::GetSingleton(), ::pafcore::TypeCompound::none, false, false),
 			};
 			static ::pafcore::Overload s_staticOverloads[] =
 			{
-				::pafcore::Overload(&s_staticResults[0], 1, &s_staticArguments[0], 0),
-				::pafcore::Overload(&s_staticResults[1], 1, &s_staticArguments[0], 1),
-				::pafcore::Overload(&s_staticResults[2], 1, &s_staticArguments[1], 1),
+				::pafcore::Overload(nullptr, 0, &s_staticArguments[0], 1),
+				::pafcore::Overload(nullptr, 0, &s_staticArguments[0], 2),
+				::pafcore::Overload(nullptr, 0, &s_staticArguments[2], 2),
 			};
 			static ::pafcore::StaticMethod s_staticMethods[] =
 			{
-				::pafcore::StaticMethod("New", nullptr, Primitive_New, &s_staticOverloads[0], 2),
-				::pafcore::StaticMethod("NewArray", nullptr, Primitive_NewArray, &s_staticOverloads[2], 1),
+				::pafcore::StaticMethod("Construct", nullptr, Primitive_Construct, &s_staticOverloads[0], 2),
+				::pafcore::StaticMethod("ConstructArray", nullptr, Primitive_ConstructArray, &s_staticOverloads[2], 1),
 			};
 			m_staticMethods = s_staticMethods;
 			m_staticMethodCount = paf_array_size_of(s_staticMethods);
@@ -234,47 +230,83 @@ namespace pafcore
 			NameSpace::GetGlobalNameSpace()->registerMember(this);
 		}
 
-		static ErrorCode Primitive_New(Variant** results, int_t numResults, Variant** arguments, int_t numArguments)
+		static ErrorCode Primitive_Construct(Variant** results, uint32_t& numResults, Variant** arguments, uint32_t numArguments)
 		{
-			if(1 < numArguments)
+			if(1 <= numArguments)
 			{
-				return e_invalid_arg_num;
-			}
-			T a0 = 0;
-			if(1 == numArguments)
-			{
-				if(!arguments[0]->castToPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &a0))
+				::size_t a0;
+				if (!arguments[0]->castToPrimitive<::size_t>(a0))
 				{
-					return e_invalid_arg_type_1;
+					return ::pafcore::ErrorCode::e_invalid_arg_type_1;
 				}
+				T a1 = 0;
+				if (1 < numArguments)
+				{
+					if (!arguments[1]->castToPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &a1))
+					{
+						return ErrorCode::e_invalid_arg_type_2;
+					}
+				}
+				::pafcore::Construct<T>((void*)a0, a1);
+				numResults = 0;
+				return ::pafcore::ErrorCode::s_ok;
 			}
-			results[0]->assignPrimitive(RuntimeTypeOf<T>::RuntimeType::GetSingleton(), &a0);
-			return s_ok;
+			return ErrorCode::e_invalid_arg_num;
 		}
 
-		static ErrorCode Primitive_NewArray(Variant** results, int_t numResults, Variant** arguments, int_t numArguments)
+		static ErrorCode Primitive_ConstructArray(Variant** results, uint32_t& numResults, Variant** arguments, uint32_t numArguments)
 		{
-			if(1 == numArguments)
+			if (2 <= numArguments)
 			{
-				unsigned int count;
-				if(!arguments[0]->castToPrimitive(GetUnsignedIntRuntimeType(), &count))
+				::size_t a0;
+				if (!arguments[0]->castToPrimitive<::size_t>(a0))
 				{
-					return e_invalid_arg_type_1;
+					return ::pafcore::ErrorCode::e_invalid_arg_type_1;
 				}
-				::pafcore::SharedArray<T> ptr = ::pafcore::MakeSharedArray<T>(count);
-				results[0]->assignSharedArray(std::move(ptr));
-				return s_ok;
+				::size_t a1;
+				if (!arguments[1]->castToPrimitive<::size_t>(a1))
+				{
+					return ::pafcore::ErrorCode::e_invalid_arg_type_2;
+				}
+				::pafcore::ConstructArray<T>((void*)a0, a1);
+				numResults = 0;
+				return ::pafcore::ErrorCode::s_ok;
 			}
-			return e_invalid_arg_num;
+			return ::pafcore::ErrorCode::e_invalid_arg_num;
 		}
 
-		virtual bool castTo(void* dst, Type* dstType, const void* src)
+		virtual bool copyConstruct(void* dst, const void* src, size_t count) const override
+		{
+			return CopyConstruct(reinterpret_cast<T*>(dst), reinterpret_cast<const T*>(src), count);
+		}
+
+		virtual bool moveConstruct(void* dst, void* src, size_t count) const override
+		{
+			return MoveConstruct(reinterpret_cast<T*>(dst), reinterpret_cast<T*>(src), count);
+		}
+
+		virtual bool copyAssign(void* dst, const void* src, size_t count) const override
+		{
+			return CopyAssign(reinterpret_cast<T*>(dst), reinterpret_cast<const T*>(src), count);
+		}
+
+		virtual bool moveAssign(void* dst, void* src, size_t count) const override
+		{
+			return MoveAssign(reinterpret_cast<T*>(dst), reinterpret_cast<T*>(src), count);
+		}
+
+		virtual bool destruct(void* ptr, size_t count) const override
+		{
+			return true;
+		}
+
+		virtual bool castTo(void* dst, const Type* dstType, const void* src)
 		{
 			if(!dstType->isPrimitive())
 			{
 				return false;
 			}
-			switch (static_cast<PrimitiveType*>(dstType)->m_typeKind)
+			switch (static_cast<const PrimitiveType*>(dstType)->primitiveKind())
 			{
 			case bool_type:
 				*reinterpret_cast<bool_t*>(dst) = *reinterpret_cast<const T*>(src) != 0;
@@ -368,11 +400,9 @@ namespace pafcore
 	class PAFCORE_EXPORT StringType : public PrimitiveType
 	{
 	public:
-		StringType(const char* name) : PrimitiveType(name)
+		StringType(const char* name) : PrimitiveType(name, sizeof(::string_t))
 		{
-			m_typeKind = (PrimitiveTypeKind)PrimitiveTypeTraits<::string_t>::type_kind;
-			m_name = name;
-			m_size = sizeof(::string_t);
+			m_primitiveKind = (PrimitiveKind)PrimitiveTypeTraits<::string_t>::type_kind;
 
 			static ::pafcore::Result s_staticResults[] =
 			{
@@ -402,34 +432,61 @@ namespace pafcore
 			m_memberCount = paf_array_size_of(s_members);
 			::pafcore::NameSpace::GetGlobalNameSpace()->registerMember(this);
 		}
-		static ErrorCode string_t_New(::pafcore::Variant** results, int_t numResults, ::pafcore::Variant** arguments, int_t numArguments)
+		static ErrorCode string_t_New(::pafcore::Variant** results, uint32_t& numResults, ::pafcore::Variant** arguments, uint32_t numArguments)
 		{
 			if (0 == numArguments)
 			{
 				string_t str;
 				results[0]->assignPrimitive(str);
-				return ::pafcore::s_ok;
+				numResults = 1;
+				return ::pafcore::ErrorCode::s_ok;
 			}
 			if (1 <= numArguments)
 			{
 				string_t a0;
 				if (!arguments[0]->castToPrimitive(a0))
 				{
-					return ::pafcore::e_invalid_arg_type_1;
+					return ::pafcore::ErrorCode::e_invalid_arg_type_1;
 				}
 				results[0]->assignPrimitive(a0);
-				return ::pafcore::s_ok;
+				numResults = 1;
+				return ::pafcore::ErrorCode::s_ok;
 			}
-			return ::pafcore::e_invalid_arg_num;
+			return ::pafcore::ErrorCode::e_invalid_arg_num;
 		}
 
-		virtual bool castTo(void* dst, Type* dstType, const void* src)
+		virtual bool copyConstruct(void* dst, const void* src, size_t count) const override
+		{
+			return CopyConstruct(reinterpret_cast<string_t*>(dst), reinterpret_cast<const string_t*>(src), count);
+		}
+
+		virtual bool moveConstruct(void* dst, void* src, size_t count) const override
+		{
+			return MoveConstruct(reinterpret_cast<string_t*>(dst), reinterpret_cast<string_t*>(src), count);
+		}
+
+		virtual bool copyAssign(void* dst, const void* src, size_t count) const override
+		{
+			return CopyAssign(reinterpret_cast<string_t*>(dst), reinterpret_cast<const string_t*>(src), count);
+		}
+
+		virtual bool moveAssign(void* dst, void* src, size_t count) const override
+		{
+			return MoveAssign(reinterpret_cast<string_t*>(dst), reinterpret_cast<string_t*>(src), count);
+		}
+
+		virtual bool destruct(void* ptr, size_t count) const override
+		{
+			return true;
+		}
+
+		virtual bool castTo(void* dst, const Type* dstType, const void* src)
 		{
 			if (!dstType->isPrimitive())
 			{
 				return false;
 			}
-			if (string_type != static_cast<PrimitiveType*>(dstType)->m_typeKind)
+			if (string_type != static_cast<const PrimitiveType*>(dstType)->primitiveKind())
 			{
 				return false;
 			}

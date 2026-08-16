@@ -3,7 +3,6 @@
 #{
 #include "std_unordered_set.h"
 #include "std_vector.h"
-#include "memory.h"
 #}
 
 namespace pafcore
@@ -11,9 +10,9 @@ namespace pafcore
 
 	class(name_space)#PAFCORE_EXPORT NameSpace : Metadata
 	{
-		size_t _getMemberCount_();
-		Metadata* _getMember_(size_t index);
-		Metadata* _findMember_(string_t name);
+		size_t _getMemberCount_() const;
+		Metadata* _getMember_(size_t index) const;
+		Metadata* _findMember_(string_t name) const;
 #{
 	private:
 		struct Hash_Metadata
@@ -32,11 +31,16 @@ namespace pafcore
 	public:
 		NameSpace* getNameSpace(const char* name);
 		ErrorCode registerMember(Metadata* metadata);
-		Metadata* findMember(const char* name);
+		Metadata* findMember(const char* name) const;
 		void unregisterMember(Metadata* metadata);
-	public:	
+	public:
+		Metadata* enclosing() const
+		{
+			return m_enclosing;
+		}
+	protected:	
 		typedef pafcore::unordered_set<Metadata*, Hash_Metadata, Equal_Metadata> MetadataContainer;
-		pafcore::vector<UniquePtr<NameSpace>> m_nameSpaces;
+		pafcore::vector<std::unique_ptr<NameSpace>> m_nameSpaces;
 		MetadataContainer m_members;
 		Metadata* m_enclosing;
 	public:

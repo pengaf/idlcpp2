@@ -1,8 +1,28 @@
 #pragma once
 
+#include <cstdint>
 #include <cstdarg>
 #include <cstdio>
 #include <cwchar>
+#include <type_traits>
+
+using bool_t		= bool;
+using char_t		= char;
+using schar_t		= signed char;
+using uchar_t		= unsigned char;
+using short_t		= short;
+using ushort_t		= unsigned short;
+using long_t		= long;
+using ulong_t		= unsigned long;
+using longlong_t	= long long;
+using ulonglong_t	= unsigned long long;
+using int_t			= int;
+using uint_t		= unsigned int;
+using float_t		= float;
+using double_t		= double;
+using longdouble_t	= long double;
+using byte_t		= unsigned char;
+
 
 #if defined(_MSC_VER)
 #pragma warning(disable:4251)
@@ -51,9 +71,6 @@ inline void OutputDebugStringA(const char* str)
 }
 #endif
 
-#define BEGIN_PAFCORE namespace pafcore {
-#define END_PAFCORE }
-
 #define PAF_CONCAT_(a, b) a ## b
 #define PAF_CONCAT(a, b)  PAF_CONCAT_(a, b)
 
@@ -91,5 +108,143 @@ PAFCORE_EXPORT void PafAssert(wchar_t const* _Message, wchar_t const* _File, uns
 #define paf_base_offset_of(d, b) (reinterpret_cast<ptrdiff_t>(static_cast<b*>(reinterpret_cast<d*>(1))) - 1)
 #define paf_verify
 
-#include "typedef.h"
+#if defined(_MSC_VER)
+extern "C" int strcmp(const char* lhs, const char* rhs);
+extern "C" size_t strlen(const char* str);
+#endif
 
+class string_t
+{
+public:
+	string_t() : m_str("")
+	{
+	}
+	string_t(const char* str) : m_str(str ? str : "")
+	{
+	}
+	//string_t(const string& str) : m_str(str.m_str)
+	//{}
+public:
+	const char* c_str() const
+	{
+		return m_str;
+	}
+	operator const char* () const
+	{
+		return m_str;
+	}
+	bool empty() const
+	{
+		return (0 == *m_str);
+	}
+	void assign(const char* str)
+	{
+		m_str = str ? str : "";
+	}
+	bool operator == (const char* str) const
+	{
+		return 0 == strcmp(m_str, str);
+	}
+	bool operator != (const char* str) const
+	{
+		return 0 != strcmp(m_str, str);
+	}
+	size_t length() const
+	{
+		return strlen(m_str);
+	}
+protected:
+	const char* m_str;
+};
+
+template<typename T>
+struct RuntimeTypeOf
+{};
+
+
+#define BEGIN_PAFCORE namespace pafcore {
+#define END_PAFCORE }
+
+namespace pafcore
+{
+	class Interface;
+	class Object;
+	class STRCObject;
+	class MTRCObject;
+
+
+	template<typename Base, typename Derived>
+	struct is_base_or_same
+	{
+		static constexpr bool value =
+			std::is_base_of<Base, Derived>::value ||
+			std::is_same<Base, Derived>::value;
+	};
+
+	template<typename T>
+	struct is_introspectable : is_base_or_same<Interface, T> {};
+
+	template<typename T>
+	inline constexpr bool is_introspectable_v = is_introspectable<T>::value;
+
+	template<typename T>
+	struct is_interface : is_base_or_same<Interface, T> {};
+
+	template<typename T>
+	inline constexpr bool is_interface_v = is_interface<T>::value;
+
+	template<typename T>
+	struct is_object : is_base_or_same<Object, T> {};
+
+	template<typename T>
+	inline constexpr bool is_object_v = is_object<T>::value;
+
+	//template<typename T>
+	//struct is_rc_object : is_base_or_same<RCObject, T> {};
+
+	//template<typename T>
+	//inline constexpr bool is_rc_object_v = is_rc_object<T>::value;
+
+	template<typename T>
+	struct is_strc_object : is_base_or_same<STRCObject, T> {};
+
+	template<typename T>
+	inline constexpr bool is_strc_object_v = is_strc_object<T>::value;
+
+	template<typename T>
+	struct is_mtrc_object : is_base_or_same<MTRCObject, T> {};
+
+	template<typename T>
+	inline constexpr bool is_mtrc_object_v = is_mtrc_object<T>::value;
+
+	enum class RefCountPolicy : signed char
+	{
+		unknown,
+		single_thread,
+		multi_thread,
+	};
+
+	template<typename T>
+	inline RefCountPolicy ClassRefCountPolicy()
+	{
+		if constexpr (is_strc_object_v<T>)
+		{
+			return RefCountPolicy::single_thread;
+		}
+		else if constexpr (is_mtrc_object_v<T>)
+		{
+			return RefCountPolicy::multi_thread;
+		}
+		else if constexpr (is_interface_v<T>)
+		{
+			return RefCountPolicy::unknown;
+		}
+		else
+		{
+			return RefCountPolicy::single_thread;
+		}
+	}
+
+}
+
+//#include "typedef.h"

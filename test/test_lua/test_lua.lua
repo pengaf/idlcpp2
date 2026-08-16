@@ -10,7 +10,7 @@ function ListPrimitiveMember(var, indent, recursive)
 	count = var:_getMemberCount_();
 	for i = 1, count do
 		member = var:_getMember_(i - 1);
-		print(Indentation(indent) .. member._name_ .. " : " .. member._category_._name_);
+		print(Indentation(indent) .. member._name_ .. " : " .. member._kind_._name_);
 	end
 end
 
@@ -31,7 +31,7 @@ function ListClassMember(var, indent, recursive)
 	count = var:_getMemberCount_(false);
 	for i = 1, count do
 		member = var:_getMember_(i - 1, false);
-		print(Indentation(indent) .. member._name_ .. " : " .. member._category_._name_);
+		print(Indentation(indent) .. member._name_ .. " : " .. member._kind_._name_);
 		if recursive then
 			ListMember(member, indent + 1, recursive);
 		end
@@ -42,7 +42,7 @@ function ListNamespaceMember(var, indent, recursive)
 	count = var:_getMemberCount_();
 	for i = 1, count do
 		member = var:_getMember_(i - 1);
-		print(Indentation(indent) .. member._name_ .. " : " .. member._category_._name_);
+		print(Indentation(indent) .. member._name_ .. " : " .. member._kind_._name_);
 		if recursive then
 			ListMember(member, indent + 1, recursive);
 		end
@@ -50,13 +50,13 @@ function ListNamespaceMember(var, indent, recursive)
 end;
 
 tab = {}
-tab[idlcpp.pafcore.Category.name_space._] = ListNamespaceMember;
-tab[idlcpp.pafcore.Category.class_type._] = ListClassMember;
-tab[idlcpp.pafcore.Category.primitive_type._] = ListPrimitiveMember;
-tab[idlcpp.pafcore.Category.enum_type._] = ListEnumMember;
+tab[idlcpp.pafcore.MetadataKind.name_space._] = ListNamespaceMember;
+tab[idlcpp.pafcore.MetadataKind.class_type._] = ListClassMember;
+tab[idlcpp.pafcore.MetadataKind.primitive_type._] = ListPrimitiveMember;
+tab[idlcpp.pafcore.MetadataKind.enum_type._] = ListEnumMember;
 
 function ListMember(var, indent, recursive)
-	func = tab[var._category_._]
+	func = tab[var._kind_._]
 	if func then
 		func(var, indent, recursive);
 	end

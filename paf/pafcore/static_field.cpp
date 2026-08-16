@@ -14,24 +14,4 @@ StaticField::StaticField(const char* name, Attributes* attributes, Type* type, s
 	m_typeCompound = typeCompound;
 }
 
-Type* StaticField::type() const
-{
-	return m_type;
-}
-
-TypeCompound StaticField::typeCompound() const
-{
-	return m_typeCompound;
-}
-
-bool StaticField::isArray() const
-{
-	return m_arraySize > 0;
-}
-
-size_t StaticField::address() const
-{
-	return m_address;
-}
-
 END_PAFCORE

@@ -489,7 +489,7 @@ NamespaceTypeNode* NamespaceTypeNode::addNamespace(NamespaceNode* node)
 			node->m_name->m_str.c_str(), child->m_sourceFile->m_fileName.c_str(),
 			child->m_identifierNode->m_lineNo, child->m_identifierNode->m_columnNo);
 		ErrorList_AddItem(getCurrentSourceFileName(), node->m_name->m_lineNo,
-			node->m_name->m_columnNo, semantic_error_namespace_redefined, buf);
+			node->m_name->m_columnNo, semantic_error_namespace, buf);
 		return 0;
 	}
 }

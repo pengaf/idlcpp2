@@ -17,54 +17,12 @@
 
 #if PAF_MEMORY_BACKEND == PAF_MEMORY_BACKEND_MIMALLOC
 #include <mimalloc.h>
+#include <mimalloc-new-delete.h>
 #endif
 
 
 namespace pafcore
 {
-	class Interface;
-	class Object;
-	class RCObject;
-	class STRCObject;
-	class MTRCObject;
-
-	template<typename Base, typename Derived>
-	struct is_base_or_same
-	{
-		static constexpr bool value =
-			std::is_base_of<Base, Derived>::value ||
-			std::is_same<Base, Derived>::value;
-	};
-
-	template<typename T>
-	struct is_interface : is_base_or_same<Interface, T> {};
-
-	template<typename T>
-	struct is_object : is_base_or_same<Object, T> {};
-
-	template<typename T>
-	struct is_rc_object : is_base_or_same<RCObject, T> {};
-
-	template<typename T>
-	struct is_strc_object : is_base_or_same<STRCObject, T> {};
-
-	template<typename T>
-	struct is_mtrc_object : is_base_or_same<MTRCObject, T> {};
-
-	template<typename T>
-	inline constexpr bool is_interface_v = is_interface<T>::value;
-
-	template<typename T>
-	inline constexpr bool is_object_v = is_object<T>::value;
-
-	template<typename T>
-	inline constexpr bool is_rc_object_v = is_rc_object<T>::value;
-
-	template<typename T>
-	inline constexpr bool is_strc_object_v = is_strc_object<T>::value;
-
-	template<typename T>
-	inline constexpr bool is_mtrc_object_v = is_mtrc_object<T>::value;
 
 	inline void* Malloc(size_t size)
 	{
@@ -88,74 +46,155 @@ namespace pafcore
 #endif
 	}
 
-	template<typename T>
-	void Destruct(T* p, size_t count = 1)
+	template<typename T, typename... Args>
+	void Construct(void* ptr, Args&&... args)
 	{
-		if constexpr (std::is_destructible_v<T>)
+		PAF_ASSERT(nullptr != ptr);
+		new (ptr) T(std::forward<Args>(args)...);
+	}
+
+	template<typename T>
+	void ConstructArray(void* ptr, size_t count)
+	{
+		PAF_ASSERT(nullptr != ptr);
+		if constexpr (!std::is_trivially_default_constructible_v<T>)
 		{
+			T* p = static_cast<T*>(ptr);
 			for (size_t i = 0; i < count; ++i)
 			{
-				p[i].~T();
+				new (p + i) T;
 			}
 		}
 	}
 
 	template<typename T>
-	void CopyConstruct(T* dst, const T* src, size_t count = 1)
+	bool Destruct(T* ptr, size_t count = 1)
 	{
+		PAF_ASSERT(nullptr != ptr);
+		if constexpr (std::is_destructible_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				ptr[i].~T();
+			}
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	template<typename T>
+	bool CopyConstruct(T* dst, const T* src, size_t count = 1)
+	{
+		PAF_ASSERT(nullptr != dst && nullptr != src);
 		if constexpr (std::is_copy_constructible_v<T>)
 		{
 			for (size_t i = 0; i < count; ++i)
 			{
 				new (dst + i) T(src[i]);
 			}
+			return true;
 		}
-	}
-
-	template<typename T>
-	void MoveConstruct(T* dst, T* src, size_t count = 1)
-	{
-		if constexpr (std::is_move_constructible_v<T>)
+		else
 		{
-			for (size_t i = 0; i < count; ++i)
-			{
-				new (dst + i) T(std::move(src[i]));
-			}
+			return false;
 		}
 	}
 
+	//template<typename T>
+	//T* CopyNew(const T* src, size_t count = 1)
+	//{
+	//	if constexpr (std::is_copy_constructible_v<T>)
+	//	{
+	//		T* dst = (T*)Malloc(sizeof(T) * count);
+	//		CopyConstruct(dst, src, count);
+	//		return dst;
+	//	}
+	//	else
+	//	{
+	//		return nullptr;
+	//	}
+	//}
+
 	template<typename T>
-	void CopyAssign(T* dst, const T* src, size_t count = 1)
+	bool CopyAssign(T* dst, const T* src, size_t count = 1)
 	{
+		PAF_ASSERT(nullptr != dst && nullptr != src);
 		if constexpr (std::is_copy_assignable_v<T>)
 		{
 			for (size_t i = 0; i < count; ++i)
 			{
 				dst[i] = src[i];
 			}
+			return true;
+		}
+		else
+		{
+			return false;
 		}
 	}
 
 	template<typename T>
-	void MoveAssign(T* dst, T* src, size_t count = 1)
+	bool MoveConstruct(T* dst, T* src, size_t count = 1)
 	{
+		PAF_ASSERT(nullptr != dst && nullptr != src);
+		if constexpr (std::is_move_constructible_v<T>)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				new (dst + i) T(std::move(src[i]));
+			}
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	//template<typename T>
+	//T* MoveNew(const T* src, size_t count = 1)
+	//{
+	//	if constexpr (std::is_move_constructible_v<T>)
+	//	{
+	//		T* dst = (T*)Malloc(sizeof(T) * count);
+	//		MoveConstruct(dst, src, count);
+	//		return dst;
+	//	}
+	//	else
+	//	{
+	//		return nullptr;
+	//	}
+	//}
+
+	template<typename T>
+	bool MoveAssign(T* dst, T* src, size_t count = 1)
+	{
+		PAF_ASSERT(nullptr != dst && nullptr != src);
 		if constexpr (std::is_move_assignable_v<T>)
 		{
 			for (size_t i = 0; i < count; ++i)
 			{
 				dst[i] = std::move(src[i]);
 			}
+			return true;
+		}
+		else
+		{
+			return false;
 		}
 	}
 
-	struct ArrayHeader
-	{
-		uint64_t m_count;
-		ArrayHeader(uint64_t count) :
-			m_count(count)
-		{
-		}
-	};
+	//struct ArrayHeader
+	//{
+	//	uint64_t m_size;
+	//	ArrayHeader(uint64_t count) :
+	//		m_size(count)
+	//	{
+	//	}
+	//};
 
 	struct STRCHeader
 	{
@@ -235,9 +274,9 @@ namespace pafcore
 	struct RefCountedArrayHeader
 	{
 		uint32_t m_refCount{ 1 };
-		uint32_t m_count;
-		RefCountedArrayHeader(uint32_t count) :
-			m_count(count)
+		uint32_t m_size;
+		RefCountedArrayHeader(uint32_t size) :
+			m_size(size)
 		{
 		}
 		uint32_t incRefCount() noexcept
@@ -250,30 +289,35 @@ namespace pafcore
 		}
 	};
 
+	inline uint32_t RefCountedArraySize(const void* ptr)
+	{
+		const RefCountedArrayHeader* header = reinterpret_cast<const RefCountedArrayHeader*>(ptr) - 1;
+		return header->m_size;
+	}
 
-	template<typename RefCountHeader_t, typename Object_t>
-	inline uint32_t IncWeakRefCount(Object_t* object)
+	template<typename RefCountHeader_t>
+	inline uint32_t IncWeakRefCount(void* object)
 	{
 		RefCountHeader_t* header = reinterpret_cast<RefCountHeader_t*>(object) - 1;
 		return header->incWeakRefCount();
 	}
 
-	template<typename RefCountHeader_t, typename Object_t>
-	inline uint32_t IncStrongRefCount(Object_t* object)
+	template<typename RefCountHeader_t>
+	inline uint32_t IncStrongRefCount(void* object)
 	{
 		RefCountHeader_t* header = reinterpret_cast<RefCountHeader_t*>(object) - 1;
 		return header->incStrongRefCount();
 	}
 
-	template<typename RefCountHeader_t, typename Object_t>
-	inline uint32_t IncStrongRefCountNotZero(Object_t* object)
+	template<typename RefCountHeader_t>
+	inline uint32_t IncStrongRefCountNotZero(void* object)
 	{
 		RefCountHeader_t* header = reinterpret_cast<RefCountHeader_t*>(object) - 1;
 		return header->incStrongRefCountNotZero();
 	}
 
-	template<typename RefCountHeader_t, typename Object_t>
-	inline uint32_t DecWeakRefCount(Object_t* object)
+	template<typename RefCountHeader_t>
+	inline uint32_t DecWeakRefCount(void* object)
 	{
 		RefCountHeader_t* header = reinterpret_cast<RefCountHeader_t*>(object) - 1;
 		uint32_t result = header->decWeakRefCount();
@@ -312,8 +356,7 @@ namespace pafcore
 		return header->m_strongRefCount;
 	}
 
-	template<typename Object_t>
-	inline uint32_t IncArrayRefCount(Object_t* array)
+	inline uint32_t IncArrayRefCount(void* array)
 	{
 		RefCountedArrayHeader* header = reinterpret_cast<RefCountedArrayHeader*>(array) - 1;
 		return header->incRefCount();
@@ -326,7 +369,7 @@ namespace pafcore
 		uint32_t result = header->decRefCount();
 		if (0 == result)
 		{
-			size_t count = header->m_count;
+			size_t count = header->m_size;
 			for (size_t i = 0; i < count; ++i)
 			{
 				array[i].~Object_t();
@@ -337,20 +380,50 @@ namespace pafcore
 		return result;
 	}
 
+	//general for Type::decSharedPtrRefCount
+	template<typename RefCountHeader_t, typename Destruct_t>
+	inline uint32_t DecStrongRefCount(void* object, Destruct_t destruct)
+	{
+		RefCountHeader_t* header = reinterpret_cast<RefCountHeader_t*>(object) - 1;
+		uint32_t result = header->decStrongRefCount();
+		if (0 == result)
+		{
+			destruct(object);
+			DecWeakRefCount<RefCountHeader_t>(object);
+		}
+		return result;
+	}
+
+	//general for Type::decSharedArrayRefCount
+	template<typename Destruct_t>
+	inline uint32_t DecArrayRefCount(void* array, Destruct_t destruct)
+	{
+		RefCountedArrayHeader* header = reinterpret_cast<RefCountedArrayHeader*>(array) - 1;
+		uint32_t result = header->decRefCount();
+		if (0 == result)
+		{
+			size_t count = header->m_size;
+			destruct(array, count);
+			header->~RefCountedArrayHeader();
+			Free(header);
+		}
+		return result;
+	}
+
 	template<typename T, typename... Args>
 	inline T* New(Args&&... args)
 	{
-		void* p = Malloc(sizeof(T));
-		return new (p) T(std::forward<Args>(args)...);
+		void* ptr = Malloc(sizeof(T));
+		return new (ptr) T(std::forward<Args>(args)...);
 	}
 
 	template<typename T>
-	inline void Delete(T* p)
+	inline void Delete(T* ptr)
 	{
-		if (nullptr != p)
+		if (nullptr != ptr)
 		{
-			p->~T();
-			Free(p);
+			ptr->~T();
+			Free(ptr);
 		}
 	}
 
@@ -376,7 +449,7 @@ namespace pafcore
 	//	if (nullptr != array)
 	//	{
 	//		ArrayHeader* header = static_cast<ArrayHeader*>(array) - 1;
-	//		size_t count = header->m_count;
+	//		size_t count = header->m_size;
 	//		for (size_t i = 0; i < count; ++i)
 	//		{
 	//			array[i].~T();
@@ -432,6 +505,22 @@ namespace pafcore
 		}
 		return array;
 	}
+
+	template <typename T2>
+	class ObserverPtr;
+
+	template <typename T2>
+	class SharedPtr;
+
+	template <typename T2>
+	class WeakPtr;
+
+	template <typename T2>
+	class ObserverArray;
+
+	template <typename T2>
+	class SharedArray;
+
 
 	template<typename T>
 	class ObserverPtr
@@ -494,7 +583,7 @@ namespace pafcore
 			return m_ptr;
 		}
 	private:
-		T* m_ptr;
+		T* m_ptr{ nullptr };
 	};
 
 
@@ -538,7 +627,7 @@ namespace pafcore
 			return m_ptr;
 		}
 	private:
-		void* m_ptr;
+		void* m_ptr{ nullptr };
 	};
 
 
@@ -578,9 +667,15 @@ namespace pafcore
 			return m_ptr;
 		}
 
+		uint32_t size() const
+		{
+			PAF_ASSERT(nullptr != m_ptr);
+			return RefCountedArraySize(m_ptr);
+		}
+
 		T& operator[](size_t index) const
 		{
-			assert(nullptr != m_ptr && index < (((RefCountedArrayHeader*)m_ptr) - 1)->m_count);
+			PAF_ASSERT(nullptr != m_ptr && index < size());
 			return m_ptr[index];
 		}
 
@@ -589,92 +684,92 @@ namespace pafcore
 			return 0 != m_ptr;
 		}
 	private:
-		T* m_ptr;
+		T* m_ptr{ nullptr };
 	};
 
 
-	template<typename T>
-	class UniquePtr
-	{
-	public:
-		static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "UniquePtr cannot own RCObject-derived or Interface-derived types.");
+	//template<typename T>
+	//class UniquePtr
+	//{
+	//public:
+	//	static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "UniquePtr cannot own RCObject-derived or Interface-derived types.");
 
-		UniquePtr() = default;
+	//	UniquePtr() = default;
 
-		UniquePtr(std::nullptr_t)
-		{}
+	//	UniquePtr(std::nullptr_t)
+	//	{}
 
-		explicit UniquePtr(T* ptr) : 
-			m_ptr(ptr)
-		{}
+	//	explicit UniquePtr(T* ptr) : 
+	//		m_ptr(ptr)
+	//	{}
 
-		UniquePtr(const UniquePtr&) = delete;
+	//	UniquePtr(const UniquePtr&) = delete;
 
-		UniquePtr& operator=(const UniquePtr&) = delete;
+	//	UniquePtr& operator=(const UniquePtr&) = delete;
 
-		UniquePtr(UniquePtr&& other) noexcept : 
-			m_ptr(other.m_ptr)
-		{
-			other.m_ptr = nullptr;
-		}
+	//	UniquePtr(UniquePtr&& other) noexcept : 
+	//		m_ptr(other.m_ptr)
+	//	{
+	//		other.m_ptr = nullptr;
+	//	}
 
-		UniquePtr& operator=(UniquePtr&& other) noexcept
-		{
-			if (this != &other)
-			{
-				reset();
-				m_ptr = other.m_ptr;
-				other.m_ptr = nullptr;
-			}
-			return *this;
-		}
+	//	UniquePtr& operator=(UniquePtr&& other) noexcept
+	//	{
+	//		if (this != &other)
+	//		{
+	//			reset();
+	//			m_ptr = other.m_ptr;
+	//			other.m_ptr = nullptr;
+	//		}
+	//		return *this;
+	//	}
 
-		~UniquePtr()
-		{
-			reset();
-		}
+	//	~UniquePtr()
+	//	{
+	//		reset();
+	//	}
 
-		T* get() const
-		{
-			return m_ptr;
-		}
+	//	T* get() const
+	//	{
+	//		return m_ptr;
+	//	}
 
-		T* release()
-		{
-			T* ptr = m_ptr;
-			m_ptr = 0;
-			return ptr;
-		}
+	//	T* release()
+	//	{
+	//		T* ptr = m_ptr;
+	//		m_ptr = 0;
+	//		return ptr;
+	//	}
 
-		void reset(T* ptr = 0)
-		{
-			Delete(m_ptr);
-			m_ptr = ptr;
-		}
+	//	void reset(T* ptr = 0)
+	//	{
+	//		Delete(m_ptr);
+	//		m_ptr = ptr;
+	//	}
 
-		T& operator*() const
-		{
-			return *m_ptr;
-		}
+	//	T& operator*() const
+	//	{
+	//		return *m_ptr;
+	//	}
 
-		T* operator->() const
-		{
-			return m_ptr;
-		}
+	//	T* operator->() const
+	//	{
+	//		return m_ptr;
+	//	}
 
-		explicit operator bool() const
-		{
-			return 0 != m_ptr;
-		}
-	private:
-		T* m_ptr;
-	};
+	//	explicit operator bool() const
+	//	{
+	//		return 0 != m_ptr;
+	//	}
+	//private:
+	//	T* m_ptr;
+	//};
 
-	template<typename T, typename... Args>
-	inline UniquePtr<T> MakeUnique(Args&&... args)
-	{
-		return UniquePtr<T>(New<T>(std::forward<Args>(args)...));
-	}
+	//template<typename T, typename... Args>
+	//inline UniquePtr<T> MakeUnique(Args&&... args)
+	//{
+	//	return UniquePtr<T>(New<T>(std::forward<Args>(args)...));
+	//}
 
 	//template<typename T>
 	//class UniqueArray
@@ -751,6 +846,13 @@ namespace pafcore
 	class SharedPtr
 	{
 		friend class Variant;
+
+		template <typename T2>
+		friend class SharedPtr;
+
+		template <typename T2>
+		friend class WeakPtr;
+
 	public:
 		static SharedPtr Retain(T* ptr)
 		{
@@ -760,22 +862,42 @@ namespace pafcore
 			return sharedPtr;
 		}
 
-		SharedPtr() = default;
+		SharedPtr() noexcept = default;
 
-		SharedPtr(std::nullptr_t)
+		SharedPtr(std::nullptr_t) noexcept
 		{}
 
-		explicit SharedPtr(T* ptr) : 
+		explicit SharedPtr(T* ptr) noexcept :
 			m_ptr(ptr)
 		{}
 
-		SharedPtr(const SharedPtr& other) : 
+		SharedPtr(const SharedPtr& other) noexcept :
 			m_ptr(other.m_ptr)
 		{
 			incStrongRefCount();
 		}
 
-		SharedPtr& operator=(const SharedPtr& other)
+		SharedPtr(SharedPtr&& other) noexcept :
+			m_ptr(other.m_ptr)
+		{
+			other.m_ptr = nullptr;
+		}
+
+		template<typename T2>
+		SharedPtr(const SharedPtr<T2>& other) noexcept :
+			m_ptr(other.m_ptr)
+		{
+			incStrongRefCount();
+		}
+
+		template<typename T2>
+		SharedPtr(SharedPtr<T2>&& other) noexcept :
+			m_ptr(other.m_ptr)
+		{
+			other.m_ptr = nullptr;
+		}
+
+		SharedPtr& operator=(const SharedPtr& other) noexcept
 		{
 			if (this != &other)
 			{
@@ -784,12 +906,6 @@ namespace pafcore
 				incStrongRefCount();
 			}
 			return *this;
-		}
-
-		SharedPtr(SharedPtr&& other) noexcept : 
-			m_ptr(other.m_ptr)
-		{
-			other.m_ptr = nullptr;
 		}
 
 		SharedPtr& operator=(SharedPtr&& other) noexcept
@@ -864,7 +980,7 @@ namespace pafcore
 	private:
 		void assign(T* ptr)//for Variant
 		{
-			if (m_ptr != p)
+			if (m_ptr != ptr)
 			{
 				decStrongRefCount();
 				m_ptr = ptr;
@@ -872,7 +988,7 @@ namespace pafcore
 			}
 		}
 	private:
-		T* m_ptr;
+		T* m_ptr{ nullptr };
 	};
 
 	template<typename T, typename... Args>
@@ -948,7 +1064,7 @@ namespace pafcore
 
 		SharedPtr<T> lock() const
 		{
-			if (incStrongRefIfPositive())
+			if (incStrongRefCountNotZero())
 			{
 				return SharedPtr<T>(m_ptr);
 			}
@@ -1029,7 +1145,7 @@ namespace pafcore
 			}
 		}
 	private:
-		T* m_ptr;
+		T* m_ptr{ nullptr };
 	};
 
 
@@ -1038,7 +1154,7 @@ namespace pafcore
 	{
 		friend class Variant;
 	public:
-		static_assert(!is_rc_object_v<T> && !is_interface_v<T>, "SharedArray cannot own RCObject-derived or Interface-derived types.");
+		static_assert(!is_object_v<T> && !is_interface_v<T>, "SharedArray cannot own Object-derived or Interface-derived types.");
 
 		SharedArray() = default;
 
@@ -1093,9 +1209,15 @@ namespace pafcore
 			return m_ptr;
 		}
 
+		uint32_t size() const
+		{
+			PAF_ASSERT(nullptr != m_ptr);
+			return RefCountedArraySize(m_ptr);
+		}
+
 		T& operator[](size_t index) const
 		{
-			assert(nullptr != m_ptr && index < (((RefCountedArrayHeader*)m_ptr) - 1)->m_count);
+			PAF_ASSERT(nullptr != m_ptr && index < size());
 			return m_ptr[index];
 		}
 
@@ -1134,7 +1256,7 @@ namespace pafcore
 			}
 		}
 	private:
-		T* m_ptr;
+		T* m_ptr{ nullptr };
 	};
 
 	template<typename T>
@@ -1179,4 +1301,25 @@ namespace pafcore
 		}
 	};
 
+
+	template<typename T>
+	void ReleaseSharedPtr(T* ptr)
+	{
+		PAF_ASSERT(ptr != nullptr);
+		if constexpr (is_object_v<T> || is_interface_v<T>)
+		{
+			ptr->decStrongRefCount();
+		}
+		else
+		{
+			DecStrongRefCount<STRCHeader>(ptr);
+		}
+	}
+
+	template<typename T>
+	void ReleaseSharedArray(T* ptr)
+	{
+		PAF_ASSERT(ptr != nullptr);
+		DecArrayRefCount(ptr);
+	}
 }

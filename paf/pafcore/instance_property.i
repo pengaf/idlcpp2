@@ -12,30 +12,28 @@ namespace pafcore
 	class Iterator;
 	class Variant;
 	
-	typedef ErrorCode(*InstancePropertyEnumerate)(InstanceProperty* instanceProperty, Variant* that, Variant* candidates);
+	typedef ErrorCode(*InstancePropertyEnumerate)(Variant const& that, Variant& candidates);
 	
-	typedef ErrorCode(*InstancePropertyGet)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
-	typedef ErrorCode(*InstancePropertySet)(InstanceProperty* instanceProperty, Variant* that, Variant* value);
+	typedef ErrorCode(*InstancePropertyScalarGet)(Variant const& that, Variant& value);
+	typedef ErrorCode(*InstancePropertyScalarSet)(Variant& that, Variant const& value);
 
-	typedef ErrorCode(*InstancePropertyArrayGet)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
-	typedef ErrorCode(*InstancePropertyArraySet)(InstanceProperty* instanceProperty, Variant* that, size_t index, Variant* value);
-	typedef ErrorCode(*InstancePropertyArraySize)(InstanceProperty* instanceProperty, Variant* that, size_t& size);
-	typedef ErrorCode(*InstancePropertyArrayResize)(InstanceProperty* instanceProperty, Variant* that, size_t size);
+	typedef ErrorCode(*InstancePropertyCollectionIterate)(Variant const& that, Variant& iterator);
 
-	typedef ErrorCode(*InstancePropertyListIterate)(InstanceProperty* instanceProperty, Variant* that, Variant* iterator);
-	typedef ErrorCode(*InstancePropertyListGet)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
-	typedef ErrorCode(*InstancePropertyListSet)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
-	typedef ErrorCode(*InstancePropertyListInsert)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator, Variant* value);
-	typedef ErrorCode(*InstancePropertyListErase)(InstanceProperty* instanceProperty, Variant* that, Iterator* iterator);
+	typedef ErrorCode(*InstancePropertyCollectionGet)(Variant const& that, Variant const& iterator, Variant& value);
+	typedef ErrorCode(*InstancePropertyCollectionSet)(Variant& that, Variant const& iterator, Variant const& value);
 
+	typedef ErrorCode(*InstancePropertyArraySize)(Variant const& that, Variant& size);
+	typedef ErrorCode(*InstancePropertyArrayResize)(Variant& that, Variant const& size);
 
+	typedef ErrorCode(*InstancePropertyListInsert)(Variant& that, Variant const& iterator, Variant const& value);
+	typedef ErrorCode(*InstancePropertyListErase)(Variant& that, Variant const& iterator);
 #}
 
 	class(instance_property)#PAFCORE_EXPORT InstanceProperty : Metadata
 	{
 		ClassType* objectType { get };
 		
-		bool isSimple{ get };
+		bool isScalar{ get };
 		bool isFixedArray{ get };
 		bool isDynamicArray{ get };
 		bool isList { get };
@@ -56,8 +54,8 @@ namespace pafcore
 			Type* type,
 			TypeCompound typeCompound,
 			InstancePropertyEnumerate enumerate,
-			InstancePropertyGet get,
-			InstancePropertySet set);
+			InstancePropertyScalarGet scalarGet,
+			InstancePropertyScalarSet scalarSet);
 
 		InstanceProperty(
 			const char* name, 
@@ -66,8 +64,9 @@ namespace pafcore
 			Type* type,
 			TypeCompound typeCompound,
 			InstancePropertyEnumerate enumerate,
-			InstancePropertyArrayGet arrayGet,
-			InstancePropertyArraySet arraySet,
+			InstancePropertyCollectionIterate collectionIterate,
+			InstancePropertyCollectionGet collectionGet,
+			InstancePropertyCollectionSet collectionSet,
 			InstancePropertyArraySize arraySize,
 			InstancePropertyArrayResize arrayResize);
 
@@ -79,46 +78,157 @@ namespace pafcore
 			Type* type,
 			TypeCompound typeCompound,
 			InstancePropertyEnumerate enumerate,
-			InstancePropertyListGet listGet,
-			InstancePropertyListSet listSet,
-			InstancePropertyListIterate listIterate,
+			InstancePropertyCollectionIterate collectionIterate,
+			InstancePropertyCollectionGet collectionGet,
+			InstancePropertyCollectionSet collectionSet,
 			InstancePropertyListInsert listInsert,
 			InstancePropertyListErase listErase);
 
-	public:
+
+		InstancePropertyEnumerate enumerate() const
+		{
+			return m_enumerate;
+		}
+		
+		InstancePropertyCollectionIterate collectionIterate() const
+		{
+			return m_collectionIterate;
+		}
+
+		InstancePropertyScalarGet scalarGet() const
+		{
+			return m_scalarGet;
+		}
+
+		InstancePropertyScalarSet scalarSet() const
+		{
+			return m_scalarSet;
+		}
+
+		InstancePropertyCollectionGet collectionGet() const
+		{
+			return m_collectionGet;
+		}
+
+		InstancePropertyCollectionSet collectionSet() const
+		{
+			return m_collectionSet;
+		}
+
+		InstancePropertyArraySize arraySize() const
+		{
+			return m_arraySize;
+		}
+
+		InstancePropertyArrayResize arrayResize() const
+		{
+			return m_arrayResize;
+		}
+
+		InstancePropertyListInsert listInsert() const
+		{
+			return m_listInsert;
+		}
+
+		InstancePropertyListErase listErase() const
+		{
+			return m_listErase;
+		}
+
+	protected:
 		ClassType * m_objectType;
 		InstancePropertyEnumerate m_enumerate;
+		InstancePropertyCollectionIterate m_collectionIterate;
 		union
 		{
 			struct
 			{
-				InstancePropertyGet m_get;
-				InstancePropertySet m_set;
+				InstancePropertyScalarGet m_scalarGet;
+				InstancePropertyScalarSet m_scalarSet;
 			};
 			struct
 			{
-				InstancePropertyArrayGet m_arrayGet;
-				InstancePropertyArraySet m_arraySet;
+				InstancePropertyCollectionGet m_collectionGet;
+				InstancePropertyCollectionSet m_collectionSet;
+			};
+		};
+		union
+		{
+			struct
+			{
 				InstancePropertyArraySize m_arraySize;
 				InstancePropertyArrayResize m_arrayResize;
 			};
 			struct
 			{
-				InstancePropertyListGet m_listGet;
-				InstancePropertyListSet m_listSet;
-				InstancePropertyListIterate m_listIterate;
 				InstancePropertyListInsert m_listInsert;
 				InstancePropertyListErase m_listErase;
 			};
 		};
+
 		Type* m_type;
 		TypeCompound m_typeCompound;
 		PropertyKind m_kind;
 		bool m_serializable;
 #}
 	};
+
 #{
 
+	inline ClassType* InstanceProperty::objectType() const
+	{
+		return m_objectType;
+	}
+
+	inline bool InstanceProperty::isScalar() const
+	{
+		return PropertyKind::scalar_property == m_kind;
+	}
+
+	inline bool InstanceProperty::isFixedArray() const
+	{
+		return PropertyKind::fixed_array_property == m_kind;
+	}
+
+	inline bool InstanceProperty::isDynamicArray() const
+	{
+		return PropertyKind::dynamic_array_property == m_kind;
+	}
+
+	inline bool InstanceProperty::isList() const
+	{
+		return PropertyKind::list_property == m_kind;
+	}
+
+	inline bool InstanceProperty::hasEnumerate() const
+	{
+		return (0 != m_enumerate);
+	}
+
+	inline bool InstanceProperty::hasGet() const
+	{
+		return (0 != m_scalarGet);
+	}
+
+	inline bool InstanceProperty::hasSet() const
+	{
+		return (0 != m_scalarSet);
+	}
+
+	inline Type* InstanceProperty::type() const
+	{
+		return m_type;
+	}
+
+	inline TypeCompound InstanceProperty::typeCompound() const
+	{
+		return m_typeCompound;
+	}
+
+	inline bool InstanceProperty::serializable() const
+	{
+		return m_serializable;
+	}
 
 #}
 

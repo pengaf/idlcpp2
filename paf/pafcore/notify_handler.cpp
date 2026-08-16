@@ -5,22 +5,35 @@
 
 BEGIN_PAFCORE
 
-void PropertyChangedNotifyHandler::onPropertyChanged(ObserverPtr<Object> sender, string_t propertyName, PropertyChangedFlag flag, ObserverPtr<Iterator> iterator)
+void NotifyHandler::onDestroyNotifyHandlerList(Object* sender)
+{
+}
+
+void NotifyHandler::onAttachNotifySource(Object* sender)
+{
+}
+
+void NotifyHandler::onDetachNotifySource(Object* sender)
+{
+}
+
+
+void PropertyChangedNotifyHandler::onPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator)
 {
 
 }
 
-void PropertyChangedNotifyHandler::onPropertyAvailabilityChanged(ObserverPtr<Object> sender, string_t propertyName)
+void PropertyChangedNotifyHandler::onPropertyAvailabilityChanged(Object* sender, string_t propertyName)
 {
 
 }
 
-void PropertyChangedNotifyHandler::onDynamicPropertyChanged(ObserverPtr<Object> sender, string_t propertyName, PropertyChangedFlag flag, ObserverPtr<Iterator> iterator)
+void PropertyChangedNotifyHandler::onDynamicPropertyChanged(Object* sender, string_t propertyName, PropertyChangedFlag flag, Iterator* iterator)
 {
 
 }
 
-void PropertyChangedNotifyHandler::onUpdateDynamicProperty(ObserverPtr<Object> sender)
+void PropertyChangedNotifyHandler::onUpdateDynamicProperty(Object* sender)
 {
 }
 

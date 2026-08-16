@@ -16,7 +16,13 @@ const char* g_errorStrings[] =
 	"unterminated code",
 	"unterminated comment",
 
-	"namespace redefined",
+	"namespace error",
+	"class error",
+	"enum error",
+	"field error",
+	"property error",
+	"method error",
+
 	"type redefined",
 	"template redefined",
 	"enum_member redefined",
@@ -33,7 +39,7 @@ const char* g_errorStrings[] =
 
 	"invalid package name",
 	"invalid type name",
-	"invalid_ arameter",
+	"invalid parameter",
 	"invalid result",
 	"invalid field",
 	"invalid property",

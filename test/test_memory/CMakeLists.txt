@@ -7,4 +7,5 @@ target_link_libraries(
     test_memory
     PRIVATE
         pafcore
+        test_smart_types
 )

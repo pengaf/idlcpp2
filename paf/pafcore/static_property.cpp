@@ -11,16 +11,16 @@ StaticProperty::StaticProperty(
 	Type* type,
 	TypeCompound typeCompound,
 	StaticPropertyEnumerate enumerate, 
-	StaticPropertyGet get,
-	StaticPropertySet set)
+	StaticPropertyScalarGet get,
+	StaticPropertyScalarSet set)
 	: Metadata(name, attributes)
 {
 	m_type = type;
 	m_typeCompound = typeCompound;
 	m_enumerate = enumerate;
-	m_get = get;
-	m_set = set;
-	m_kind = PropertyKind::simple_property;
+	m_scalarGet = get;
+	m_scalarSet = set;
+	m_kind = PropertyKind::scalar_property;
 }
 
 StaticProperty::StaticProperty(
@@ -29,8 +29,9 @@ StaticProperty::StaticProperty(
 	Type* type,
 	TypeCompound typeCompound,
 	StaticPropertyEnumerate enumerate, 
-	StaticPropertyArrayGet arrayGet,
-	StaticPropertyArraySet arraySet,
+	StaticPropertyCollectionIterate arrayIterate,
+	StaticPropertyCollectionGet arrayGet,
+	StaticPropertyCollectionSet arraySet,
 	StaticPropertyArraySize arraySize,
 	StaticPropertyArrayResize arrayResize)
 	: Metadata(name, attributes)
@@ -38,8 +39,9 @@ StaticProperty::StaticProperty(
 	m_type = type;
 	m_typeCompound = typeCompound;
 	m_enumerate = enumerate;
-	m_arrayGet = arrayGet;
-	m_arraySet = arraySet;
+	m_collectionIterate = arrayIterate;
+	m_collectionGet = arrayGet;
+	m_collectionSet = arraySet;
 	m_arraySize = arraySize;
 	m_arrayResize = arrayResize;
 	m_kind = arrayResize ? PropertyKind::dynamic_array_property : PropertyKind::fixed_array_property;
@@ -51,9 +53,9 @@ StaticProperty::StaticProperty(
 	Type* type,
 	TypeCompound typeCompound,
 	StaticPropertyEnumerate enumerate,
-	StaticPropertyListGet listGet,
-	StaticPropertyListSet listSet,
-	StaticPropertyListIterate listIterate,
+	StaticPropertyCollectionIterate listIterate,
+	StaticPropertyCollectionGet listGet,
+	StaticPropertyCollectionSet listSet,
 	StaticPropertyListInsert listInsert,
 	StaticPropertyListErase listErase)
 	: Metadata(name, attributes)
@@ -61,59 +63,14 @@ StaticProperty::StaticProperty(
 	m_type = type;
 	m_typeCompound = typeCompound;
 	m_enumerate = enumerate;
-	m_listGet = listGet;
-	m_listSet = listSet;
-	m_listIterate = listIterate;
+	m_collectionIterate = listIterate;
+	m_collectionGet = listGet;
+	m_collectionSet = listSet;
 	m_listInsert = listInsert;
 	m_listErase = listErase;
 	m_kind = PropertyKind::list_property;
 }
 
-
-bool StaticProperty::isSimple() const
-{
-	return PropertyKind::simple_property == m_kind;
-}
-
-bool StaticProperty::isFixedArray() const
-{
-	return PropertyKind::fixed_array_property == m_kind;
-}
-
-bool StaticProperty::isDynamicArray() const
-{
-	return PropertyKind::dynamic_array_property == m_kind;
-}
-
-bool StaticProperty::isList() const
-{
-	return PropertyKind::list_property == m_kind;
-}
-
-bool StaticProperty::hasEnumerate() const
-{
-	return (0 != m_enumerate);
-}
-
-bool StaticProperty::hasGet() const
-{
-	return (0 != m_get);
-}
-
-bool StaticProperty::hasSet() const
-{
-	return (0 != m_set);
-}
-
-Type* StaticProperty::type() const
-{
-	return m_type;
-}
-
-TypeCompound StaticProperty::typeCompound() const
-{
-	return m_typeCompound;
-}
 
 //bool StaticProperty::serializable() const
 //{

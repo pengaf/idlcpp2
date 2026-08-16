@@ -18,7 +18,14 @@ enum ErrorCode
 	syntax_error_unterminated_code,
 	syntax_error_unterminated_comment,
 	
-	semantic_error_namespace_redefined,
+
+	semantic_error_namespace,
+	semantic_error_class,
+	semantic_error_enum,
+	semantic_error_field,
+	semantic_error_property,
+	semantic_error_method,
+
 	semantic_error_type_redefined,
 	semantic_error_template_redefined,
 	semantic_error_enumerator_redefined,

@@ -12,28 +12,25 @@ namespace pafcore
 	class Iterator;
 	class Variant;
 
-	typedef ErrorCode(*StaticPropertyEnumerate)(Variant* candidates);
+	typedef ErrorCode(*StaticPropertyEnumerate)(Variant& candidates);
+	typedef ErrorCode(*StaticPropertyCollectionIterate)(Variant& iterator);
 
-	typedef ErrorCode(*StaticPropertyGet)(Variant* value);
-	typedef ErrorCode(*StaticPropertySet)(Variant* value);
+	typedef ErrorCode(*StaticPropertyScalarGet)(Variant& value);
+	typedef ErrorCode(*StaticPropertyScalarSet)(Variant const& value);
 
-	typedef ErrorCode(*StaticPropertyArrayGet)(size_t index, Variant* value);
-	typedef ErrorCode(*StaticPropertyArraySet)(size_t index, Variant* value);
-	typedef ErrorCode(*StaticPropertyArraySize)(size_t& size);
-	typedef ErrorCode(*StaticPropertyArrayResize)(size_t size);
+	typedef ErrorCode(*StaticPropertyCollectionGet)(Variant const& iterator, Variant& value);
+	typedef ErrorCode(*StaticPropertyCollectionSet)(Variant const& iterator, Variant const& value);
 
-	typedef ErrorCode(*StaticPropertyListIterate)(Variant* iterator);
-	typedef ErrorCode(*StaticPropertyListGet)(Iterator* iterator, Variant* value);
-	typedef ErrorCode(*StaticPropertyListSet)(Iterator* iterator, Variant* value);
-	typedef ErrorCode(*StaticPropertyListInsert)(Iterator* iterator, Variant* value);
-	typedef ErrorCode(*StaticPropertyListErase)(Iterator* iterator);
+	typedef ErrorCode(*StaticPropertyArraySize)(Variant& size);
+	typedef ErrorCode(*StaticPropertyArrayResize)(Variant const& size);
 
-
+	typedef ErrorCode(*StaticPropertyListInsert)(Variant const& iterator, Variant const& value);
+	typedef ErrorCode(*StaticPropertyListErase)(Variant const& iterator);
 #}
 
 	class(static_property)#PAFCORE_EXPORT StaticProperty : Metadata
 	{
-		bool isSimple{ get };
+		bool isScalar{ get };
 		bool isFixedArray{ get };
 		bool isDynamicArray{ get };
 		bool isList { get };
@@ -52,8 +49,8 @@ namespace pafcore
 			Type* type,
 			TypeCompound typeCompound,
 			StaticPropertyEnumerate enumerate,
-			StaticPropertyGet get,
-			StaticPropertySet set);
+			StaticPropertyScalarGet get,
+			StaticPropertyScalarSet set);
 
 		StaticProperty(
 			const char* name,
@@ -61,8 +58,9 @@ namespace pafcore
 			Type* type,
 			TypeCompound typeCompound,
 			StaticPropertyEnumerate enumerate,
-			StaticPropertyArrayGet arrayGet,
-			StaticPropertyArraySet arraySet,
+			StaticPropertyCollectionIterate arrayIterate,
+			StaticPropertyCollectionGet arrayGet,
+			StaticPropertyCollectionSet arraySet,
 			StaticPropertyArraySize arraySize,
 			StaticPropertyArrayResize arrayResize);
 
@@ -72,33 +70,86 @@ namespace pafcore
 			Type* type,
 			TypeCompound typeCompound,
 			StaticPropertyEnumerate enumerate,
-			StaticPropertyListGet listGet,
-			StaticPropertyListSet listSet,
-			StaticPropertyListIterate listIterate,
+			StaticPropertyCollectionIterate listIterate,
+			StaticPropertyCollectionGet listGet,
+			StaticPropertyCollectionSet listSet,
 			StaticPropertyListInsert listInsert,
 			StaticPropertyListErase listErase);
-
 	public:
-		StaticPropertyEnumerate m_enumerate{ nullptr };
+		StaticPropertyEnumerate enumerate() const
+		{
+			return m_enumerate;
+		}
+
+		StaticPropertyCollectionIterate collectionIterate() const
+		{
+			return m_collectionIterate;
+		}
+
+		StaticPropertyScalarGet scalarGet() const
+		{
+			return m_scalarGet;
+		}
+
+		StaticPropertyScalarSet scalarSet() const
+		{
+			return m_scalarSet;
+		}
+
+		StaticPropertyCollectionGet collectionGet() const
+		{
+			return m_collectionGet;
+		}
+
+		StaticPropertyCollectionSet collectionSet() const
+		{
+			return m_collectionSet;
+		}
+
+		StaticPropertyArraySize arraySize() const
+		{
+			return m_arraySize;
+		}
+
+		StaticPropertyArrayResize arrayResize() const
+		{
+			return m_arrayResize;
+		}
+
+		StaticPropertyListInsert listInsert() const
+		{
+			return m_listInsert;
+		}
+
+		StaticPropertyListErase listErase() const
+		{
+			return m_listErase;
+		}
+	protected:
+		StaticPropertyEnumerate m_enumerate;
+		StaticPropertyCollectionIterate m_collectionIterate;
 		union
 		{
 			struct
 			{
-				StaticPropertyGet m_get;
-				StaticPropertySet m_set;
+				StaticPropertyScalarGet m_scalarGet;
+				StaticPropertyScalarSet m_scalarSet;
 			};
 			struct
 			{
-				StaticPropertyArrayGet m_arrayGet;
-				StaticPropertyArraySet m_arraySet;
+				StaticPropertyCollectionGet m_collectionGet;
+				StaticPropertyCollectionSet m_collectionSet;
+			};
+		};
+		union
+		{
+			struct
+			{
 				StaticPropertyArraySize m_arraySize;
 				StaticPropertyArrayResize m_arrayResize;
 			};
 			struct
 			{
-				StaticPropertyListGet m_listGet;
-				StaticPropertyListSet m_listSet;
-				StaticPropertyListIterate m_listIterate;
 				StaticPropertyListInsert m_listInsert;
 				StaticPropertyListErase m_listErase;
 			};
@@ -111,6 +162,51 @@ namespace pafcore
 
 
 #{
+
+	inline bool StaticProperty::isScalar() const
+	{
+		return PropertyKind::scalar_property == m_kind;
+	}
+
+	inline bool StaticProperty::isFixedArray() const
+	{
+		return PropertyKind::fixed_array_property == m_kind;
+	}
+
+	inline bool StaticProperty::isDynamicArray() const
+	{
+		return PropertyKind::dynamic_array_property == m_kind;
+	}
+
+	inline bool StaticProperty::isList() const
+	{
+		return PropertyKind::list_property == m_kind;
+	}
+
+	inline bool StaticProperty::hasEnumerate() const
+	{
+		return (0 != m_enumerate);
+	}
+
+	inline bool StaticProperty::hasGet() const
+	{
+		return (0 != m_scalarGet);
+	}
+
+	inline bool StaticProperty::hasSet() const
+	{
+		return (0 != m_scalarSet);
+	}
+
+	inline Type* StaticProperty::type() const
+	{
+		return m_type;
+	}
+
+	inline TypeCompound StaticProperty::typeCompound() const
+	{
+		return m_typeCompound;
+	}
 
 #}
 

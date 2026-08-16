@@ -22,10 +22,11 @@ const char* g_keywordTokens[] =
 	"enum",
 	"class",
 	"struct",
-	"interface",
+	"class",//interface
 	"template",
 	"virtual",
 	"static",
+	"const",
 	"get",
 	"set",
 	"typedef",

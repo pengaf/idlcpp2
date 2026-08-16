@@ -174,7 +174,7 @@ void DumpPrimitive(std::ostream& os, pafcore::PrimitiveType* primitiveType, int 
 {
     os << Indent(indentLevel + 1)
        << "primitive_type_kind: "
-       << primitiveType->getPrimitiveTypeKind()
+       << primitiveType->primitiveTypeKind()
        << std::endl;
 }
 

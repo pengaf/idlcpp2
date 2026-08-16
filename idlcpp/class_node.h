@@ -47,14 +47,14 @@ public:
 	bool isDerivedFromInterface() const;
 
 	bool hasAdditionalMethods() const;
-	bool needSubclassProxy(TemplateArguments* templateArguments);
+	bool needInterfaceProxy(TemplateArguments* templateArguments);
 	//bool isCopyableClass(TemplateArguments* templateArguments);
 	bool hasOverrideMethod(TemplateArguments* templateArguments);
 
 	bool isAdditionalMethod(MethodNode* methodNode);
 	void collectOverrideMethods(std::vector<MethodNode*>& methodNodes, TemplateArguments* templateArguments);
-	void generateNewMethod(const char* methodName, MethodNode* constructor);
-	void generateNewArrayMethod(const char* methodName, MethodNode* constructor);
+	void generateConstruct(const char* methodName, MethodNode* constructor);
+	void generateConstructArray(const char* methodName, MethodNode* constructor);
 
 	virtual TypeNode* getTypeNode();
 	virtual void getLocalName(std::string& name, TemplateArguments* templateArguments);

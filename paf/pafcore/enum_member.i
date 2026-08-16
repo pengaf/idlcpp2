@@ -1,4 +1,5 @@
 #import "type.i"
+#import "Metadata.i"
 
 namespace pafcore
 {

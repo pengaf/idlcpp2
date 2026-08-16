@@ -37,3 +37,8 @@ bool CompoundTypeNode::isObserverArray() const
 {
 	return tc_observer_array == m_typeCompound;
 }
+
+bool CompoundTypeNode::isSmartPointer() const
+{
+	return tc_shared_ptr == m_typeCompound || tc_observer_ptr == m_typeCompound || tc_shared_array == m_typeCompound || tc_observer_array == m_typeCompound;
+ }

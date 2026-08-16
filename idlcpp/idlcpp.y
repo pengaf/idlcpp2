@@ -10,11 +10,11 @@ int yylex(void);
 
 %token <sn> ',' ':' ';' '(' ')' '[' ']' '{' '}' '<' '>' '*' '&' '^' '=' '?'
 %token <sn> NOMETA NOCODE VOID SCOPE BOOL CHAR WCHAR_T SHORT LONG INT FLOAT DOUBLE SIGNED UNSIGNED STRING_T
-%token <sn> NAMESPACE ENUM CLASS STRUCT INTERFACE STATIC VIRTUAL TYPEDEF TYPENAME TEMPLATE EXPORT
+%token <sn> NAMESPACE ENUM CLASS STRUCT INTERFACE VIRTUAL STATIC CONST TYPEDEF TYPENAME TEMPLATE EXPORT
 %token <sn> GET SET IDENTIFIER STRING U8STRING
 %type <sn> identifier_list enumerator_0 enumerator enumerator_list_0 enumerator_list enum compound_type variable variable_list
 %type <sn> property_accessor_0 property_accessor property_accessor_list_0 property_accessor_list
-%type <sn> field_0 field property_0 property method_0 method class_member_0 class_member_1 class_member
+%type <sn> field_0 field property_0 property method_0 method_1 method class_member_0 class_member_1 class_member
 %type <sn> primitive scope_name scope_name_list_0 scope_name_list type_name base_type_name base_type_name_list type_name_list class_member_list
 %type <sn> template_params template_class_instance_0 template_class_instance
 %type <sn> class_0 class_1 class_2 class namespace_member_0 namespace_member_1 namespace_member_2 namespace_member namespace_member_list namespace program
@@ -211,10 +211,13 @@ method_0					: '(' variable_list ')' IDENTIFIER '(' variable_list ')'		{$$ = new
 							| compound_type '&' IDENTIFIER '(' variable_list ')'			{$$ = newMethod2($1, $2, $3, $4, $5, $6);}
 ;
 
-method						: method_0														{$$ = $1;}
+method_1					: method_0														{$$ = $1;}
 							| VIRTUAL method_0												{$$ = $2; setMethodModifier($$, $1);}
-//							| VIRTUAL method_0 '=' '0'										{$$ = $2; setMethodModifier($$, $1); setPureVirtual($$);}
 							| STATIC method_0												{$$ = $2; setMethodModifier($$, $1);}
+;
+
+method						: method_1														{$$ = $1;}
+							| method_1 CONST												{$$ = $1; setMethodConst($$, $2);}
 ;
 
 class_member_0				: field															{$$ = $1;}

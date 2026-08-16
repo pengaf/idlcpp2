@@ -85,6 +85,7 @@ enum SyntaxNodeType
 	snt_keyword_template,
 	snt_keyword_virtual,
 	snt_keyword_static,
+	snt_keyword_const,
 	snt_keyword_get,
 	snt_keyword_set,
 	snt_keyword_typedef,
@@ -174,6 +175,7 @@ SyntaxNode* newVariableList(SyntaxNode* variableList, SyntaxNode* comma, SyntaxN
 SyntaxNode* newMethod(SyntaxNode* resultList, SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis);
 SyntaxNode* newMethod2(SyntaxNode* compoundType, SyntaxNode* byRefOpt, SyntaxNode* name, SyntaxNode* leftParenthesis, SyntaxNode* parameterList, SyntaxNode* rightParenthesis);
 void setMethodModifier(SyntaxNode* syntaxNode, SyntaxNode* modifier);
+void setMethodConst(SyntaxNode* syntaxNode, SyntaxNode* constant);
 
 void setMemberFilter(SyntaxNode* syntaxNode, SyntaxNode* filter);
 void setMemberNativeNameOpt(SyntaxNode* member, SyntaxNode* nativeName);

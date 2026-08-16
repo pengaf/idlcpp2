@@ -25,14 +25,19 @@ MethodNode::MethodNode(VariableListNode* resultList, IdentifierNode* name, Token
 	m_rightParenthesis = rightParenthesis;
 }
 
-bool MethodNode::isStatic()
+bool MethodNode::isStatic() const
 {
 	return (0 != m_modifier && snt_keyword_static == m_modifier->m_nodeType);
 }
 
-bool MethodNode::isVirtual()
+bool MethodNode::isVirtual() const
 {
 	return (0 != m_modifier && snt_keyword_virtual == m_modifier->m_nodeType);
+}
+
+bool MethodNode::isConstant() const
+{
+	return (0 != m_constant && snt_keyword_const == m_constant->m_nodeType);
 }
 
 uint32_t MethodNode::getResultCount() const
@@ -146,6 +151,18 @@ void CheckFullParameterNames(const std::vector<VariableNode*>& resultNodes, cons
 void MethodNode::checkSemantic(TemplateArguments* templateArguments)
 {
 	MemberNode::checkSemantic(templateArguments);
+
+	if (isStatic())
+	{
+		if (isVirtual())
+		{
+			ErrorList_AddItem_CurrentFile(m_constant->m_lineNo, m_constant->m_columnNo, semantic_error_method, "static virtual method is not allowed");
+		}
+		if (isConstant())
+		{
+			ErrorList_AddItem_CurrentFile(m_constant->m_lineNo, m_constant->m_columnNo, semantic_error_method, "static const method is not allowed");
+		}
+	}
 
 	std::vector<VariableNode*> resultNodes;
 	m_resultList->collectVariableNodes(resultNodes);

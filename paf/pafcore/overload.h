@@ -29,6 +29,6 @@ public:
 	static uint32_t Resolve(Overload* overloads, uint32_t overloadCount, Variant** arguments, uint32_t argumentCount);
 };
 
-typedef ErrorCode(*FunctionInvoker)(Variant** results, int_t numResults, Variant** arguments, int_t numArguments);
+typedef ErrorCode(*FunctionInvoker)(Variant** results, uint32_t& numResults, Variant** arguments, uint32_t numArguments);
 
 END_PAFCORE

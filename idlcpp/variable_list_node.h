@@ -16,4 +16,10 @@ public:
 	void collectVariableNodes(std::vector<std::pair<TokenNode*, VariableNode*>>& variableNodes) const;
 	void collectVariableNodes(std::vector<VariableNode*>& variableNodes) const;
 	VariableNode* getFirstVariable() const;
+public:
+	static VariableListNode* MergeVariableList(VariableNode* first, VariableListNode* second);
+	static VariableListNode* MergeVariableList(VariableNode* first, VariableNode* second);
 };
+
+VariableListNode* MergeVariableList(VariableNode* first, VariableListNode* second);
+VariableListNode* MergeVariableList(VariableNode* first, VariableNode* second);

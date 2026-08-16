@@ -7,13 +7,13 @@
 
 BEGIN_PAFCORE
 
-bool Object::isTypeOf(ClassType* classType)
+bool Introspectable::isTypeOf(ClassType* classType)
 {
 	ClassType* thisType = getType();
 	return thisType->isType(classType);
 }
 
-void* Object::castTo(ClassType* classType)
+void* Introspectable::castTo(ClassType* classType)
 {
 	size_t offset;
 	ClassType* thisType = getType();

@@ -30,7 +30,7 @@ MetadataKind Metadata::_kind_() const
 	return type->kind();
 }
 
-string_t Metadata::_getAttributeName_(size_t index)
+string_t Metadata::_getAttributeName_(size_t index) const
 {
 	if (m_attributes && index < m_attributes->count)
 	{
@@ -39,7 +39,7 @@ string_t Metadata::_getAttributeName_(size_t index)
 	return "";
 }
 
-string_t Metadata::_getAttributeContent_(size_t index)
+string_t Metadata::_getAttributeContent_(size_t index) const
 {
 	if (m_attributes && index < m_attributes->count)
 	{
@@ -48,7 +48,7 @@ string_t Metadata::_getAttributeContent_(size_t index)
 	return "";
 }
 
-string_t Metadata::_getAttributeContentByName_(string_t attributeName)
+string_t Metadata::_getAttributeContentByName_(string_t attributeName) const
 {
 	if (0 != m_attributes)
 	{
@@ -65,7 +65,7 @@ string_t Metadata::_getAttributeContentByName_(string_t attributeName)
 	return "";
 }
 
-bool Metadata::_hasAttribute_(string_t attributeName)
+bool Metadata::_hasAttribute_(string_t attributeName) const
 {
 	if (0 != m_attributes)
 	{
@@ -98,23 +98,23 @@ const char* g_errorStrings[] =
 	"s_ok",
 	"e_invalid_namespace",
 	"e_name_conflict",
-	"e_void_variant",
+	"e_null_variant",
 	"e_is_not_type",
 	"e_is_not_class",
 	"e_invalid_subscript_type",
 	"e_member_not_found",
 	"e_index_out_of_range",
+	"e_is_not_scalar_property",
+	"e_is_not_collection_property",
 	"e_is_not_array_property",
 	"e_is_not_dynamic_array_property",
 	"e_is_not_list_property",
-	"e_is_not_map_property",
 	"e_property_is_not_readable",
 	"e_property_is_not_writable",
 	"e_property_is_not_iterable",
-	"e_property_is_not_dereferenceable",
-	"e_item_is_constant",
-	"e_field_is_an_array",
-	"e_field_is_constant",
+	"e_property_is_not_enumerable",
+	"e_field_is_not_scalar",
+	"e_field_is_not_array",
 	"e_invalid_type",
 	"e_invalid_object_type",
 	"e_invalid_field_type",
@@ -142,26 +142,7 @@ const char* g_errorStrings[] =
 	"e_invalid_arg_type_17",
 	"e_invalid_arg_type_18",
 	"e_invalid_arg_type_19",
-	"e_this_is_constant",
-	"e_arg_is_constant_1",
-	"e_arg_is_constant_2",
-	"e_arg_is_constant_3",
-	"e_arg_is_constant_4",
-	"e_arg_is_constant_5",
-	"e_arg_is_constant_6",
-	"e_arg_is_constant_7",
-	"e_arg_is_constant_8",
-	"e_arg_is_constant_9",
-	"e_arg_is_constant_10",
-	"e_arg_is_constant_11",
-	"e_arg_is_constant_12",
-	"e_arg_is_constant_13",
-	"e_arg_is_constant_14",
-	"e_arg_is_constant_15",
-	"e_arg_is_constant_16",
-	"e_arg_is_constant_17",
-	"e_arg_is_constant_18",
-	"e_arg_is_constant_19",
+	"e_invalid_arg_type_20",
 	"e_not_implemented",
 	"e_script_error",
 	"e_script_dose_not_override",
@@ -170,9 +151,9 @@ const char* g_errorStrings[] =
 
 const char* ErrorCodeToString(ErrorCode errorCode)
 {
-	if (errorCode < paf_array_size_of(g_errorStrings))
+	if (size_t(errorCode) < paf_array_size_of(g_errorStrings))
 	{
-		return g_errorStrings[errorCode];
+		return g_errorStrings[size_t(errorCode)];
 	}
 	return "unknown error";
 }

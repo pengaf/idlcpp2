@@ -9,44 +9,16 @@ namespace pafcore
 {
 #{
 	class ClassType;
-
-	template<typename T>
-	void DeleteObject(T* p);
-
-	template<typename T>
-	void DestroyArray(T* p);
 #}
 
-	nometa class #PAFCORE_EXPORT Interface
+	class(noncopyable) #PAFCORE_EXPORT Introspectable
 	{
-#{
-	public:
-		virtual size_t getAddress() = 0;
-	public:
-		uint32_t incStrongRefCount() noexcept;
-		uint32_t incWeakRefCount() noexcept;
-		uint32_t decStrongRefCount() noexcept;
-		uint32_t decWeakRefCount() noexcept;
-		uint32_t getStrongRefCount() noexcept;
-		uint32_t getWeakRefCount() noexcept;
-	protected:
-		virtual ~Interface()
-		{}
-#}
-	};
-
-//#{
-//	template<>
-//	struct is_interface<Interface> : std::true_type
-//	{};
-//#}
-	class(noncopyable) #PAFCORE_EXPORT Object
-	{
-		nocode bool isTypeOf(ClassType* classType);
+		nocode bool isTypeOf(ClassType * classType);
 		nocode bool isStrictTypeOf(ClassType* classType);
 #{
-	protected:
-		virtual ~Object() = default;
+	public:
+		virtual ~Introspectable() = default;
+		virtual ClassType* getType() = 0;
 	public:
 		bool isTypeOf(ClassType* classType);
 
@@ -77,7 +49,32 @@ namespace pafcore
 #}
 	};
 
-	class #PAFCORE_EXPORT RCObject : Object
+
+	nometa class #PAFCORE_EXPORT Interface : Introspectable
+	{
+#{
+	public:
+		virtual size_t getAddress() = 0;
+	public:
+		uint32_t incStrongRefCount() noexcept;
+		uint32_t incWeakRefCount() noexcept;
+		uint32_t decStrongRefCount() noexcept;
+		uint32_t decWeakRefCount() noexcept;
+		uint32_t getStrongRefCount() noexcept;
+		uint32_t getWeakRefCount() noexcept;
+	protected:
+		virtual ~Interface()
+		{}
+#}
+	};
+
+//#{
+//	template<>
+//	struct is_interface<Interface> : std::true_type
+//	{};
+//#}
+
+	class #PAFCORE_EXPORT Object : Introspectable
 	{
 		nocode bool isTypeOf(ClassType* classType);
 		nocode bool isStrictTypeOf(ClassType* classType);
@@ -92,7 +89,7 @@ namespace pafcore
 			get_strong,
 			get_weak,
 		};
-		virtual uint32_t refCountOperation(RefCountOp op) noexcept = 0;
+		virtual uint32_t refCountOperation(RefCountOp op) noexcept { return 0; }
 	public:
 		uint32_t incStrongRefCount() noexcept
 		{
@@ -126,7 +123,7 @@ namespace pafcore
 #}
 	};
 
-	class #PAFCORE_EXPORT STRCObject : RCObject
+	class #PAFCORE_EXPORT STRCObject : Object
 	{
 #{
 	public:
@@ -141,7 +138,7 @@ namespace pafcore
 #}
 	};
 
-	class #PAFCORE_EXPORT MTRCObject : RCObject
+	class #PAFCORE_EXPORT MTRCObject : Object
 	{
 #{
 	public:
@@ -160,37 +157,37 @@ namespace pafcore
 #{
 	inline uint32_t Interface::incStrongRefCount() noexcept
 	{
-		RCObject* object = reinterpret_cast<RCObject*>(getAddress());
+		Object* object = reinterpret_cast<Object*>(getAddress());
 		return object->incStrongRefCount();
 	}
 
 	inline uint32_t Interface::incWeakRefCount() noexcept
 	{
-		RCObject* object = reinterpret_cast<RCObject*>(getAddress());
+		Object* object = reinterpret_cast<Object*>(getAddress());
 		return object->incWeakRefCount();
 	}
 
 	inline uint32_t Interface::decStrongRefCount() noexcept
 	{
-		RCObject* object = reinterpret_cast<RCObject*>(getAddress());
+		Object* object = reinterpret_cast<Object*>(getAddress());
 		return object->decStrongRefCount();
 	}
 
 	inline uint32_t Interface::decWeakRefCount() noexcept
 	{
-		RCObject* object = reinterpret_cast<RCObject*>(getAddress());
+		Object* object = reinterpret_cast<Object*>(getAddress());
 		return object->decWeakRefCount();
 	}
 
 	inline uint32_t Interface::getStrongRefCount() noexcept
 	{
-		RCObject* object = reinterpret_cast<RCObject*>(getAddress());
+		Object* object = reinterpret_cast<Object*>(getAddress());
 		return object->getStrongRefCount();
 	}
 
 	inline uint32_t Interface::getWeakRefCount() noexcept
 	{
-		RCObject* object = reinterpret_cast<RCObject*>(getAddress());
+		Object* object = reinterpret_cast<Object*>(getAddress());
 		return object->getWeakRefCount();
 	}
 #}
