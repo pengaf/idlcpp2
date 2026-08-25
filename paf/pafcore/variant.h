@@ -8,7 +8,6 @@
 BEGIN_PAFCORE
 
 const size_t max_embedded_value_size = 64;
-const size_t max_primitive_type_size = max_embedded_value_size;
 
 template <typename T>
 constexpr bool is_primitive_v = std::is_arithmetic_v<T> || std::is_same_v<T, string_t>;
@@ -56,6 +55,7 @@ public:
 	ErrorCode newClassSharedArray(const Type* type, uint32_t count);
 	ErrorCode newSharedArray(const Type* type, uint32_t count);
 
+	//TypeCompound::none
 	void assignPrimitive(const Type* type, const void* pointer);
 	void assignEnum(const Type* type, const void* pointer);
 	void assignClass(const Type* type, const void* pointer);
@@ -118,7 +118,7 @@ public:
 		}
 		else
 		{
-			static_assert(false, "Unsupported type for assignValue.");
+			static_assert(false, "Unsupported type for assignValue");
 		}
 	}
 
@@ -442,7 +442,6 @@ protected:
 	void clear();
 	void assignSharedPtr(const Type* type, void* src);
 	void assignSharedArray(const Type* type, void* src);
-private:
 	template<typename Type_t>
 	ErrorCode newSharedPtr_(const Type_t* type, Variant** arguments, uint32_t numArguments);
 	template<typename Type_t>

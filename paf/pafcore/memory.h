@@ -1248,7 +1248,7 @@ namespace pafcore
 	private:
 		void assign(T* ptr)//for Variant
 		{
-			if (m_ptr != p)
+			if (m_ptr != ptr)
 			{
 				decStrongRefCount();
 				m_ptr = ptr;

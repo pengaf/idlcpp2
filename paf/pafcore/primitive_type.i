@@ -38,6 +38,24 @@ namespace pafcore
 		string_type,
 		primitive_type_count,
 	};	
+	template<> struct RuntimeTypeOf<bool>;
+	template<> struct RuntimeTypeOf<char>;
+	template<> struct RuntimeTypeOf<signed char>;
+	template<> struct RuntimeTypeOf<unsigned char>;
+	template<> struct RuntimeTypeOf<wchar_t>;
+	template<> struct RuntimeTypeOf<short>;
+	template<> struct RuntimeTypeOf<unsigned short>;
+	template<> struct RuntimeTypeOf<long>;
+	template<> struct RuntimeTypeOf<unsigned long>;
+	template<> struct RuntimeTypeOf<long long>;
+	template<> struct RuntimeTypeOf<unsigned long long>;
+	template<> struct RuntimeTypeOf<int>;
+	template<> struct RuntimeTypeOf<unsigned int>;
+	template<> struct RuntimeTypeOf<float>;
+	template<> struct RuntimeTypeOf<double>;
+	template<> struct RuntimeTypeOf<long double>;
+	template<> struct RuntimeTypeOf<string_t>;
+
 #}
 
 	class(primitive_type)#PAFCORE_EXPORT PrimitiveType : Type
@@ -626,12 +644,6 @@ struct RuntimeTypeOf<string_t>
 	enum { type_kind = ::pafcore::MetadataKind::primitive_instance };
 };
 
-template<typename T>
-struct RuntimeTypeOf<T*>
-{
-	typedef RuntimeTypeOf<size_t>::RuntimeType RuntimeType;
-	enum { type_kind = ::pafcore::MetadataKind::primitive_instance };
-};
 
 #pragma warning( pop ) 
 #}
