@@ -6,6 +6,7 @@ set(header_files
     "flat_set.h"
     "memory.h"
     "overload.h"
+    "pool.h"
     "reflection.h"
     "std_deque.h"
     "std_forward_list.h"
