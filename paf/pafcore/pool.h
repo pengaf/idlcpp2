@@ -62,24 +62,25 @@ namespace pafcore
 	};
 
 
-	template<typename Element_t, 
-		typename Hash_t = std::hash<Element_t>,
-		typename Equal_t = std::equal_to<Element_t>,
-		typename Copy_t = DefaultCopy<Element_t>,
-		typename Release_t = DefaultRelease<Element_t>>
+	template<typename Element_t_, 
+		typename Hash_t_ = std::hash<Element_t_>,
+		typename Equal_t_ = std::equal_to<Element_t_>,
+		typename Copy_t_ = DefaultCopy<Element_t_>,
+		typename Release_t_ = DefaultRelease<Element_t_>>
 	struct PoolTraits
 	{
-		using Container_t = std::unordered_set<Element_t, Hash_t, Equal_t>;
-		using Copy_t = Copy_t;
-		using Release_t = Release_t;
-		static constexpr bool is_trivial_release = std::is_same_v<Release_t, DefaultRelease<Element_t>>;
+		using Container_t = std::unordered_set<Element_t_, Hash_t_, Equal_t_>;
+		using Copy_t = Copy_t_;
+		using Release_t = Release_t_;
+		static constexpr bool is_trivial_release = std::is_same_v<Release_t_, DefaultRelease<Element_t_>>;
 	};
 
-	template<typename Element_t, typename PoolTraits_t = PoolTraits<Element_t>>
+	template<typename Element_t_, typename PoolTraits_t_ = PoolTraits<Element_t_>>
 	class Pool
 	{
 	public:
-		using Element_t = Element_t;
+		using Element_t = Element_t_;
+		using PoolTraits_t = PoolTraits_t_;
 		using Container_t = PoolTraits_t::Container_t;
 		using iterator = Container_t::iterator;
 	public:
@@ -89,7 +90,7 @@ namespace pafcore
 		{
 			if constexpr (!PoolTraits_t::is_trivial_release)
 			{
-				PoolTraits_t::Release_t release;
+				typename PoolTraits_t::Release_t release;
 				auto it = m_container.begin();
 				auto end = m_container.end();
 				while (it != end)
@@ -130,7 +131,7 @@ namespace pafcore
 			}
 			else
 			{
-				PoolTraits_t::Copy_t copy;
+				typename PoolTraits_t::Copy_t copy;
 				Element_t elm = copy(element);
 				return *m_container.insert(elm).first;
 			}
@@ -140,10 +141,11 @@ namespace pafcore
 		Container_t m_container;
 	};
 
-	template<typename Pool_t>
+	template<typename Pool_t_>
 	class SyncPool
 	{
 	public:
+		using Pool_t = Pool_t_;
 		using Element_t = Pool_t::Element_t;
 		using iterator = Pool_t::iterator;
 	public:

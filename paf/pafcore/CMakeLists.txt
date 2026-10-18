@@ -3,6 +3,7 @@ set(project_name pafcore)
 set(header_files
     "auto_run.h"
     "debug.h"
+    "flat_map.h"
     "flat_set.h"
     "memory.h"
     "overload.h"

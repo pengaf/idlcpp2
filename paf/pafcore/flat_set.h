@@ -2,503 +2,311 @@
 
 #include "utility.h"
 #include "memory.h"
+#include <vector>
+#include <algorithm>
 #include <utility>
 #include <iterator>
 #include <functional>
+#include <initializer_list>
 
 BEGIN_PAFCORE
 
-template<class T, class Pred = std::less<T>, class A = pafcore::StlAllocator<T> >
-class FlatSet
+template<class T, class Pred = std::less<T>, class A = StlAllocator<T> >
+class FlatSet : private std::vector<T, A>, private Pred
 {
+    typedef std::vector<T, A> Base;
 public:
-	typedef T key_type;
-	typedef Pred key_compare;
-	typedef Pred value_compare;
-	typedef A allocator_type;
-	typedef uint32_t size_type;
-	typedef ptrdiff_t difference_type;
-	typedef T value_type;
-	typedef value_type& reference;
-	typedef value_type const& const_reference;
-	typedef value_type* iterator;
-	typedef value_type const* const_iterator;
-	typedef std::reverse_iterator<iterator> reverse_iterator;
-	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-	typedef std::pair<iterator, bool> _Pairib;
-	typedef std::pair<iterator, iterator> _Pairii;
-	typedef std::pair<const_iterator, const_iterator> _Paircc;
+    typedef T key_type;
+    typedef T value_type;
+    typedef Pred key_compare;
+    typedef A allocator_type;
+    typedef typename Base::size_type size_type;
+    typedef typename Base::difference_type difference_type;
+    typedef typename Base::reference reference;
+    typedef typename Base::const_reference const_reference;
+    typedef typename Base::iterator iterator;
+    typedef typename Base::const_iterator const_iterator;
+    typedef typename Base::reverse_iterator reverse_iterator;
+    typedef typename Base::const_reverse_iterator const_reverse_iterator;
+    typedef std::pair<iterator, bool> _Pairib;
+    typedef std::pair<iterator, iterator> _Pairii;
+    typedef std::pair<const_iterator, const_iterator> _Paircc;
 
-	FlatSet()
-		: m_ptr(0)
-		, m_size(0)
-		, m_capacity(0)
-	{
-	}
+    using Base::begin;
+    using Base::end;
+    using Base::cbegin;
+    using Base::cend;
+    using Base::rbegin;
+    using Base::rend;
+    using Base::crbegin;
+    using Base::crend;
+    using Base::empty;
+    using Base::size;
+    using Base::max_size;
+    using Base::capacity;
+    using Base::reserve;
+    using Base::shrink_to_fit;
+    using Base::clear;
+    using Base::get_allocator;
 
-	FlatSet(const FlatSet& other)
-		: m_ptr(0)
-		, m_size(0)
-		, m_capacity(0)
-	{
-		reserve(other.m_size);
-		for (size_type i = 0; i < other.m_size; ++i)
-		{
-			constructAt(m_ptr + i, other.m_ptr[i]);
-		}
-		m_size = other.m_size;
-	}
+    FlatSet() : 
+        Base(), Pred() 
+    {}
 
-	FlatSet& operator=(const FlatSet& other)
-	{
-		if (this != &other)
-		{
-			clear();
-			reserve(other.m_size);
-			for (size_type i = 0; i < other.m_size; ++i)
-			{
-				constructAt(m_ptr + i, other.m_ptr[i]);
-			}
-			m_size = other.m_size;
-		}
-		return *this;
-	}
+    explicit FlatSet(const key_compare& comp, const allocator_type& alloc = allocator_type()):
+        Base(alloc), Pred(comp) 
+    {}
 
-	FlatSet(FlatSet&& other) noexcept
-		: m_ptr(other.m_ptr)
-		, m_size(other.m_size)
-		, m_capacity(other.m_capacity)
-	{
-		other.m_ptr = 0;
-		other.m_size = 0;
-		other.m_capacity = 0;
-	}
+    explicit FlatSet(const allocator_type& alloc) :
+        Base(alloc), Pred() 
+    {}
 
-	FlatSet& operator=(FlatSet&& other) noexcept
-	{
-		if (this != &other)
-		{
-			destroyStorage();
-			m_ptr = other.m_ptr;
-			m_size = other.m_size;
-			m_capacity = other.m_capacity;
-			other.m_ptr = 0;
-			other.m_size = 0;
-			other.m_capacity = 0;
-		}
-		return *this;
-	}
+    template<class InputIt>
+    FlatSet(InputIt first, InputIt last,
+        const key_compare& comp = key_compare(),
+        const allocator_type& alloc = allocator_type())
+        : Base(first, last, alloc), Pred(comp)
+    {
+        sort_unique();
+    }
 
-	~FlatSet()
-	{
-		destroyStorage();
-	}
+    FlatSet(std::initializer_list<T> il, const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()) :
+        Base(il, alloc), Pred(comp)
+    {
+        sort_unique();
+    }
 
-	void reserve(size_type count)
-	{
-		if (count <= m_capacity)
-		{
-			return;
-		}
+    FlatSet(const FlatSet& other) : 
+        Base(other), Pred(static_cast<const Pred&>(other))
+    {}
 
-		value_type* newPtr = allocate(count);
-		for (size_type i = 0; i < m_size; ++i)
-		{
-			constructAt(newPtr + i, std::move(m_ptr[i]));
-			destroyAt(m_ptr + i);
-		}
-		deallocate(m_ptr, m_capacity);
-		m_ptr = newPtr;
-		m_capacity = count;
-	}
+    FlatSet(FlatSet&& other) : 
+        Base(std::move(other)), Pred(std::move(static_cast<Pred&>(other))) 
+    {}
 
-	T* data()
-	{
-		return m_ptr;
-	}
-	
-	const T* data() const
-	{
-		return m_ptr;
-	}
+    FlatSet& operator=(const FlatSet& other)
+    {
+        if (this != &other)
+        {
+            Base::operator=(other);
+            static_cast<Pred&>(*this) = static_cast<const Pred&>(other);
+        }
+        return *this;
+    }
 
-	iterator begin()
-	{
-		return m_ptr;
-	}
+    FlatSet& operator=(FlatSet&& other)
+    {
+        if (this != &other)
+        {
+            Base::operator=(std::move(other));
+            static_cast<Pred&>(*this) = std::move(static_cast<Pred&>(other));
+        }
+        return *this;
+    }
 
-	const_iterator begin() const
-	{
-		return m_ptr;
-	}
+    ~FlatSet() = default;
 
-	iterator end()
-	{
-		return m_ptr ? (m_ptr + m_size) : 0;
-	}
+    key_compare key_comp() const
+    {
+        return comp();
+    }
 
-	const_iterator end() const
-	{
-		return m_ptr ? (m_ptr + m_size) : 0;
-	}
+    iterator find(const T& t)
+    {
+        iterator it = lower_bound(t);
+        return (it != end() && is_equivalent(*it, t)) ? it : end();
+    }
 
-	reverse_iterator rbegin()
-	{
-		return reverse_iterator(end());
-	}
+    const_iterator find(const T& t) const
+    {
+        const_iterator it = lower_bound(t);
+        return (it != end() && is_equivalent(*it, t)) ? it : end();
+    }
 
-	const_reverse_iterator rbegin() const
-	{
-		return const_reverse_iterator(end());
-	}
+    size_type count(const T& t) const
+    {
+        return find(t) != end() ? 1 : 0;
+    }
 
-	reverse_iterator rend()
-	{
-		return reverse_iterator(begin());
-	}
+    bool contains(const T& t) const
+    {
+        return find(t) != end();
+    }
 
-	const_reverse_iterator rend() const
-	{
-		return const_reverse_iterator(begin());
-	}
+    iterator lower_bound(const T& t)
+    {
+        return std::lower_bound(begin(), end(), t, comp());
+    }
 
-	size_type size() const
-	{
-		return m_size;
-	}
+    const_iterator lower_bound(const T& t) const
+    {
+        return std::lower_bound(begin(), end(), t, comp());
+    }
 
-	size_type max_size() const
-	{
-		return static_cast<size_type>(AllocatorTraits::max_size(m_allocator));
-	}
+    iterator upper_bound(const T& t)
+    {
+        return std::upper_bound(begin(), end(), t, comp());
+    }
 
-	bool empty() const
-	{
-		return 0 == m_size;
-	}
+    const_iterator upper_bound(const T& t) const
+    {
+        return std::upper_bound(begin(), end(), t, comp());
+    }
 
-	reference operator[](size_type n)
-	{
-		PAF_ASSERT(n < m_size);
-		return m_ptr[n];
-	}
+    _Pairii equal_range(const T& t)
+    {
+        return std::equal_range(begin(), end(), t, comp());
+    }
 
-	const_reference operator[](size_type n) const
-	{
-		PAF_ASSERT(n < m_size);
-		return m_ptr[n];
-	}
+    _Paircc equal_range(const T& t) const
+    {
+        return std::equal_range(begin(), end(), t, comp());
+    }
 
-	reference front()
-	{
-		PAF_ASSERT(0 != m_size);
-		return m_ptr[0];
-	}
+    _Pairib insert(const value_type& x)
+    {
+        iterator it = lower_bound(x);
+        if (it != end() && is_equivalent(*it, x))
+        {
+            return _Pairib(it, false);
+        }
+        it = Base::insert(it, x);
+        return _Pairib(it, true);
+    }
 
-	const_reference front() const
-	{
-		PAF_ASSERT(0 != m_size);
-		return m_ptr[0];
-	}
+    _Pairib insert(value_type&& x)
+    {
+        iterator it = lower_bound(x);
+        if (it != end() && is_equivalent(*it, x))
+        {
+            return _Pairib(it, false);
+        }
+        it = Base::insert(it, std::move(x));
+        return _Pairib(it, true);
+    }
 
-	reference back()
-	{
-		PAF_ASSERT(0 != m_size);
-		return m_ptr[m_size - 1];
-	}
+    iterator insert(const_iterator hint, const value_type& x)
+    {
+        if (is_valid_hint(hint, x))
+        {
+            return Base::insert(hint, x);
+        }
+        return insert(x).first;
+    }
 
-	const_reference back() const
-	{
-		PAF_ASSERT(0 != m_size);
-		return m_ptr[m_size - 1];
-	}
+    iterator insert(const_iterator hint, value_type&& x)
+    {
+        if (is_valid_hint(hint, x))
+        {
+            return Base::insert(hint, std::move(x));
+        }
+        return insert(std::move(x)).first;
+    }
 
-	A get_allocator() const
-	{
-		return m_allocator;
-	}
+    template<class InputIt>
+    void insert(InputIt first, InputIt last)
+    {
+        for (; first != last; ++first)
+        {
+            insert(*first);
+        }
+    }
 
-	_Pairib insert(const value_type& x)
-	{
-		size_type pos = lowerBoundIndex(x);
-		if (pos < m_size && isEquivalent(x, m_ptr[pos]))
-		{
-			return _Pairib(m_ptr + pos, false);
-		}
+    void insert(std::initializer_list<T> il)
+    {
+        for (const T& x : il)
+        {
+            insert(x);
+        }
+    }
 
-		insertAt(pos, x);
-		return _Pairib(m_ptr + pos, true);
-	}
+    template<class... Args>
+    _Pairib emplace(Args&&... args)
+    {
+        value_type tmp(std::forward<Args>(args)...);
+        return insert(std::move(tmp));
+    }
 
-	iterator insert(iterator it, const value_type& x)
-	{
-		size_type pos = iteratorToIndex(it);
-		PAF_ASSERT(empty() ||
-			(pos == m_size && key_compare()(m_ptr[pos - 1], x)) ||
-			(pos < m_size && key_compare()(x, m_ptr[pos])));
-		insertAt(pos, x);
-		return m_ptr + pos;
-	}
+    iterator erase(const_iterator it)
+    {
+        return Base::erase(it);
+    }
 
-	iterator erase(iterator it)
-	{
-		size_type pos = iteratorToIndex(it);
-		PAF_ASSERT(pos < m_size);
-		for (size_type i = pos; i + 1 < m_size; ++i)
-		{
-			m_ptr[i] = std::move(m_ptr[i + 1]);
-		}
-		destroyAt(m_ptr + m_size - 1);
-		--m_size;
-		return pos < m_size ? (m_ptr + pos) : end();
-	}
+    iterator erase(const_iterator first, const_iterator last)
+    {
+        return Base::erase(first, last);
+    }
 
-	iterator erase(iterator first, iterator last)
-	{
-		size_type firstPos = iteratorToIndex(first);
-		size_type lastPos = iteratorToIndex(last);
-		PAF_ASSERT(firstPos <= lastPos);
-		PAF_ASSERT(lastPos <= m_size);
+    size_type erase(const T& t)
+    {
+        iterator it = find(t);
+        if (it == end())
+        {
+            return 0;
+        }
+        Base::erase(it);
+        return 1;
+    }
 
-		size_type count = lastPos - firstPos;
-		if (0 == count)
-		{
-			return firstPos < m_size ? (m_ptr + firstPos) : end();
-		}
+    void swap(FlatSet& other)
+        noexcept(noexcept(Base::swap(other)) &&
+            noexcept(std::declval<Pred&>() = std::declval<Pred&&>()))
+    {
+        Base::swap(other);
+        using std::swap;
+        swap(comp(), other.comp());
+    }
 
-		for (size_type i = firstPos; i + count < m_size; ++i)
-		{
-			m_ptr[i] = std::move(m_ptr[i + count]);
-		}
-		for (size_type i = 0; i < count; ++i)
-		{
-			destroyAt(m_ptr + m_size - 1 - i);
-		}
-		m_size -= count;
-		return firstPos < m_size ? (m_ptr + firstPos) : end();
-	}
+    friend bool operator==(const FlatSet& a, const FlatSet& b)
+    {
+        return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
+    }
 
-	size_type erase(const T& t)
-	{
-		iterator it = find(t);
-		if (end() == it)
-		{
-			return 0;
-		}
-		erase(it);
-		return 1;
-	}
-
-	void clear()
-	{
-		for (size_type i = 0; i < m_size; ++i)
-		{
-			destroyAt(m_ptr + i);
-		}
-		m_size = 0;
-	}
-
-	const_iterator find(const T& t) const
-	{
-		size_type pos = lowerBoundIndex(t);
-		if (pos < m_size && isEquivalent(t, m_ptr[pos]))
-		{
-			return m_ptr + pos;
-		}
-		return end();
-	}
-
-	iterator find(const T& t)
-	{
-		size_type pos = lowerBoundIndex(t);
-		if (pos < m_size && isEquivalent(t, m_ptr[pos]))
-		{
-			return m_ptr + pos;
-		}
-		return end();
-	}
-
-	size_type count(const T& t) const
-	{
-		return end() != find(t) ? 1 : 0;
-	}
-
-	const_iterator lower_bound(const T& t) const
-	{
-		size_type pos = lowerBoundIndex(t);
-		return pos < m_size ? (m_ptr + pos) : end();
-	}
-
-	const_iterator upper_bound(const T& t) const
-	{
-		size_type pos = upperBoundIndex(t);
-		return pos < m_size ? (m_ptr + pos) : end();
-	}
-
-	_Paircc equal_range(const T& t) const
-	{
-		size_type lower = lowerBoundIndex(t);
-		if (lower < m_size && isEquivalent(t, m_ptr[lower]))
-		{
-			return _Paircc(m_ptr + lower, m_ptr + lower + 1);
-		}
-		const_iterator it = lower < m_size ? (m_ptr + lower) : end();
-		return _Paircc(it, it);
-	}
-
-	iterator lower_bound(const T& t)
-	{
-		size_type pos = lowerBoundIndex(t);
-		return pos < m_size ? (m_ptr + pos) : end();
-	}
-
-	iterator upper_bound(const T& t)
-	{
-		size_type pos = upperBoundIndex(t);
-		return pos < m_size ? (m_ptr + pos) : end();
-	}
-
-	_Pairii equal_range(const T& t)
-	{
-		size_type lower = lowerBoundIndex(t);
-		if (lower < m_size && isEquivalent(t, m_ptr[lower]))
-		{
-			return _Pairii(m_ptr + lower, m_ptr + lower + 1);
-		}
-		iterator it = lower < m_size ? (m_ptr + lower) : end();
-		return _Pairii(it, it);
-	}
+    friend bool operator!=(const FlatSet& a, const FlatSet& b)
+    {
+        return !(a == b);
+    }
 
 private:
-	typedef std::allocator_traits<allocator_type> AllocatorTraits;
+    Pred& comp()
+    {
+        return static_cast<Pred&>(*this);
+    }
 
-	value_type* allocate(size_type count)
-	{
-		return 0 != count ? AllocatorTraits::allocate(m_allocator, count) : 0;
-	}
+    const Pred& comp() const
+    {
+        return static_cast<const Pred&>(*this);
+    }
 
-	void deallocate(value_type* ptr, size_type count)
-	{
-		if (0 != ptr)
-		{
-			AllocatorTraits::deallocate(m_allocator, ptr, count);
-		}
-	}
+    bool is_equivalent(const T& lhs, const T& rhs) const
+    {
+        return !comp()(lhs, rhs) && !comp()(rhs, lhs);
+    }
 
-	template<typename U>
-	void constructAt(value_type* ptr, U&& value)
-	{
-		AllocatorTraits::construct(m_allocator, ptr, std::forward<U>(value));
-	}
+    bool is_valid_hint(const_iterator hint, const T& x) const
+    {
+        const_iterator b = begin();
+        const_iterator e = end();
+        if (hint < b || hint > e) return false;
+        if (hint != b && !comp()(*(hint - 1), x)) return false;
+        if (hint != e && !comp()(x, *hint)) return false;
+        return true;
+    }
 
-	void destroyAt(value_type* ptr)
-	{
-		AllocatorTraits::destroy(m_allocator, ptr);
-	}
-
-	void destroyStorage()
-	{
-		clear();
-		deallocate(m_ptr, m_capacity);
-		m_ptr = 0;
-		m_capacity = 0;
-	}
-
-	void growIfNeeded()
-	{
-		if (m_size < m_capacity)
-		{
-			return;
-		}
-
-		size_type newCapacity = 0 == m_capacity ? 1 : (m_capacity * 2);
-		reserve(newCapacity);
-	}
-
-	size_type iteratorToIndex(const_iterator it) const
-	{
-		if (0 == m_ptr || 0 == it)
-		{
-			return 0;
-		}
-		return static_cast<size_type>(it - m_ptr);
-	}
-
-	size_type lowerBoundIndex(const T& t) const
-	{
-		key_compare pred;
-		size_type first = 0;
-		size_type count = m_size;
-		while (0 < count)
-		{
-			size_type step = count / 2;
-			size_type mid = first + step;
-			if (pred(m_ptr[mid], t))
-			{
-				first = mid + 1;
-				count -= step + 1;
-			}
-			else
-			{
-				count = step;
-			}
-		}
-		return first;
-	}
-
-	size_type upperBoundIndex(const T& t) const
-	{
-		key_compare pred;
-		size_type first = 0;
-		size_type count = m_size;
-		while (0 < count)
-		{
-			size_type step = count / 2;
-			size_type mid = first + step;
-			if (!pred(t, m_ptr[mid]))
-			{
-				first = mid + 1;
-				count -= step + 1;
-			}
-			else
-			{
-				count = step;
-			}
-		}
-		return first;
-	}
-
-	bool isEquivalent(const T& lhs, const T& rhs) const
-	{
-		key_compare pred;
-		return !pred(lhs, rhs) && !pred(rhs, lhs);
-	}
-
-	void insertAt(size_type pos, const value_type& value)
-	{
-		growIfNeeded();
-
-		if (pos < m_size)
-		{
-			constructAt(m_ptr + m_size, std::move(m_ptr[m_size - 1]));
-			for (size_type i = m_size - 1; i > pos; --i)
-			{
-				m_ptr[i] = std::move(m_ptr[i - 1]);
-			}
-			m_ptr[pos] = value;
-		}
-		else
-		{
-			constructAt(m_ptr + m_size, value);
-		}
-		++m_size;
-	}
-
-private:
-	allocator_type m_allocator;
-	value_type* m_ptr;
-	size_type m_size;
-	size_type m_capacity;
+    void sort_unique()
+    {
+        std::sort(begin(), end(), comp());
+        iterator newEnd = std::unique(begin(), end(),
+            [this](const T& a, const T& b) { return is_equivalent(a, b); });
+        Base::erase(newEnd, end());
+    }
 };
+
+template<class T, class Pred, class A>
+void swap(FlatSet<T, Pred, A>& lhs, FlatSet<T, Pred, A>& rhs)
+noexcept(noexcept(lhs.swap(rhs)))
+{
+    lhs.swap(rhs);
+}
 
 END_PAFCORE
