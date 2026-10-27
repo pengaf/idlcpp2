@@ -5,6 +5,7 @@ set(header_files
     "debug.h"
     "flat_map.h"
     "flat_set.h"
+    "hash.h"
     "memory.h"
     "overload.h"
     "pool.h"

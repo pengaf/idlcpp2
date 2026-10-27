@@ -248,6 +248,17 @@ public:
         return 1;
     }
 
+    const_reference operator[](size_type n) const
+    {
+        PAF_ASSERT(n < size());
+        return Base::operator[](n);
+    }
+
+    const_reference at(size_type n) const
+    {
+        return Base::at(n);
+    }
+
     void swap(FlatSet& other)
         noexcept(noexcept(Base::swap(other)) &&
             noexcept(std::declval<Pred&>() = std::declval<Pred&&>()))
