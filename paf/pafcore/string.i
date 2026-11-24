@@ -7,7 +7,7 @@
 namespace pafcore
 {
 
-	class(value_instance) #PAFCORE_EXPORT String
+	class(string_type) #PAFCORE_EXPORT String
 	{
 		String();
 		string_t toString__() const;

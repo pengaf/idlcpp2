@@ -97,6 +97,9 @@ namespace pafcore
 		//dummy
 		dummy_metadata,
 		dummy_type,
+		//special
+		string_type,
+		blob_type,
 	};
 
 	enum class TypeCompound ## : uint8_t

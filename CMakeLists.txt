@@ -86,5 +86,6 @@ endif()
 
 add_subdirectory(idlcpp)
 add_subdirectory(paf/pafcore)
+add_subdirectory(paf/pafstd)
 add_subdirectory(paf/paflua)
 add_subdirectory(test)

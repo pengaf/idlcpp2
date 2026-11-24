@@ -48,6 +48,8 @@ public:
     using Base::shrink_to_fit;
     using Base::clear;
     using Base::get_allocator;
+    using Base::data;
+
 
     FlatSet() : 
         Base(), Pred() 

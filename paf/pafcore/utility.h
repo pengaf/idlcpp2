@@ -157,6 +157,27 @@ protected:
 	const char* m_str;
 };
 
+class blob_t
+{
+public:
+	blob_t() : m_pointer(0), m_size(0)
+	{}
+	blob_t(void* p, size_t s) : m_pointer(p), m_size(s)
+	{}
+public:
+	void* data() const
+	{
+		return m_pointer;
+	}
+	size_t size() const
+	{
+		return m_size;
+	}
+protected:
+	void* m_pointer = nullptr;
+	size_t m_size = 0;
+};
+
 template<typename T>
 struct RuntimeTypeOf
 {};

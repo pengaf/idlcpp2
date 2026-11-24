@@ -26,7 +26,7 @@ set(header_files
 )
 
 set(interface_files
-    "buffer.i"
+    "blob.i"
     "class_type.i"
     "dynamic_properties.i"
     "enum_member.i"
@@ -54,7 +54,7 @@ set(interface_files
 )
 
 set(source_files
-    "buffer.cpp"
+    "blob.cpp"
     "class_type.cpp"
     "dynamic_properties.cpp"
     "enum_member.cpp"
